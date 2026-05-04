@@ -1,0 +1,102 @@
+{
+  "meta": {
+    "schema_version": "1",
+    "run_mode": "acceptance",
+    "timestamp_utc": "2026-05-04T07:29:18Z",
+    "script_version": "1.0.0"
+  },
+  "fingerprint": {
+    "repo_root_marker": ".git",
+    "python_version": "3.10.0",
+    "platform": "darwin"
+  },
+  "facts": {
+    "repo_present": true,
+    "git_available": false,
+    "current_branch": null,
+    "workspace_clean": null,
+    "key_paths": {
+      "README.md": true,
+      ".github/": true,
+      "pyproject.toml": true,
+      "tests/": true,
+      "scripts/": false,
+      ".github/copilot-instructions.md": false
+    }
+  },
+  "assertions": [
+    {
+      "id": "path_exists/0",
+      "kind": "path_exists",
+      "target": "pyproject.toml",
+      "state": "PASS",
+      "expected": true,
+      "observed": true,
+      "remediation_type": null
+    },
+    {
+      "id": "path_exists/1",
+      "kind": "path_exists",
+      "target": "src/mlops_async/__init__.py",
+      "state": "PASS",
+      "expected": true,
+      "observed": true,
+      "remediation_type": null
+    },
+    {
+      "id": "path_exists/2",
+      "kind": "path_exists",
+      "target": "tests",
+      "state": "PASS",
+      "expected": true,
+      "observed": true,
+      "remediation_type": null
+    },
+    {
+      "id": "path_type/0",
+      "kind": "path_type",
+      "target": "src/mlops_async",
+      "state": "PASS",
+      "expected": "directory",
+      "observed": "directory",
+      "remediation_type": null
+    },
+    {
+      "id": "command_available/0",
+      "kind": "command_available",
+      "target": "uv",
+      "state": "PASS",
+      "expected": true,
+      "observed": true,
+      "remediation_type": null
+    },
+    {
+      "id": "command_available/1",
+      "kind": "command_available",
+      "target": "pyright",
+      "state": "FAIL",
+      "expected": true,
+      "observed": false,
+      "remediation_type": "MISSING"
+    },
+    {
+      "id": "command_available/2",
+      "kind": "command_available",
+      "target": "ruff",
+      "state": "PASS",
+      "expected": true,
+      "observed": true,
+      "remediation_type": null
+    }
+  ],
+  "gaps": [
+    {
+      "id": "CONTRACT_ERROR/0",
+      "kind": "CONTRACT_ERROR",
+      "target": "<assertion>",
+      "state": "UNRESOLVED",
+      "detail": "assertion kind 'file_contains' is not in the v1 supported subset (path_exists, path_type, command_available)",
+      "remediation_type": "MALFORMED"
+    }
+  ]
+}
