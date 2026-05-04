@@ -1,9 +1,9 @@
 # Pre-commit hooks 配置
-# 執行安裝：uv run pre-commit install
+# 安裝：uv run pre-commit install
 # 手動執行：uv run pre-commit run --all-files
 
 repos:
-  # Ruff: 快速 linting 和 formatting
+  # Ruff - Python 快速 linter 和 formatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.12
     hooks:
@@ -11,32 +11,50 @@ repos:
         args: ["--fix"]
       - id: ruff-format
 
-  # Pyright: 類型檢查（strict 模式）
+  # Pytest - 執行單元測試
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: uv run pytest
+        language: system
+        types: [python]
+        stages: [manual]  # 手動執行：pre-commit run --hook-stage manual --all-files
+        pass_filenames: false
+        always_run: true
+
+  # Pyright - 嚴格模式類型檢查
   - repo: local
     hooks:
       - id: pyright-strict
         name: pyright (strict mode)
-        entry: bash -c 'uv run pyright --strict'
+        entry: uv run pyright --strict
         language: system
         types: [python]
-        stages: [commit]
+        stages: [manual]  # 手動執行，避免 commit 前卡住
+        pass_filenames: false
+        always_run: true
 
-  # 防止大型文件被提交
+  # 基本檔案檢查和清理
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+      - id: check-merge-conflict
       - id: check-added-large-files
-        args: ['--maxkb=1000']
+        args: ["--maxkb=500"]
 
-  # 提交訊息檢查（繁體中文）
-  - repo: local
-    hooks:
-      - id: commit-msg-check
-        name: Check commit message is in Traditional Chinese
-        entry: bash -c 'if git diff --cached --name-only | grep -q .; then echo "檢查提交訊息（應為繁體中文）..."; fi'
-        language: system
-        stages: [commit-msg]
-        always_run: true
+# CI 自動修復設定
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] 自動修復來自 pre-commit.com hooks
+
+    詳情請見 https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit 自動更新'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

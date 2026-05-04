@@ -86,9 +86,7 @@ def make_meta(mode: RunMode) -> Meta:
     return Meta(
         schema_version=SCHEMA_VERSION,
         run_mode=mode,
-        timestamp_utc=datetime.datetime.now(datetime.timezone.utc).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        ),
+        timestamp_utc=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         script_version=SCRIPT_VERSION,
     )
 
@@ -130,21 +128,14 @@ def make_facts(repo_root: Path) -> Facts:
     workspace_clean: bool | None = None
 
     if shutil.which("git") is not None:
-        current_branch = _run_git_command(
-            repo_root, ["git", "rev-parse", "--abbrev-ref", "HEAD"]
-        )
+        current_branch = _run_git_command(repo_root, ["git", "rev-parse", "--abbrev-ref", "HEAD"])
         if current_branch is not None:
             git_available = True
-            branch_status = _run_git_command(
-                repo_root, ["git", "status", "--porcelain"]
-            )
+            branch_status = _run_git_command(repo_root, ["git", "status", "--porcelain"])
             if branch_status is not None:
                 workspace_clean = branch_status == ""
 
-    key_paths = {
-        relative_path: (repo_root / relative_path).exists()
-        for relative_path in KEY_PATHS
-    }
+    key_paths = {relative_path: (repo_root / relative_path).exists() for relative_path in KEY_PATHS}
 
     return Facts(
         repo_present=repo_present,
@@ -221,8 +212,7 @@ def _parse_assertion_kind(raw_kind: str) -> AssertionKind:
 def evaluate_assertion(
     record: RawAssertion, repo_root: Path
 ) -> tuple[AssertionRecord, GapRecord | None]:
-    """
-    Evaluate one assertion record.
+    """Evaluate one assertion record.
 
     Returns (assertion_record_without_id, gap_without_id | None).
     Raises UnsupportedAssertionKindError for any kind outside the v1 subset.
@@ -235,9 +225,7 @@ def evaluate_assertion(
         case AssertionKind.PATH_EXISTS:
             expected = expected_raw.lower() in ("true", "yes", "1")
             is_observed = (repo_root / target).exists()
-            state = (
-                AssertionState.PASS if is_observed == expected else AssertionState.FAIL
-            )
+            state = AssertionState.PASS if is_observed == expected else AssertionState.FAIL
             if state is AssertionState.PASS:
                 return (
                     make_assertion_record(
@@ -251,9 +239,7 @@ def evaluate_assertion(
                     None,
                 )
 
-            remediation = (
-                RemediationType.MISSING if expected else RemediationType.DEPRECATED
-            )
+            remediation = RemediationType.MISSING if expected else RemediationType.DEPRECATED
             gap = make_gap(
                 kind=kind,
                 target=target,
@@ -296,11 +282,7 @@ def evaluate_assertion(
                     None,
                 )
 
-            remediation = (
-                RemediationType.MISSING
-                if observed is None
-                else RemediationType.MISMATCH
-            )
+            remediation = RemediationType.MISSING if observed is None else RemediationType.MISMATCH
             gap = make_gap(
                 kind=kind,
                 target=target,
@@ -322,9 +304,7 @@ def evaluate_assertion(
         case AssertionKind.COMMAND_AVAILABLE:
             expected = expected_raw.lower() in ("true", "yes", "1")
             is_observed = shutil.which(target) is not None
-            state = (
-                AssertionState.PASS if is_observed == expected else AssertionState.FAIL
-            )
+            state = AssertionState.PASS if is_observed == expected else AssertionState.FAIL
             if state is AssertionState.PASS:
                 return (
                     make_assertion_record(
@@ -338,9 +318,7 @@ def evaluate_assertion(
                     None,
                 )
 
-            remediation = (
-                RemediationType.MISSING if expected else RemediationType.DEPRECATED
-            )
+            remediation = RemediationType.MISSING if expected else RemediationType.DEPRECATED
             gap = make_gap(
                 kind=kind,
                 target=target,
@@ -402,8 +380,7 @@ def _emit_to_stderr(payload: JsonObject) -> None:
 
 
 def _try_emit(manifest: Manifest, output_path: Path) -> bool:
-    """
-    Try to write manifest to output_path.
+    """Try to write manifest to output_path.
     On failure, annotates manifest with the error and emits to stderr.
     Returns True if written to disk, False if fell back to stderr.
     """
@@ -415,9 +392,7 @@ def _try_emit(manifest: Manifest, output_path: Path) -> bool:
         return False
 
 
-def _try_emit_payload(
-    payload: JsonObject, output_path: Path, fallback_manifest: Manifest
-) -> bool:
+def _try_emit_payload(payload: JsonObject, output_path: Path, fallback_manifest: Manifest) -> bool:
     try:
         write_manifest(payload, output_path)
         return True
@@ -548,9 +523,7 @@ def run_acceptance(
             assertion_results.append(assertion_record)
 
             if gap_record is not None:
-                gap_record = gap_record.with_id(
-                    _next_record_id(gap_record.kind, gap_counts)
-                )
+                gap_record = gap_record.with_id(_next_record_id(gap_record.kind, gap_counts))
                 gaps.append(gap_record)
 
             if assertion_record.state is AssertionState.FAIL:
