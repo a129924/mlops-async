@@ -1,0 +1,42 @@
+# Pre-commit hooks 配置
+# 執行安裝：uv run pre-commit install
+# 手動執行：uv run pre-commit run --all-files
+
+repos:
+  # Ruff: 快速 linting 和 formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  # Pyright: 類型檢查（strict 模式）
+  - repo: local
+    hooks:
+      - id: pyright-strict
+        name: pyright (strict mode)
+        entry: bash -c 'uv run pyright --strict'
+        language: system
+        types: [python]
+        stages: [commit]
+
+  # 防止大型文件被提交
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+
+  # 提交訊息檢查（繁體中文）
+  - repo: local
+    hooks:
+      - id: commit-msg-check
+        name: Check commit message is in Traditional Chinese
+        entry: bash -c 'if git diff --cached --name-only | grep -q .; then echo "檢查提交訊息（應為繁體中文）..."; fi'
+        language: system
+        stages: [commit-msg]
+        always_run: true
