@@ -48,13 +48,16 @@
 
 遇到以下任一條件，必須停止自動擴展：
 
-1. upload/download
+1. upload / download
 2. streaming
-3. polling / wait-loop
-4. pagination expansion with hidden behavior
-5. global session side effects
-6. conditional endpoint selection
-7. unclear source behavior or unclear response schema
+3. polling 或 job status wait
+4. retry behavior
+5. pagination expansion
+6. global session side effects
+7. conditional endpoint selection
+8. request contract 無法從 source 穩定推出
+9. response fixture 不足以定義 schema
+10. source function 包含非 HTTP wrapper 的複雜行為
 
 ## Git workflow policy
 

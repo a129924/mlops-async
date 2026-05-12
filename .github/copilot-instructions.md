@@ -43,7 +43,7 @@ This file defines decision rules for AI agents writing code in this repository.
 
 - 在開始新 topic 前，先讀 `docs/project-goal.md` 與 `docs/project-guidelines.md`
 - 若 task 與 GOAL 或 Guidelines 衝突，先停下並更新文件，不要直接實作
-- topic workflow 預設：worktree / feature branch -> batched commit/push -> ready PR -> wait human merge
+- topic workflow 預設：worktree / feature branch → batched commit/push → ready PR → wait-human-merge
 
 ---
 
@@ -156,7 +156,7 @@ For detailed guidance, see:
 7. Refer to `.github/skills/python-error-handling/SKILL.md` for exception design
 8. Refer to `.github/skills/python-testing-pytest/SKILL.md` for test structure
 9. Use `.github/agents/python-implementation-workflow.agent.md` when the task needs gated plan → implementation → review orchestration
-10. Ask: "Does this decision affect how I write code right now?" If no -> check documentation instead
+10. Ask: "Does this decision affect how I write code right now?" If no → check documentation instead
 
 ---
 
