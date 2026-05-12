@@ -11,7 +11,7 @@ inputs:
   - planner output or equivalent source/request contract
   - source SDK evidence with module, function, file, line range, and commit or version
   - target module, class, method, and allowed file scope
-  - current migration map path: `docs/migration-map.md`
+  - "current migration map path: `docs/migration-map.md`"
   - local test command or validation expectations
   - current porting ledger location
 outputs:
