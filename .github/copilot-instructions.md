@@ -37,6 +37,13 @@ This file defines decision rules for AI agents writing code in this repository.
 
 ## API Design
 
+### Source SDK Porting
+- Before porting any `sasctl` or legacy SDK API, read `analysis/api-client-porting-contract/requirements.md` and `analysis/api-client-porting-contract/technical-spec.md`
+- Use `.github/skills/api-client-porting-planner/` for endpoint-family discovery, request contract drafts, risk classification, porting order, and stop flags
+- Use `.github/skills/api-client-porting-implementer/` only after planner output or equivalent source/request contract evidence exists
+- Update `docs/porting-ledger.md` for every ported API before claiming compatibility
+- Stop for human review on upload/download, streaming, polling, retry, pagination expansion, global session side effects, conditional endpoint selection, unclear source behavior, or unclear response schema
+
 ### Response Models
 - Use `pydantic.BaseModel` for every SAS Viya API response type
 - One model per endpoint; reuse common field definitions
@@ -116,16 +123,23 @@ For detailed guidance, see:
 - **`README.md`**: Installation, quick start, examples
 - **`.github/CONTRIBUTING.md`**: Git workflow, commit convention, dev setup
 - **`docs/ARCHITECTURE.md`**: Human-facing design intent and skill map
-- **`.github/skills/`**: 19 installed Agent Skills with detailed rule references
+- **`.github/skills/`**: 28 installed Agent Skills with detailed rule references
+- **`.github/agents/`**: workflow orchestration agents for plan-to-review execution
+- **`analysis/api-client-porting-contract/`**: frozen requirements and technical spec for contract-first API porting
+- **`docs/porting-ledger.md`**: compatibility and evidence ledger for ported source SDK APIs
 
 ---
 
 ## When in Doubt
 
-1. Refer to `.github/skills/python-async-await/SKILL.md` for async patterns
-2. Refer to `.github/skills/python-error-handling/SKILL.md` for exception design
-3. Refer to `.github/skills/python-testing-pytest/SKILL.md` for test structure
-4. Ask: "Does this decision affect how I write code right now?" If no → check documentation instead
+1. For source SDK porting, start with `analysis/api-client-porting-contract/requirements.md`
+2. Use `.github/skills/api-client-porting-planner/SKILL.md` before implementation
+3. Use `.github/skills/api-client-porting-implementer/SKILL.md` only after request contract evidence exists
+4. Refer to `.github/skills/python-async-await/SKILL.md` for async patterns
+5. Refer to `.github/skills/python-error-handling/SKILL.md` for exception design
+6. Refer to `.github/skills/python-testing-pytest/SKILL.md` for test structure
+7. Use `.github/agents/python-implementation-workflow.agent.md` when the task needs gated plan → implementation → review orchestration
+8. Ask: "Does this decision affect how I write code right now?" If no → check documentation instead
 
 ---
 

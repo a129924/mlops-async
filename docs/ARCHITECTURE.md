@@ -28,7 +28,7 @@ They are design targets, not implemented files yet.
 
 ## Skill map
 
-This repository includes 19 project skills. They guide implementation rather
+This repository includes 28 project skills. They guide implementation rather
 than replace normal source files.
 
 ### Async and API design
@@ -36,6 +36,7 @@ than replace normal source files.
 - `python-async-await`
 - `python-api-signature`
 - `python-error-handling`
+- `python-serialization-boundaries`
 - `python-type-hints-strict`
 
 ### Library structure
@@ -55,6 +56,17 @@ than replace normal source files.
 - `sense-env-scaffold`
 - `copilot-instructions-init`
 
+### Planning and implementation workflow
+
+- `api-client-porting-planner`
+- `api-client-porting-implementer`
+- `python-plan-authoring`
+- `python-plan-review`
+- `python-tdd-test-authoring`
+- `plan-step-tracker`
+- `python-implementation-review`
+- `python-code-review`
+
 ### Git and release workflow
 
 - `git-commit-convention`
@@ -62,9 +74,20 @@ than replace normal source files.
 - `git-post-merge-workflow`
 - `git-release-management`
 
+## Custom agents
+
+This repository includes 1 custom workflow agent.
+
+- `python-implementation-workflow` — orchestrates plan review, TDD assessment,
+  implementation gating, implementation review, and code review for one topic
+
 ## Control documents
 
 - `README.md` — human entry point
 - `.github/CONTRIBUTING.md` — development workflow
 - `.github/copilot-instructions.md` — AI control plane
 - `blueprint.md` — initialization and acceptance contract
+- `analysis/api-client-porting-contract/requirements.md` — frozen API porting behavior requirements
+- `analysis/api-client-porting-contract/technical-spec.md` — technical mapping for API porting workflow artifacts
+- `plan/api-client-porting-contract/api-client-porting-contract.plan.md` — implementation contract for the porting workflow
+- `docs/porting-ledger.md` — evidence ledger for each ported source SDK API
