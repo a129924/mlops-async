@@ -31,11 +31,21 @@
 7. `docs/migration-map.md` 用於集中追蹤 mapping、狀態與 review notes；`docs/porting-ledger.md` 用於完整證據。
 8. 當 source behavior、response schema、pagination、polling、upload/download、streaming 或 global session side effects 不清楚時，停止並交給人工 review。
 
+## Project goal and guidelines
+
+開始新 topic 前，先閱讀：
+
+1. `docs/project-goal.md`
+2. `docs/project-guidelines.md`
+
+若任務需求與上述文件衝突，先更新治理文件，再進行實作或 porting。
+
 ## Git conventions
 
 - Prefer short-lived topic branches
 - Use semantic commit messages
 - Keep commits atomic and reviewable
+- For larger or parallel topics, prefer worktree + feature branch isolation from `dev`
 
 ## Source of truth
 
@@ -46,5 +56,7 @@
 - `.github/copilot-instructions.md` — AI-facing coding rules
 - `.github/skills/` — detailed skill-level guidance
 - `.github/agents/` — workflow orchestration guidance for multi-phase implementation work
+- `docs/project-goal.md` — 專案目標、成功定義與非目標
+- `docs/project-guidelines.md` — 專案執行準則與 topic workflow 規範
 - `docs/migration-map.md` — source API 到 target async API 的集中遷移對照表
 - `docs/porting-ledger.md` — API porting evidence and compatibility ledger
