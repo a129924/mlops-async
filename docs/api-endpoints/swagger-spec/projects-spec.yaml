@@ -1,0 +1,486 @@
+openapi: 3.0.0
+info:
+  title: SAS Viya Model Repository Projects API
+  description: |
+    SAS Viya 專案管理端點文檔。
+
+    覆蓋 `modelRepository/projects` 相關操作，包含取得專案清單、Champion Model 查詢，
+    以及 Champion Model 的完整 Payload 組合（含多個檔案的下載與解析）。
+
+    **所有請求均需攜帶 Bearer Token**（由 Authentication API 取得）。
+
+    **必要 Headers**（`sas_viya_get_headers`）：
+    ```
+    Authorization: Bearer {access_token}
+    Accept: application/vnd.sas.models.model+json, application/json
+    ```
+
+    **來源程式碼**：`utils/_api/project.py`
+  version: 1.0.0
+
+servers:
+  - url: https://{sas_viya_host}
+    description: SAS Viya 伺服器
+    variables:
+      sas_viya_host:
+        default: your-sas-viya-instance
+        description: 由環境變數 `base_url` 設定
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        SAS Viya OAuth 2.0 Bearer Token。
+        Header 格式：`Authorization: Bearer {access_token}`
+
+  schemas:
+    ProjectLink:
+      type: object
+      description: HATEOAS 連結物件（來源：schema/sas_viya/project/all_project_schema.py::Link）
+      properties:
+        method:
+          type: string
+        rel:
+          type: string
+        href:
+          type: string
+        uri:
+          type: string
+        type:
+          type: string
+          nullable: true
+        itemType:
+          type: string
+          nullable: true
+
+    ProjectItem:
+      type: object
+      description: |
+        單筆專案資訊。
+        來源：`schema/sas_viya/project/all_project_schema.py::Item`
+      required:
+        - id
+        - name
+        - status
+      properties:
+        creationTimeStamp:
+          type: string
+        createdBy:
+          type: string
+        modifiedTimeStamp:
+          type: string
+        modifiedBy:
+          type: string
+        version:
+          type: number
+        id:
+          type: string
+          description: 專案唯一識別碼
+          example: "proj-456-abc-789"
+        name:
+          type: string
+          description: 專案名稱
+          example: "Churn_Prediction_Project"
+        function:
+          type: string
+          nullable: true
+          description: 模型功能類型（classification 等）
+        externalProjectId:
+          type: string
+          nullable: true
+        candidateChampionHonored:
+          type: boolean
+          nullable: true
+        trainTable:
+          type: string
+          nullable: true
+        targetVariable:
+          type: string
+          nullable: true
+        targetEventValue:
+          type: string
+          nullable: true
+        targetLevel:
+          type: string
+          nullable: true
+        eventProbabilityVariable:
+          type: string
+          nullable: true
+          description: 事件機率變數名稱
+        latestVersion:
+          type: string
+          description: 最新版本號
+        status:
+          type: string
+          description: 專案狀態
+          example: "development"
+        repositoryId:
+          type: string
+        folderId:
+          type: string
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectLink'
+
+    ProjectsListResponse:
+      type: object
+      description: |
+        專案清單回應。
+        來源：`schema/sas_viya/project/response.py::SASViyaProjectsResponse`
+      required:
+        - count
+        - items
+      properties:
+        version:
+          type: number
+        accept:
+          type: string
+        count:
+          type: integer
+          description: 符合條件的專案總數
+        start:
+          type: integer
+          description: 本次回傳的起始索引
+        limit:
+          type: integer
+          description: 本次回傳的最大筆數（API 呼叫時預設 1000）
+        name:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectItem'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectLink'
+
+    ChampionModelFile:
+      type: object
+      description: |
+        Champion Model 的相關檔案。
+        來源：`schema/sas_viya/project/champion.py::File`
+      properties:
+        id:
+          type: string
+          description: 檔案 ID（用於組合下載 URL）
+          example: "file-id-001"
+        name:
+          type: string
+          description: 檔案名稱
+          example: "dmcas_epscorecode.sas"
+        fileUri:
+          type: string
+        modelId:
+          type: string
+        version:
+          type: number
+        links:
+          type: array
+          items:
+            type: object
+
+    ChampionModelResponse:
+      type: object
+      description: |
+        Champion Model 詳細資訊。
+        來源：`schema/sas_viya/project/response.py::SASViyaChampionModelResponse`
+
+        **重要欄位**：
+        - `scoreCodeType`：`"ds2MultiType"` → model_type 為 `astore`；`"dataStep"` → model_type 為 `dataStep`
+        - `modelType`：若存在則直接使用；否則依 `scoreCodeType` 推斷
+        - `files`：包含所有需要下載的模型檔案（score code、metadata 等）
+        - `eventProbVar`：預測目標變數名稱（predict_target）
+      required:
+        - id
+        - name
+        - scoreCodeType
+      properties:
+        creationTimeStamp:
+          type: string
+        createdBy:
+          type: string
+        modifiedTimeStamp:
+          type: string
+          description: 模型最後修改時間（會存入 ChampionModelPayload.modified_timestamp）
+        modifiedBy:
+          type: string
+        id:
+          type: string
+          description: Champion Model 的唯一識別碼（用於組合檔案下載 URL）
+          example: "model-id-abc-123"
+        name:
+          type: string
+          description: Champion Model 名稱（存入 ChampionModelPayload.model_name）
+          example: "LogisticRegressionModel"
+        role:
+          type: string
+          example: "champion"
+        scoreCodeType:
+          type: string
+          enum: [ds2MultiType, dataStep]
+          description: |
+            評分代碼類型，用於判斷 model_type：
+            - `ds2MultiType` → model_type = `astore`（需要 AstoreMetadata.json）
+            - `dataStep` → model_type = `dataStep`（需要 ScoreCode 的 SAS 檔案）
+        modelType:
+          type: string
+          nullable: true
+          enum: [dataStep, astore]
+          description: 若存在則直接使用；否則由 scoreCodeType 推斷
+        eventProbVar:
+          type: string
+          description: 事件機率預測目標變數（ChampionModelPayload.predict_target）
+          example: "P_EVENT1"
+        projectId:
+          type: string
+        files:
+          type: array
+          description: |
+            模型相關檔案清單，用於組合下載 URL：
+            `{base_url}/modelRepository/models/{champion.id}/contents/{file.id}/content`
+          items:
+            $ref: '#/components/schemas/ChampionModelFile'
+        inputVariables:
+          type: array
+          items:
+            type: object
+        outputVariables:
+          type: array
+          items:
+            type: object
+
+paths:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # GET /modelRepository/projects
+  # 功能：取得 Model Repository 中所有已登錄的專案清單
+  # HTTP Method：GET
+  # Headers：sas_viya_get_headers（Bearer + Accept）
+  # Source：utils/_api/project.py::fetch_all_projects_response
+  # ─────────────────────────────────────────────────────────────────────────
+  /modelRepository/projects:
+    get:
+      summary: 取得所有專案
+      operationId: getAllProjects
+      tags:
+        - Projects
+      description: |
+        從 SAS Viya Model Repository 取得所有已登錄的專案清單。
+
+        **HTTP Method**：GET
+
+        **使用場景**：
+        - 取得所有可用專案的清單
+        - 搭配 `process_projects_response_by_project_name` 在 client 端以專案名稱篩選，
+          取得目標專案的 `id`（用於後續取得 Champion Model）
+
+        **必要 Headers**：
+        ```
+        Authorization: Bearer {access_token}
+        Accept: application/vnd.sas.models.model+json, application/json
+        ```
+
+        **注意**：API 層預設 `limit=1000`，通常一次取回所有專案後在 client 端過濾，
+        不直接支援依名稱查詢。
+
+        **來源程式碼**：`utils/_api/project.py::fetch_all_projects_response`
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: 回傳最大筆數（API 呼叫時預設 1000）
+          schema:
+            type: integer
+            default: 1000
+          example: 1000
+      responses:
+        '200':
+          description: 成功取得專案清單
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectsListResponse'
+              examples:
+                success:
+                  summary: 成功回應範例
+                  value:
+                    version: 2.0
+                    accept: "application/vnd.sas.collection+json"
+                    count: 2
+                    start: 0
+                    limit: 1000
+                    name: "projects"
+                    items:
+                      - id: "proj-456-abc-789"
+                        name: "Churn_Prediction_Project"
+                        version: 1.0
+                        latestVersion: "1"
+                        status: "development"
+                        repositoryId: "repo-001"
+                        folderId: "folder-001"
+                        links: []
+                      - id: "proj-789-def-012"
+                        name: "Fall_Risk_Project"
+                        version: 1.0
+                        latestVersion: "2"
+                        status: "development"
+                        repositoryId: "repo-001"
+                        folderId: "folder-001"
+                        links: []
+                    links: []
+        '400':
+          description: 請求無效
+        '401':
+          description: Bearer Token 無效或過期
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # GET /modelRepository/projects/{projectId}/champion
+  # 功能：取得指定專案的 Champion Model 詳細資訊（含 files）
+  # HTTP Method：GET
+  # Headers：sas_viya_get_headers（Bearer + Accept）
+  # Source：utils/_api/project.py::fetch_champion_model
+  #         URL 組合：utils/_api/project.py::get_champion_model_url
+  # ─────────────────────────────────────────────────────────────────────────
+  /modelRepository/projects/{projectId}/champion:
+    get:
+      summary: 取得專案的 Champion Model
+      operationId: getChampionModel
+      tags:
+        - Projects
+        - Champion Model
+      description: |
+        取得指定專案目前的 Champion Model 詳細資訊，包含模型類型、檔案清單（`files`）及輸入/輸出變數。
+
+        **HTTP Method**：GET
+
+        **URL 組合方式**（來源 `project.py::get_champion_model_url`）：
+        ```python
+        url = f"{base_url}modelRepository/projects/{project_item.id}/champion"
+        ```
+        其中 `project_item.id` 需先透過 `GET /modelRepository/projects` 取得。
+
+        **使用場景**：
+        1. 先呼叫 `GET /modelRepository/projects?limit=1000`，在 client 端找到目標專案取得 `projectId`
+        2. 再呼叫此端點取得 Champion Model 的 `id`、`scoreCodeType`、`files` 等資訊
+        3. 依 `files` 清單下載所需的模型檔案（score code、metadata JSON 等）
+
+        **模型類型判斷**（來源 `project.py::_get_model_type`）：
+        - 若 `modelType` 欄位有值 → 直接使用
+        - 否則依 `scoreCodeType` 推斷：
+          - `ds2MultiType` → `astore` 類型（需要 `AstoreMetadata.json`）
+          - `dataStep` → `dataStep` 類型（需要 `ScoreCode[0-9]+.sas`）
+
+        **必要 Headers**：
+        ```
+        Authorization: Bearer {access_token}
+        Accept: application/vnd.sas.models.model+json, application/json
+        ```
+
+        **來源程式碼**：`utils/_api/project.py::fetch_champion_model`
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: 專案唯一識別碼（由 GET /modelRepository/projects 取得）
+          schema:
+            type: string
+          example: "proj-456-abc-789"
+      responses:
+        '200':
+          description: 成功取得 Champion Model 資訊
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChampionModelResponse'
+              examples:
+                astore_type:
+                  summary: astore 類型 Champion Model（scoreCodeType=ds2MultiType）
+                  value:
+                    id: "model-id-abc-123"
+                    name: "LogisticRegressionModel"
+                    role: "champion"
+                    scoreCodeType: "ds2MultiType"
+                    modelType: "astore"
+                    algorithm: "Logistic regression"
+                    function: "classification"
+                    modeler: "sas_user"
+                    modifiedTimeStamp: "2024-01-15T10:30:00.000Z"
+                    eventProbVar: "P_EVENT1"
+                    projectId: "proj-456-abc-789"
+                    files:
+                      - id: "file-001"
+                        name: "dmcas_relativeimportance.json"
+                        fileUri: "/modelRepository/models/model-id-abc-123/contents/file-001"
+                        modelId: "model-id-abc-123"
+                        version: 1
+                      - id: "file-002"
+                        name: "dmcas_scoreinputs.json"
+                        fileUri: "/modelRepository/models/model-id-abc-123/contents/file-002"
+                        modelId: "model-id-abc-123"
+                        version: 1
+                      - id: "file-003"
+                        name: "col_zh_table.csv"
+                        fileUri: "/modelRepository/models/model-id-abc-123/contents/file-003"
+                        modelId: "model-id-abc-123"
+                        version: 1
+                      - id: "file-004"
+                        name: "dmcas_packagemetadata.json"
+                        fileUri: "/modelRepository/models/model-id-abc-123/contents/file-004"
+                        modelId: "model-id-abc-123"
+                        version: 1
+                      - id: "file-005"
+                        name: "AstoreMetadata.json"
+                        fileUri: "/modelRepository/models/model-id-abc-123/contents/file-005"
+                        modelId: "model-id-abc-123"
+                        version: 1
+                      - id: "file-006"
+                        name: "dmcas_epscorecode.sas"
+                        fileUri: "/modelRepository/models/model-id-abc-123/contents/file-006"
+                        modelId: "model-id-abc-123"
+                        version: 1
+                    inputVariables: []
+                    outputVariables: []
+                datastep_type:
+                  summary: dataStep 類型 Champion Model
+                  value:
+                    id: "model-id-def-456"
+                    name: "GBMModel"
+                    role: "champion"
+                    scoreCodeType: "dataStep"
+                    modelType: "dataStep"
+                    algorithm: "Gradient boosting"
+                    modifiedTimeStamp: "2024-02-01T08:00:00.000Z"
+                    eventProbVar: "P_BAD1"
+                    projectId: "proj-789-def-012"
+                    files:
+                      - id: "file-007"
+                        name: "dmcas_relativeimportance.json"
+                        modelId: "model-id-def-456"
+                        fileUri: "/modelRepository/models/model-id-def-456/contents/file-007"
+                        version: 1
+                      - id: "file-008"
+                        name: "ScoreCode001.sas"
+                        modelId: "model-id-def-456"
+                        fileUri: "/modelRepository/models/model-id-def-456/contents/file-008"
+                        version: 1
+                      - id: "file-009"
+                        name: "dmcas_scorecode.sas"
+                        modelId: "model-id-def-456"
+                        fileUri: "/modelRepository/models/model-id-def-456/contents/file-009"
+                        version: 1
+                    inputVariables: []
+                    outputVariables: []
+        '400':
+          description: 請求無效
+        '404':
+          description: 專案不存在或該專案無 Champion Model
+        '401':
+          description: Bearer Token 無效或過期
