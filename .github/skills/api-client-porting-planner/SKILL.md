@@ -1,6 +1,6 @@
 ---
 name: api-client-porting-planner
-description: Analyze source SDK APIs and endpoint families before implementation, producing request-contract evidence, risk classification, porting order, and stop flags without editing production code.
+description: Analyze source SDK APIs and endpoint families before implementation, producing request-contract evidence, migration-map rows, risk classification, porting order, and stop flags without editing production code.
 complexity: high
 risk_profile:
   - ambiguity_sensitive
@@ -14,6 +14,7 @@ outputs:
   - endpoint family map
   - source API list with file, line range, and version evidence
   - request contract draft
+  - migration-map row draft with row status fields
   - risk classification and stop flags
   - porting order and same-family batch recommendations
   - human-review notes for implementer handoff
@@ -29,12 +30,12 @@ do_not_use_when:
 ---
 
 # Purpose
-Create a review-ready pre-implementation plan for porting source SDK APIs into a target client by extracting source evidence, drafting request contracts, classifying risk, ordering work, and identifying stop flags.
+Create a review-ready pre-implementation plan for porting source SDK APIs into a target client by extracting source evidence, drafting request contracts, preparing migration-map row/status output, classifying risk, ordering work, and identifying stop flags.
 
 # Trigger / When to use
 Use this skill when:
 - an agent must analyze source SDK APIs before writing target client code
-- a source function set needs an endpoint family map and request contract draft
+- a source function set needs an endpoint family map, migration-map row draft, and request contract draft
 - future implementation depends on evidence from `sasctl`, a legacy SDK, or another SDK-like source
 - a handoff artifact is needed for an implementer agent
 
@@ -60,10 +61,11 @@ Do not use this skill when:
 5. Classify each API as `low`, `medium`, or `high` risk using `reference.md`.
 6. Mark stop flags for upload/download, streaming, polling/job wait, retry, pagination expansion, global session side effects, conditional endpoint selection, unclear source behavior, and non-wrapper complex behavior.
 7. Build the endpoint family map using `templates/family-map.md`.
-8. Propose porting order: simplest low-risk wrappers first, then related medium-risk wrappers, and high-risk or unclear APIs last with human review.
-9. Recommend same-family batch candidates only after enough request contract evidence exists. Never batch across endpoint families.
-10. Add human-review notes wherever evidence is missing, behavior is inferred, or an implementer might otherwise overreach.
-11. Output the planner result and workflow state contract.
+8. Draft migration-map rows for each planned API, including target method placeholder when needed, request/response status, compatibility, decision, review note, and ledger reference state.
+9. Propose porting order: simplest low-risk wrappers first, then related medium-risk wrappers, and high-risk or unclear APIs last with human review.
+10. Recommend same-family batch candidates only after enough request contract evidence exists. Never batch across endpoint families.
+11. Add human-review notes wherever evidence is missing, behavior is inferred, or an implementer might otherwise overreach.
+12. Output the planner result and workflow state contract.
 
 # Examples
 - Positive: Analyze `sasctl` model-repository functions, cite each function's module/file/line range/version, draft request method/path/query/body/auth fields, classify pagination as a stop flag, and recommend only same-family follow-up candidates.
@@ -71,6 +73,7 @@ Do not use this skill when:
 
 # Outputs
 - Endpoint family map grouped by source family and request pattern.
+- Migration-map row draft for each planned API, including request status, response status, compatibility, decision, review note, and ledger reference state.
 - Source API list with SDK, module, function, file, line range, and commit/version.
 - Request contract draft for each API: method, path, required headers, query params, body, and auth behavior.
 - Risk classification: `low`, `medium`, or `high`.
@@ -84,6 +87,7 @@ Do not use this skill when:
 - The output does not include production code, target client methods, tests, dependency changes, or runtime configuration edits.
 - Every source API entry includes SDK, module, function, file, line range, and commit/version evidence.
 - Every request contract draft includes method, path, required headers, query params, body, and auth behavior, even if some fields are marked `unknown` with notes.
+- Every planned API includes a migration-map row draft or explicit explanation for why no row can be emitted yet.
 - Risk classification is one of `low`, `medium`, or `high`.
 - Stop flags are explicitly checked for every API.
 - Same-family batch recommendations are absent unless request contract evidence supports them.
@@ -94,6 +98,7 @@ Do not use this skill when:
 - Human-review notes identify exactly what evidence is missing or ambiguous.
 - Porting order starts with APIs that have the clearest request contracts and lowest stop-flag burden.
 - Request contract drafts avoid response-schema or implementation assumptions.
+- Migration-map rows use explicit status values and allow placeholder ledger references only when no ledger entry exists yet.
 
 ## On Soft Fail
 - Mark status as `INCOMPLETE` when useful planning output exists but some non-blocking evidence is missing.
@@ -135,5 +140,5 @@ When participating in a multi-agent porting workflow, include:
 # Local references
 - `reference.md`: risk rules, required evidence fields, stop flags, and batching constraints for planner decisions.
 - `examples.md`: detailed positive and negative planner-output patterns for routine source SDK analysis.
-- `templates/family-map.md`: reusable output template for endpoint family maps and implementer handoff notes.
+- `templates/family-map.md`: reusable output template for endpoint family maps, migration-map rows, and implementer handoff notes.
 - `templates/`: local templates used only by this skill to structure planner outputs.
