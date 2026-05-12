@@ -18,6 +18,17 @@
 - Integration tests may talk to a real SAS Viya environment
 - Coverage target is `>= 90%`
 
+## Contract-first API porting
+
+當你要從 `sasctl` 或 legacy SDK 平移行為時：
+
+1. 先從 `analysis/api-client-porting-contract/requirements.md` 與 `analysis/api-client-porting-contract/technical-spec.md` 開始。
+2. 使用 `api-client-porting-planner` 產生 source evidence、request contract drafts、risk classification、porting order 與 stop flags。
+3. 只有在 request contract evidence 已經存在後，才能使用 `api-client-porting-implementer`。
+4. 在 minimal implementation 之前，先寫 request-contract tests。
+5. 每個 ported API 都要更新 `docs/porting-ledger.md`，之後才能宣告 compatibility。
+6. 當 source behavior、response schema、pagination、polling、upload/download、streaming 或 global session side effects 不清楚時，停止並交給人工 review。
+
 ## Git conventions
 
 - Prefer short-lived topic branches
@@ -28,5 +39,9 @@
 
 - `pyproject.toml` — dependencies and tool configuration
 - `blueprint.md` — initialization contract and acceptance criteria
+- `analysis/` — repo-visible requirements and technical specs for governed topics
+- `plan/` — repo-visible implementation plans and step trackers
 - `.github/copilot-instructions.md` — AI-facing coding rules
 - `.github/skills/` — detailed skill-level guidance
+- `.github/agents/` — workflow orchestration guidance for multi-phase implementation work
+- `docs/porting-ledger.md` — API porting evidence and compatibility ledger

@@ -6,11 +6,15 @@ This file defines decision rules for AI agents writing code in this repository.
 
 ## Language Requirement
 
-**All project communication must be in Traditional Chinese (繁體中文):**
-- Code comments, docstrings, and messages
+**本 repo 預設以繁體中文（Traditional Chinese）撰寫下列內容：**
+- repo 自有文件、註解與使用者可見訊息
 - Git commit messages
 - Issue descriptions and pull request content
-- Internal documentation
+- project-specific analysis / plan / ledger artifacts
+
+**例外：**
+- 若內容屬於 upstream / imported / shared assets，為了保留同步與可攜性，可維持原始語言
+- 新增的 repo 專屬補充內容仍優先使用繁體中文
 
 ---
 
@@ -36,6 +40,13 @@ This file defines decision rules for AI agents writing code in this repository.
 ---
 
 ## API Design
+
+### Source SDK Porting
+- 在 porting 任何 `sasctl` 或 legacy SDK API 之前，先閱讀 `analysis/api-client-porting-contract/requirements.md` 與 `analysis/api-client-porting-contract/technical-spec.md`
+- 使用 `.github/skills/api-client-porting-planner/` 做 endpoint-family discovery、request contract drafts、risk classification、porting order 與 stop flags
+- 只有在 planner output 或等價的 source / request contract evidence 已存在後，才可使用 `.github/skills/api-client-porting-implementer/`
+- 每個 ported API 都必須更新 `docs/porting-ledger.md`，之後才能宣告 compatibility
+- 遇到 upload/download、streaming、polling、retry、pagination expansion、global session side effects、conditional endpoint selection、unclear source behavior 或 unclear response schema 時，停止並交給人工 review
 
 ### Response Models
 - Use `pydantic.BaseModel` for every SAS Viya API response type
@@ -116,16 +127,23 @@ For detailed guidance, see:
 - **`README.md`**: Installation, quick start, examples
 - **`.github/CONTRIBUTING.md`**: Git workflow, commit convention, dev setup
 - **`docs/ARCHITECTURE.md`**: Human-facing design intent and skill map
-- **`.github/skills/`**: 19 installed Agent Skills with detailed rule references
+- **`.github/skills/`**: 28 installed Agent Skills with detailed rule references
+- **`.github/agents/`**: workflow orchestration agents for plan-to-review execution
+- **`analysis/api-client-porting-contract/`**: frozen requirements and technical spec for contract-first API porting
+- **`docs/porting-ledger.md`**: compatibility and evidence ledger for ported source SDK APIs
 
 ---
 
 ## When in Doubt
 
-1. Refer to `.github/skills/python-async-await/SKILL.md` for async patterns
-2. Refer to `.github/skills/python-error-handling/SKILL.md` for exception design
-3. Refer to `.github/skills/python-testing-pytest/SKILL.md` for test structure
-4. Ask: "Does this decision affect how I write code right now?" If no → check documentation instead
+1. For source SDK porting, start with `analysis/api-client-porting-contract/requirements.md`
+2. Use `.github/skills/api-client-porting-planner/SKILL.md` before implementation
+3. Use `.github/skills/api-client-porting-implementer/SKILL.md` only after request contract evidence exists
+4. Refer to `.github/skills/python-async-await/SKILL.md` for async patterns
+5. Refer to `.github/skills/python-error-handling/SKILL.md` for exception design
+6. Refer to `.github/skills/python-testing-pytest/SKILL.md` for test structure
+7. Use `.github/agents/python-implementation-workflow.agent.md` when the task needs gated plan → implementation → review orchestration
+8. Ask: "Does this decision affect how I write code right now?" If no → check documentation instead
 
 ---
 
