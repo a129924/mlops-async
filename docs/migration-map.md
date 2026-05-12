@@ -21,6 +21,10 @@ entry 的新 API，migration map 可以先保留規劃中的狀態與暫時 refe
 5. `.github/skills/api-client-porting-implementer/`
 6. `docs/porting-ledger.md`
 
+說明：`docs/porting-ledger.md` 在既有 entry 存在時是主要佐證來源；若是新 API，
+可先在 migration map 以 `planned` / `TBD` 建立暫時 `Ledger reference`，待 ledger
+entry 建立後回填實際 anchor。
+
 ## When to update
 
 請在這些時點更新：

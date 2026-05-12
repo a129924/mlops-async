@@ -21,6 +21,8 @@ API porting work 必須從下列 artifact 開始：
 `docs/migration-map.md` 用來集中追蹤 source API -> target async API 的 mapping、
 目前狀態與 review notes；`docs/porting-ledger.md` 則保留完整證據與 compatibility
 判斷依據。
+當兩份文件都在同一項 porting 工作範圍內時，請先更新 `docs/migration-map.md`
+（狀態與對照），再更新 `docs/porting-ledger.md`（完整證據與相容性判斷）。
 
 ## Compatibility labels
 
