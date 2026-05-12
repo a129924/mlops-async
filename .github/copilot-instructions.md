@@ -54,7 +54,7 @@ This file defines decision rules for AI agents writing code in this repository.
 - 使用 `.github/skills/api-client-porting-planner/` 做 endpoint-family discovery、request contract drafts、risk classification、porting order 與 stop flags
 - 只有在 planner output 或等價的 source / request contract evidence 已存在後，才可使用 `.github/skills/api-client-porting-implementer/`
 - 每個 ported API 都必須先更新 `docs/migration-map.md` 的對照狀態，再更新 `docs/porting-ledger.md` 的證據內容，之後才能宣告 compatibility
-- 遇到 upload/download、streaming、polling、retry、pagination expansion、global session side effects、conditional endpoint selection、unclear source behavior 或 unclear response schema 時，停止並交給人工 review
+- 遇到 upload / download、streaming、polling 或 job status wait、retry behavior、pagination expansion、global session side effects、conditional endpoint selection、request contract 無法從 source 穩定推出、response fixture 不足以定義 schema，或 source function 包含非 HTTP wrapper 的複雜行為時，停止並交給人工 review
 
 ### Response Models
 - Use `pydantic.BaseModel` for every SAS Viya API response type
