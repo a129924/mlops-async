@@ -41,7 +41,7 @@ Input:
 
 - Source SDK: legacy `sas-api` repository
 - Endpoint family: deployment endpoints
-- Source location: `/Users/andrew/code/python/sas-model-serving/legacy/need-refer-service/sas-api`
+- Source location: `<path-to-legacy-sas-api-checkout>`
 
 Good output behavior:
 

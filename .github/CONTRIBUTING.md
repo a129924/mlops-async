@@ -20,14 +20,14 @@
 
 ## Contract-first API porting
 
-When porting behavior from `sasctl` or a legacy SDK:
+當你要從 `sasctl` 或 legacy SDK 平移行為時：
 
-1. Start from `analysis/api-client-porting-contract/requirements.md` and `analysis/api-client-porting-contract/technical-spec.md`.
-2. Use `api-client-porting-planner` to produce source evidence, request contract drafts, risk classification, porting order, and stop flags.
-3. Use `api-client-porting-implementer` only after request contract evidence exists.
-4. Write request-contract tests before minimal implementation.
-5. Update `docs/porting-ledger.md` for every ported API before claiming compatibility.
-6. Stop for human review when source behavior, response schema, pagination, polling, upload/download, streaming, or global session side effects are unclear.
+1. 先從 `analysis/api-client-porting-contract/requirements.md` 與 `analysis/api-client-porting-contract/technical-spec.md` 開始。
+2. 使用 `api-client-porting-planner` 產生 source evidence、request contract drafts、risk classification、porting order 與 stop flags。
+3. 只有在 request contract evidence 已經存在後，才能使用 `api-client-porting-implementer`。
+4. 在 minimal implementation 之前，先寫 request-contract tests。
+5. 每個 ported API 都要更新 `docs/porting-ledger.md`，之後才能宣告 compatibility。
+6. 當 source behavior、response schema、pagination、polling、upload/download、streaming 或 global session side effects 不清楚時，停止並交給人工 review。
 
 ## Git conventions
 

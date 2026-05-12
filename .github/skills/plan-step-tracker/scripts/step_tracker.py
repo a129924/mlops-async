@@ -1,5 +1,5 @@
 # /// script
-# requires-python = ">=3.11"
+# requires-python = ">=3.10"
 # ///
 """Step status tracker for plan/<topic>/<topic>.step.md files.
 
@@ -28,6 +28,9 @@ class Step:
     bracket: str  # Original bracket marker: [X], [x], or [ ]
 
 
+IMPLEMENTATION_STEPS_HEADER = "## Implementation Steps"
+
+
 def parse_steps(topic: str, plan_dir: Path = Path("plan")) -> list[Step]:
     """Parse steps from plan/<topic>/<topic>.step.md.
 
@@ -44,10 +47,10 @@ def parse_steps(topic: str, plan_dir: Path = Path("plan")) -> list[Step]:
     step_file = plan_dir / topic / f"{topic}.step.md"
 
     if not step_file.exists():
-        raise FileNotFoundError(f"File not found: {step_file}")
+        raise FileNotFoundError(f"找不到檔案: {step_file}")
 
     with open(step_file, encoding="utf-8") as f:
-        steps = _parse_step_lines(f.readlines())
+        steps = _parse_step_lines(list(enumerate(f.readlines(), start=1)))
 
     return steps
 
@@ -62,30 +65,35 @@ def parse_impl_steps(topic: str, plan_dir: Path = Path("plan")) -> list[Step]:
     with open(step_file, encoding="utf-8") as f:
         lines = f.readlines()
 
-    impl_lines: list[str] = []
+    impl_lines: list[tuple[int, str]] = []
     in_impl_section = False
+    found_impl_section = False
 
-    for line in lines:
+    for line_num, line in enumerate(lines, start=1):
         stripped = line.strip()
-        if stripped == "## Implementation Steps":
+        if stripped == IMPLEMENTATION_STEPS_HEADER:
             in_impl_section = True
+            found_impl_section = True
             continue
 
         if in_impl_section and stripped.startswith("## "):
             break
 
         if in_impl_section:
-            impl_lines.append(line)
+            impl_lines.append((line_num, line))
+
+    if not found_impl_section:
+        raise ValueError(f"缺少必要區段: {IMPLEMENTATION_STEPS_HEADER}")
 
     return _parse_step_lines(impl_lines)
 
 
-def _parse_step_lines(lines: list[str]) -> list[Step]:
+def _parse_step_lines(lines: list[tuple[int, str]]) -> list[Step]:
     """Parse checkbox step lines into Step objects."""
     steps: list[Step] = []
     pattern = re.compile(r"^\- \[(.)\](.*)")
 
-    for line_num, line in enumerate(lines, start=1):
+    for line_num, line in lines:
         match = pattern.match(line.rstrip())
         if match:
             bracket_char = match.group(1)
@@ -99,15 +107,15 @@ def _parse_step_lines(lines: list[str]) -> list[Step]:
             elif bracket_char == "x":
                 status = "pending"
                 print(
-                    f"Warning: Found lowercase [x] at line {line_num}; treating as pending",
+                    f"警告: 在第 {line_num} 行發現小寫 [x]; 將視為待完成",
                     file=sys.stderr,
                 )
             else:
                 status = "pending"
                 print(
                     (
-                        "Warning: Found unexpected bracket content "
-                        f"[{bracket_char}] at line {line_num}; treating as pending"
+                        "警告: 在第 "
+                        f"{line_num} 行發現未預期的括號內容 [{bracket_char}]; 將視為待完成"
                     ),
                     file=sys.stderr,
                 )
@@ -127,7 +135,7 @@ def read_all(topic: str, plan_dir: Path = Path("plan")) -> int:
     try:
         steps = parse_steps(topic, plan_dir)
     except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"錯誤: {e}", file=sys.stderr)
         return 1
 
     for step in steps:
@@ -141,7 +149,7 @@ def read_not_run(topic: str, plan_dir: Path = Path("plan")) -> int:
     try:
         steps = parse_steps(topic, plan_dir)
     except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"錯誤: {e}", file=sys.stderr)
         return 1
 
     pending_steps = [s for s in steps if s.status == "pending"]
@@ -157,7 +165,7 @@ def read_success(topic: str, plan_dir: Path = Path("plan")) -> int:
     try:
         steps = parse_steps(topic, plan_dir)
     except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"錯誤: {e}", file=sys.stderr)
         return 1
 
     done_steps = [s for s in steps if s.status == "done"]
@@ -173,17 +181,17 @@ def check_all_succeeded(topic: str, plan_dir: Path = Path("plan")) -> int:
     try:
         steps = parse_steps(topic, plan_dir)
     except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"錯誤: {e}", file=sys.stderr)
         return 1
 
     pending_steps = [s for s in steps if s.status == "pending"]
 
     if not pending_steps:
         total = len(steps)
-        print(f"✅ SUCCESS: All {total} steps complete")
+        print(f"✅ 成功: 全部 {total} 個步驟都已完成")
         return 0
 
-    print(f"❌ BLOCKED: {len(pending_steps)} steps pending (exit code 1)")
+    print(f"❌ 阻擋: 仍有 {len(pending_steps)} 個步驟待完成 (exit code 1)")
     for step in pending_steps:
         print(format_step(step))
 
@@ -194,18 +202,18 @@ def check_impl_steps_succeeded(topic: str, plan_dir: Path = Path("plan")) -> int
     """Check if all implementation steps are complete. Exit 0 if yes, 1 if any pending."""
     try:
         steps = parse_impl_steps(topic, plan_dir)
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"錯誤: {e}", file=sys.stderr)
         return 1
 
     pending_steps = [s for s in steps if s.status == "pending"]
 
     if not pending_steps:
         total = len(steps)
-        print(f"✅ SUCCESS: All {total} implementation steps complete")
+        print(f"✅ 成功: 全部 {total} 個實作步驟都已完成")
         return 0
 
-    print(f"❌ BLOCKED: {len(pending_steps)} implementation steps pending (exit code 1)")
+    print(f"❌ 阻擋: 仍有 {len(pending_steps)} 個實作步驟待完成 (exit code 1)")
     for step in pending_steps:
         print(format_step(step))
 
@@ -214,36 +222,34 @@ def check_impl_steps_succeeded(topic: str, plan_dir: Path = Path("plan")) -> int
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Query step status in plan/<topic>/<topic>.step.md files"
-    )
+    parser = argparse.ArgumentParser(description="查詢 plan/<topic>/<topic>.step.md 的步驟狀態")
     subparsers = parser.add_subparsers(dest="operation", required=True)
 
     # read_all
-    read_all_parser = subparsers.add_parser("read_all", help="Read all steps (pending and done)")
-    read_all_parser.add_argument("topic", help="Topic name")
+    read_all_parser = subparsers.add_parser("read_all", help="讀取全部步驟 (已完成與待完成)")
+    read_all_parser.add_argument("topic", help="topic 名稱")
 
     # read_not_run
-    read_not_run_parser = subparsers.add_parser("read_not_run", help="Read only pending steps")
-    read_not_run_parser.add_argument("topic", help="Topic name")
+    read_not_run_parser = subparsers.add_parser("read_not_run", help="只讀取待完成步驟")
+    read_not_run_parser.add_argument("topic", help="topic 名稱")
 
     # read_success
-    read_success_parser = subparsers.add_parser("read_success", help="Read only completed steps")
-    read_success_parser.add_argument("topic", help="Topic name")
+    read_success_parser = subparsers.add_parser("read_success", help="只讀取已完成步驟")
+    read_success_parser.add_argument("topic", help="topic 名稱")
 
     # check_all_succeeded
     check_all_parser = subparsers.add_parser(
         "check_all_succeeded",
-        help="Check if all steps complete; exit 0 if yes, 1 if any pending",
+        help="檢查全部步驟是否完成; 全部完成回傳 0, 否則回傳 1",
     )
-    check_all_parser.add_argument("topic", help="Topic name")
+    check_all_parser.add_argument("topic", help="topic 名稱")
 
     # check_impl_steps_succeeded
     check_impl_steps_parser = subparsers.add_parser(
         "check_impl_steps_succeeded",
-        help="Check if implementation steps complete; exit 0 if yes, 1 if any pending",
+        help="檢查實作步驟是否完成; 全部完成回傳 0, 否則回傳 1",
     )
-    check_impl_steps_parser.add_argument("topic", help="Topic name")
+    check_impl_steps_parser.add_argument("topic", help="topic 名稱")
 
     args = parser.parse_args()
 

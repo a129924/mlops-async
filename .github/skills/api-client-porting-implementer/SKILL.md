@@ -50,7 +50,7 @@ Do not use this skill when:
 
 # Inputs
 - Planner output or equivalent request contract, including source SDK, module, function, file, line range, and commit/version.
-- Source code evidence from the original SDK, commonly `sasctl` or `/Users/andrew/code/python/sas-model-serving/legacy/need-refer-service/sas-api`, but not limited to those SDKs.
+- Source code evidence from the original SDK, commonly `sasctl` or another locally available legacy SDK checkout such as `<path-to-legacy-sas-api-checkout>`, but not limited to those SDKs.
 - Target async client location, method name, public contract, and allowed files from the active plan.
 - Existing test style and local validation commands.
 - Ledger path, normally `docs/porting-ledger.md`, or another task-specific ledger path.

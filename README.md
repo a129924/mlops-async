@@ -18,10 +18,10 @@ not implemented yet.
 
 ## API porting workflow
 
-This project uses a contract-first workflow for translating `sasctl` and legacy
-SDK behavior into async client code. Future API porting work must first extract
-source request contracts, write request-contract tests, define response/error
-boundaries, and update `docs/porting-ledger.md` before claiming compatibility.
+本專案使用 contract-first workflow，把 `sasctl` 與 legacy SDK 的行為
+平移成 async client code。未來進行 API porting 時，必須先抽出 source
+request contract、撰寫 request-contract tests、定義 response / error
+boundaries，並更新 `docs/porting-ledger.md`，之後才能宣告 compatibility。
 
 ## Requirements
 

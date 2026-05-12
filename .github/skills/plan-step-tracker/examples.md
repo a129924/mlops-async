@@ -96,7 +96,7 @@ $ python .github/skills/plan-step-tracker/scripts/step_tracker.py read_not_run m
 
 **Note**: Stderr warning issued:
 ```
-Warning: Found lowercase [x] at line 25; treating as pending
+警告：在第 25 行發現小寫 [x]；將視為待完成
 ```
 
 **Output**: 7 lines (3 pending workflow stages + 4 pending implementation steps)
@@ -152,13 +152,13 @@ $ grep '^\- \[X\]' plan/my-feature/my-feature.step.md
 
 ## Operation 4: `check_all_succeeded` — Verify Completion & Block if Pending
 
-Returns SUCCESS if all done; BLOCKED if any pending.
+全部完成時回傳成功；只要有待完成項目就阻擋。
 
 ### Scenario A: All Steps Done
 
 ```bash
 $ python .github/skills/plan-step-tracker/scripts/step_tracker.py check_all_succeeded my-feature-complete
-✅ SUCCESS: All 3 steps complete
+✅ 成功：全部 3 個步驟都已完成
 ```
 
 **Exit code**: 0 (allows continuation)
@@ -167,7 +167,7 @@ $ python .github/skills/plan-step-tracker/scripts/step_tracker.py check_all_succ
 
 ```bash
 $ python .github/skills/plan-step-tracker/scripts/step_tracker.py check_all_succeeded my-feature
-❌ BLOCKED: 7 steps pending (exit code 1)
+❌ 阻擋：仍有 7 個步驟待完成（exit code 1）
 [ ] implementation
 [ ] implementation-review
 [ ] code-review
@@ -187,10 +187,10 @@ $ python .github/skills/plan-step-tracker/scripts/step_tracker.py check_all_succ
 # Count pending steps
 PENDING=$(grep -c '^\- \[ \]' plan/my-feature/my-feature.step.md)
 if [ $PENDING -eq 0 ]; then
-  echo "SUCCESS: All steps complete"
+  echo "成功：全部步驟都已完成"
   exit 0
 else
-  echo "BLOCKED: $PENDING steps pending"
+  echo "阻擋：仍有 $PENDING 個步驟待完成"
   grep '^\- \[ \]' plan/my-feature/my-feature.step.md
   exit 1
 fi
