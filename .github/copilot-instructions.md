@@ -39,6 +39,14 @@ This file defines decision rules for AI agents writing code in this repository.
 
 ---
 
+## Project Goal and Guidelines
+
+- 在開始新 topic 前，先讀 `docs/project-goal.md` 與 `docs/project-guidelines.md`
+- 若 task 與 GOAL 或 Guidelines 衝突，先停下並更新文件，不要直接實作
+- topic workflow 預設：worktree / feature branch → batched commit/push → ready PR → wait-human-merge
+
+---
+
 ## API Design
 
 ### Source SDK Porting
@@ -46,7 +54,17 @@ This file defines decision rules for AI agents writing code in this repository.
 - 使用 `.github/skills/api-client-porting-planner/` 做 endpoint-family discovery、request contract drafts、risk classification、porting order 與 stop flags
 - 只有在 planner output 或等價的 source / request contract evidence 已存在後，才可使用 `.github/skills/api-client-porting-implementer/`
 - 每個 ported API 都必須先更新 `docs/migration-map.md` 的對照狀態，再更新 `docs/porting-ledger.md` 的證據內容，之後才能宣告 compatibility
-- 遇到 upload/download、streaming、polling、retry、pagination expansion、global session side effects、conditional endpoint selection、unclear source behavior 或 unclear response schema 時，停止並交給人工 review
+- 遇到以下任一情況時，停止並交給人工 review：
+  - upload / download
+  - streaming
+  - polling 或 job status wait
+  - retry behavior
+  - pagination expansion
+  - global session side effects
+  - conditional endpoint selection
+  - request contract 無法從 source 穩定推出
+  - response fixture 不足以定義 schema
+  - source function 包含非 HTTP wrapper 的複雜行為
 
 ### Response Models
 - Use `pydantic.BaseModel` for every SAS Viya API response type
@@ -127,6 +145,8 @@ For detailed guidance, see:
 - **`README.md`**: Installation, quick start, examples
 - **`.github/CONTRIBUTING.md`**: Git workflow, commit convention, dev setup
 - **`docs/ARCHITECTURE.md`**: Human-facing design intent and skill map
+- **`docs/project-goal.md`**: mission, success criteria, non-goals, phase boundary
+- **`docs/project-guidelines.md`**: contract-first execution rules, stop conditions, and topic git workflow
 - **`.github/skills/`**: 28 installed Agent Skills with detailed rule references
 - **`.github/agents/`**: workflow orchestration agents for plan-to-review execution
 - **`analysis/api-client-porting-contract/`**: frozen requirements and technical spec for contract-first API porting
@@ -137,15 +157,16 @@ For detailed guidance, see:
 
 ## When in Doubt
 
-1. For source SDK porting, start with `analysis/api-client-porting-contract/requirements.md`
-2. Use `.github/skills/api-client-porting-planner/SKILL.md` before implementation
-3. Use `.github/skills/api-client-porting-implementer/SKILL.md` only after request contract evidence exists
-4. Use `docs/migration-map.md` to keep source-to-target mapping and status centralized
-5. Refer to `.github/skills/python-async-await/SKILL.md` for async patterns
-6. Refer to `.github/skills/python-error-handling/SKILL.md` for exception design
-7. Refer to `.github/skills/python-testing-pytest/SKILL.md` for test structure
-8. Use `.github/agents/python-implementation-workflow.agent.md` when the task needs gated plan → implementation → review orchestration
-9. Ask: "Does this decision affect how I write code right now?" If no → check documentation instead
+1. Start with `docs/project-goal.md` and `docs/project-guidelines.md`
+2. For source SDK porting, read `analysis/api-client-porting-contract/requirements.md`
+3. Use `.github/skills/api-client-porting-planner/SKILL.md` before implementation
+4. Use `.github/skills/api-client-porting-implementer/SKILL.md` only after request contract evidence exists
+5. Use `docs/migration-map.md` to keep source-to-target mapping and status centralized
+6. Refer to `.github/skills/python-async-await/SKILL.md` for async patterns
+7. Refer to `.github/skills/python-error-handling/SKILL.md` for exception design
+8. Refer to `.github/skills/python-testing-pytest/SKILL.md` for test structure
+9. Use `.github/agents/python-implementation-workflow.agent.md` when the task needs gated plan → implementation → review orchestration
+10. Ask: "Does this decision affect how I write code right now?" If no → check documentation instead
 
 ---
 

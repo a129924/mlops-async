@@ -20,6 +20,14 @@ implementation, review, and evidence-ledger guidance.
 - Separate unit tests from integration tests
 - Provide a reusable library for downstream projects
 
+## Project governance
+
+在開始任何新 topic 前，請先閱讀：
+
+- `docs/project-goal.md` — 專案目標、成功定義、非目標與階段邊界
+- `docs/project-guidelines.md` — contract-first 執行準則、migration evidence 順序、
+  stop conditions、以及 topic 的 Git workflow
+
 ## API porting workflow
 
 本專案使用 contract-first workflow，把 `sasctl` 與 legacy SDK 的行為
@@ -65,6 +73,8 @@ uv run ruff format .
 - `.github/copilot-instructions.md` — AI coding control plane
 - `.github/CONTRIBUTING.md` — development workflow and contribution rules
 - `docs/ARCHITECTURE.md` — design intent and skill map
+- `docs/project-goal.md` — 專案 GOAL（Mission / Success criteria / Non-goals）
+- `docs/project-guidelines.md` — 專案準則（contract-first / migration-map-first / stop rules）
 - `docs/migration-map.md` — source API 到 target async API 的集中遷移對照表
 - `docs/porting-ledger.md` — evidence ledger for contract-first API porting
 - `.github/agents/` — reusable workflow orchestration agents for planning and implementation

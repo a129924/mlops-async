@@ -86,6 +86,8 @@ This repository includes 1 custom workflow agent.
 - `README.md` — human entry point
 - `.github/CONTRIBUTING.md` — development workflow
 - `.github/copilot-instructions.md` — AI control plane
+- `docs/project-goal.md` — project mission, success criteria, non-goals, and phase boundary
+- `docs/project-guidelines.md` — project execution rules, stop conditions, and topic git workflow
 - `blueprint.md` — initialization and acceptance contract
 - `analysis/api-client-porting-contract/requirements.md` — frozen API porting behavior requirements
 - `analysis/api-client-porting-contract/technical-spec.md` — technical mapping for API porting workflow artifacts
