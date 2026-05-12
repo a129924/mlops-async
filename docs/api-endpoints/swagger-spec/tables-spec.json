@@ -1,0 +1,473 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SAS Viya CAS Table Management API",
+    "description": "SAS Viya CAS 資料表管理端點文檔。\n\n覆蓋 `casManagement/dataSources` 及 `casManagement/servers` 相關操作：\n- 取得 Caslib 下的資料表清單\n- 取得單一資料表詳細資訊\n- 切換資料表的載入/卸載狀態（loaded / unloaded）\n\n**所有請求均需攜帶 Bearer Token**。\n\n⚠️ **程式碼已知問題**（`table.py` 中的 Bug）：\n`utils/_api/table.py` 引用了以下三個 header 函式，但這些函式在\n`config/headers_variable.py` 中**並不存在**：\n- `sas_viya_item_get_headers`\n- `sas_viya_table_get_headers`\n- `sas_viya_table_put_headers`\n\n`headers_variable.py` 實際上只定義以下 4 個 header 函式：\n1. `access_token_headers()`\n2. `sas_viya_get_headers(access_token)`\n3. `sas_viya_get_content_headers(access_token)`\n4. `sas_viya_post_job_execution_headers(access_token)`\n\n此文檔以**實際 HTTP 請求所需的推斷 Headers** 為準。\n\n**來源程式碼**：`utils/_api/table.py`\n",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://{sas_viya_host}",
+      "description": "SAS Viya 伺服器",
+      "variables": {
+        "sas_viya_host": {
+          "default": "your-sas-viya-instance",
+          "description": "由環境變數 `base_url` 設定"
+        }
+      }
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "SAS Viya OAuth 2.0 Bearer Token。\nHeader 格式：`Authorization: Bearer {access_token}`\n"
+      }
+    },
+    "schemas": {
+      "TableLink": {
+        "type": "object",
+        "description": "HATEOAS 連結物件",
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "rel": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TableItem": {
+        "type": "object",
+        "description": "CAS 資料表摘要。\n來源：`schema/sas_viya/table/response.py` (推斷，因 table.py 有 import bug)\n",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string",
+            "description": "資料表唯一識別碼",
+            "example": "table-id-001"
+          },
+          "name": {
+            "type": "string",
+            "description": "資料表名稱",
+            "example": "SCORING_INPUT"
+          },
+          "caslib": {
+            "type": "string",
+            "description": "所屬 Caslib 名稱",
+            "example": "CASUSER"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "loaded",
+              "unloaded"
+            ],
+            "description": "資料表載入狀態"
+          },
+          "rowCount": {
+            "type": "integer",
+            "description": "資料表行數",
+            "nullable": true
+          },
+          "columnCount": {
+            "type": "integer",
+            "description": "資料表欄位數",
+            "nullable": true
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableLink"
+            }
+          }
+        }
+      },
+      "TablesListResponse": {
+        "type": "object",
+        "description": "CAS 資料表清單回應",
+        "required": [
+          "count",
+          "items"
+        ],
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "count": {
+            "type": "integer",
+            "description": "符合條件的資料表總數"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableItem"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableLink"
+            }
+          }
+        }
+      },
+      "TableStateBody": {
+        "type": "object",
+        "description": "切換資料表狀態的請求 Body。\n來源：`utils/_api/table.py::change_castable_state`\n\n**注意**：`outputCaslibName` 和 `outputTableName` 為必填欄位，\n內容與目前的 Caslib 和 Table 名稱相同（即原地 load/unload）。\n",
+        "required": [
+          "outputCaslibName",
+          "outputTableName"
+        ],
+        "properties": {
+          "outputCaslibName": {
+            "type": "string",
+            "description": "輸出 Caslib 名稱（通常與操作目標相同）",
+            "example": "CASUSER"
+          },
+          "outputTableName": {
+            "type": "string",
+            "description": "輸出資料表名稱（通常與操作目標相同）",
+            "example": "SCORING_INPUT"
+          }
+        }
+      },
+      "TableStateResponse": {
+        "type": "object",
+        "description": "資料表狀態更新回應",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "loaded",
+              "unloaded"
+            ],
+            "description": "更新後的資料表狀態"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables": {
+      "get": {
+        "summary": "取得 Caslib 下的所有資料表",
+        "operationId": "getTableInfos",
+        "tags": [
+          "Tables"
+        ],
+        "description": "取得指定 Caslib 下的所有 CAS 資料表清單，含各表的載入狀態。\n\n**HTTP Method**：GET\n\n**URL 格式**（來源 `table.py` 常數）：\n```\n{base_url}casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables?limit={limit}&start=0\n```\n\n**路徑中的編碼說明**：\n- `cas~fs~cas-shared-default~fs~{caslib}` 是路徑式的 dataSource 識別碼\n- `cas` → CAS 伺服器\n- `cas-shared-default` → CAS Server 名稱\n- `{caslib}` → 目標 Caslib 名稱（如 `CASUSER`, `Public` 等）\n\n**使用場景**：\n- 列出 Caslib 下所有可用的 CAS 資料表\n- 確認特定資料表是否已載入（state = `loaded`）\n\n⚠️ **已知 Bug**：此端點對應的 `get_table_infos` 函式引用了不存在的\n`sas_viya_table_get_headers`，實際執行時會拋出 `ImportError`。\n\n**來源程式碼**：`utils/_api/table.py::get_table_infos`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "caslib",
+            "in": "path",
+            "required": true,
+            "description": "CAS Library 名稱（大小寫敏感）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "CASUSER"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "最大回傳筆數",
+            "schema": {
+              "type": "integer",
+              "default": 1000
+            },
+            "example": 1000
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "description": "分頁起始位置（固定為 0）",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "example": 0
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得資料表清單",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TablesListResponse"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功回應範例",
+                    "value": {
+                      "version": 1.0,
+                      "count": 3,
+                      "start": 0,
+                      "limit": 1000,
+                      "items": [
+                        {
+                          "id": "table-id-001",
+                          "name": "SCORING_INPUT",
+                          "caslib": "CASUSER",
+                          "state": "loaded",
+                          "rowCount": 5000,
+                          "columnCount": 25
+                        },
+                        {
+                          "id": "table-id-002",
+                          "name": "PATIENT_HISTORY",
+                          "caslib": "CASUSER",
+                          "state": "unloaded",
+                          "rowCount": null,
+                          "columnCount": null
+                        },
+                        {
+                          "id": "table-id-003",
+                          "name": "MODEL_OUTPUT",
+                          "caslib": "CASUSER",
+                          "state": "loaded",
+                          "rowCount": 200,
+                          "columnCount": 5
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求無效（Caslib 不存在）"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables/{tableName}": {
+      "get": {
+        "summary": "取得特定資料表詳細資訊",
+        "operationId": "getTable",
+        "tags": [
+          "Tables"
+        ],
+        "description": "根據 Caslib 和資料表名稱，取得單一 CAS 資料表的詳細資訊。\n\n**HTTP Method**：GET\n\n**URL 格式**：\n```\n{base_url}casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables/{tableName}\n```\n\n**使用場景**：\n- 確認特定資料表的載入狀態\n- 取得資料表的 Row Count 和 Column Count\n- 在執行 scoring job 前確認 input table 已 loaded\n\n⚠️ **已知 Bug**：此端點對應的 `get_table` 函式引用了不存在的\n`sas_viya_item_get_headers`，實際執行時會拋出 `ImportError`。\n\n**來源程式碼**：`utils/_api/table.py::get_table`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "caslib",
+            "in": "path",
+            "required": true,
+            "description": "CAS Library 名稱",
+            "schema": {
+              "type": "string"
+            },
+            "example": "CASUSER"
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "description": "資料表名稱（大小寫敏感）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "SCORING_INPUT"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得資料表詳細資訊",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableItem"
+                },
+                "examples": {
+                  "loaded": {
+                    "summary": "已載入的資料表",
+                    "value": {
+                      "id": "table-id-001",
+                      "name": "SCORING_INPUT",
+                      "caslib": "CASUSER",
+                      "state": "loaded",
+                      "rowCount": 5000,
+                      "columnCount": 25,
+                      "version": 1
+                    }
+                  },
+                  "unloaded": {
+                    "summary": "未載入的資料表",
+                    "value": {
+                      "id": "table-id-002",
+                      "name": "PATIENT_HISTORY",
+                      "caslib": "CASUSER",
+                      "state": "unloaded",
+                      "rowCount": null,
+                      "columnCount": null,
+                      "version": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "資料表不存在"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/casManagement/servers/cas-shared-default/caslibs/{caslib}/tables/{tableName}/state": {
+      "put": {
+        "summary": "切換 CAS 資料表載入狀態",
+        "operationId": "changeCasTableState",
+        "tags": [
+          "Tables"
+        ],
+        "description": "切換指定 CAS 資料表的載入狀態（`loaded` 或 `unloaded`）。\n\n**HTTP Method**：PUT\n\n**URL 格式**（來源 `table.py::change_castable_state`）：\n```\n{base_url}casManagement/servers/cas-shared-default/caslibs/{caslib}/tables/{tableName}/state?value={state}\n```\n\n**使用場景**：\n- `value=loaded`：將資料表載入 CAS in-memory（在 Scoring Job 前需確保 input table 已 loaded）\n- `value=unloaded`：將資料表從 CAS 記憶體卸載（釋放記憶體）\n\n**注意事項**：\n- Query parameter `value` 指定目標狀態\n- Request body 中的 `outputCaslibName` 和 `outputTableName` 需提供，\n  通常與 path 參數相同\n- `TABLE_STATE` 型別：`Literal[\"loaded\", \"unloaded\"]`（來源 `project_typing/_typing.py`）\n\n⚠️ **已知 Bug**：此端點對應的 `change_castable_state` 函式引用了不存在的\n`sas_viya_table_put_headers`，實際執行時會拋出 `ImportError`。\n\n**來源程式碼**：`utils/_api/table.py::change_castable_state`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "caslib",
+            "in": "path",
+            "required": true,
+            "description": "CAS Library 名稱",
+            "schema": {
+              "type": "string"
+            },
+            "example": "CASUSER"
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "description": "資料表名稱",
+            "schema": {
+              "type": "string"
+            },
+            "example": "SCORING_INPUT"
+          },
+          {
+            "name": "value",
+            "in": "query",
+            "required": true,
+            "description": "目標狀態",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "loaded",
+                "unloaded"
+              ]
+            },
+            "example": "loaded"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableStateBody"
+              },
+              "examples": {
+                "load_table": {
+                  "summary": "載入資料表（loaded）",
+                  "value": {
+                    "outputCaslibName": "CASUSER",
+                    "outputTableName": "SCORING_INPUT"
+                  }
+                },
+                "unload_table": {
+                  "summary": "卸載資料表（unloaded）",
+                  "value": {
+                    "outputCaslibName": "CASUSER",
+                    "outputTableName": "SCORING_INPUT"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "資料表狀態切換成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableStateResponse"
+                },
+                "examples": {
+                  "loaded": {
+                    "summary": "已成功載入",
+                    "value": {
+                      "state": "loaded"
+                    }
+                  },
+                  "unloaded": {
+                    "summary": "已成功卸載",
+                    "value": {
+                      "state": "unloaded"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求無效（如狀態值不在 loaded/unloaded 範圍內）"
+          },
+          "404": {
+            "description": "資料表或 Caslib 不存在"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    }
+  }
+}

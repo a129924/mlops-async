@@ -1,0 +1,2243 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SAS Viya RESTful API - 完整端點文檔",
+    "description": "整合所有 SAS Viya API 模組的完整 OpenAPI 規範（Authentication / Models / Projects / Tables / Jobs）。",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://{sas_viya_host}",
+      "description": "SAS Viya 伺服器",
+      "variables": {
+        "sas_viya_host": {
+          "default": "your-sas-viya-instance",
+          "description": "由環境變數 base_url 設定"
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication"
+    },
+    {
+      "name": "Models"
+    },
+    {
+      "name": "Model Files"
+    },
+    {
+      "name": "Projects"
+    },
+    {
+      "name": "Champion Model"
+    },
+    {
+      "name": "Tables"
+    },
+    {
+      "name": "Job Execution"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/SASLogon/oauth/token": {
+      "post": {
+        "summary": "取得 Access Token",
+        "operationId": "obtainAccessToken",
+        "tags": [
+          "Authentication"
+        ],
+        "description": "使用帳號密碼（password grant）或 refresh token 向 SAS Viya 取得 OAuth access token。\n\n**HTTP Method**：POST\n\n**使用場景**：\n- 初次登入，取得 `access_token` 與 `refresh_token`\n- `access_token` 過期時，使用 `refresh_token` 重新取得\n\n**來源程式碼**：`utils/_async/_token.py`\n",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/PasswordGrantRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RefreshTokenGrantRequest"
+                  }
+                ]
+              },
+              "examples": {
+                "password_grant": {
+                  "summary": "帳號密碼登入",
+                  "value": {
+                    "grant_type": "password",
+                    "username": "your_username",
+                    "password": "your_password"
+                  }
+                },
+                "refresh_token_grant": {
+                  "summary": "使用 refresh_token 重新取得",
+                  "value": {
+                    "grant_type": "refresh_token",
+                    "refresh_token": "your_refresh_token"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功取得 access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SASViyaTokenResponse"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功回應範例",
+                    "value": {
+                      "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ...",
+                      "token_type": "bearer",
+                      "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ...",
+                      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ...",
+                      "expires_in": 3600,
+                      "scope": "openid",
+                      "jti": "abc123-def456"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "認證失敗（帳號密碼錯誤、伺服器無法連線）",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "summary": "認證失敗範例",
+                    "value": {
+                      "error": "unauthorized",
+                      "error_description": "Bad credentials"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modelRepository/models": {
+      "get": {
+        "summary": "取得所有模型",
+        "operationId": "getAllModels",
+        "tags": [
+          "Models"
+        ],
+        "description": "從 SAS Viya Model Repository 取得所有已登錄的模型清單。\n\n**HTTP Method**：GET\n\n**使用場景**：\n- 顯示所有可用模型的清單\n- 查詢某個專案底下的模型\n- 在呼叫 Champion Model 前，先確認模型存在\n\n**必要 Headers**：\n```\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.models.model+json, application/json\n```\n\n**來源程式碼**：`utils/_api/get_model.py::get_all_models`\n\n**SAS Viya 官方文檔**：https://developers.sas.com/rest-apis/modelRepository-v8?operation=getModels\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得模型清單",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelsListResponse"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功回應範例",
+                    "value": {
+                      "version": 2.0,
+                      "accept": "application/vnd.sas.models.model+json",
+                      "count": 2,
+                      "start": 0,
+                      "limit": 20,
+                      "name": "models",
+                      "items": [
+                        {
+                          "id": "abc-123-def-456",
+                          "name": "LogisticRegressionModel",
+                          "role": "champion",
+                          "scoreCodeType": "ds2MultiType",
+                          "algorithm": "Logistic regression",
+                          "function": "classification",
+                          "modeler": "sas_user",
+                          "modelType": "astore",
+                          "version": 1.0,
+                          "indirectFolderId": "folder-001",
+                          "repositoryId": "repo-001",
+                          "projectId": "proj-456",
+                          "immutable": false,
+                          "inputVariables": [],
+                          "outputVariables": [],
+                          "links": []
+                        },
+                        {
+                          "id": "def-789-ghi-012",
+                          "name": "GBMModel_v2",
+                          "role": "candidate",
+                          "scoreCodeType": "dataStep",
+                          "algorithm": "Gradient boosting",
+                          "function": "classification",
+                          "modeler": "sas_user",
+                          "modelType": "dataStep",
+                          "version": 2.0,
+                          "indirectFolderId": "folder-001",
+                          "repositoryId": "repo-001",
+                          "projectId": "proj-456",
+                          "immutable": false,
+                          "inputVariables": [],
+                          "outputVariables": [],
+                          "links": []
+                        }
+                      ],
+                      "links": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求無效"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/modelRepository/models/{modelId}": {
+      "get": {
+        "summary": "取得單一模型詳細資訊",
+        "operationId": "getOneModel",
+        "tags": [
+          "Models"
+        ],
+        "description": "根據指定的模型 ID，取得該模型的完整詳細資訊。\n\n**HTTP Method**：GET\n\n**使用場景**：\n- 取得模型的 `files` 清單（用於後續下載 score code 等檔案）\n- 取得輸入/輸出變數定義\n- 在 `get_model_files` 與 `get_model_file` 中作為底層呼叫\n\n**必要 Headers**：\n```\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.models.model+json, application/json\n```\n\n**來源程式碼**：`utils/_api/get_model.py::get_one_model`\n\n**SAS Viya 官方文檔**：https://developers.sas.com/rest-apis/modelRepository-v8?operation=getModel\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "description": "模型唯一識別碼（UUID 格式）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "abc-123-def-456"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得模型詳細資訊（包含 files, inputVariables, outputVariables 等）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "SASViyaModelResponse（詳細欄位見 schema/sas_viya/model/response.py）",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "scoreCodeType": {
+                      "type": "string"
+                    },
+                    "modelType": {
+                      "type": "string"
+                    },
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ModelFile"
+                      }
+                    },
+                    "inputVariables": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Variable"
+                      }
+                    },
+                    "outputVariables": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Variable"
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功回應範例（簡化版）",
+                    "value": {
+                      "id": "abc-123-def-456",
+                      "name": "LogisticRegressionModel",
+                      "scoreCodeType": "ds2MultiType",
+                      "modelType": "astore",
+                      "files": [
+                        {
+                          "id": "file-001",
+                          "name": "dmcas_epscorecode.sas",
+                          "fileUri": "/modelRepository/models/abc-123-def-456/contents/file-001",
+                          "modelId": "abc-123-def-456",
+                          "version": 1,
+                          "links": [
+                            {
+                              "method": "GET",
+                              "rel": "content",
+                              "uri": "/modelRepository/models/abc-123-def-456/contents/file-001/content",
+                              "type": "application/octet-stream"
+                            }
+                          ]
+                        }
+                      ],
+                      "inputVariables": [
+                        {
+                          "name": "AGE",
+                          "role": "INPUT",
+                          "type": "num"
+                        }
+                      ],
+                      "outputVariables": [
+                        {
+                          "name": "P_EVENT1",
+                          "role": "OUTPUT",
+                          "type": "num"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "模型不存在",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not_found": {
+                    "summary": "模型不存在範例",
+                    "value": {
+                      "status": 404,
+                      "message": "Model 'abc-123-def-456' not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/modelRepository/models/{modelId}/contents/{fileId}/content": {
+      "get": {
+        "summary": "下載模型檔案內容",
+        "operationId": "downloadModelFileContent",
+        "tags": [
+          "Model Files"
+        ],
+        "description": "下載指定模型特定檔案的實際內容（文字或 JSON）。\n\n**HTTP Method**：GET\n\n**URL 來源**：\n- 從 `GET /modelRepository/models/{modelId}` 的回應中，找到 `files[].links` 中\n  `rel=\"content\"` 且 `type=\"application/octet-stream\"` 的連結 `uri`\n- 或由 `project.py` 直接組合：`/modelRepository/models/{projectId}/contents/{file.id}/content`\n\n**使用場景**：\n- 下載模型 score code（`.sas` 檔案）\n- 下載模型 metadata（`.json` 檔案，如 `dmcas_relativeimportance.json`、`dmcas_scoreinputs.json`）\n- 下載欄位對照表（`.csv` 檔案，如 `col_zh_table.csv`）\n\n**必要 Headers**（`sas_viya_get_content_headers`）：\n```\nIf-Range: \"\"\nRange: \"\"\nAccess-Quarantine: \"\"\nAuthorization: Bearer {access_token}\n```\n\n**回應格式**：\n- 若檔案名稱結尾為 `.json` → 回傳 JSON\n- 否則 → 回傳純文字（`.sas`, `.csv` 等）\n\n**來源程式碼**：\n- `utils/_api/get_model.py::get_model_file_content`\n- `utils/_api/project.py::_fetch_file_content`\n\n**逾時設定**：`timeout=30` 秒\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "description": "模型唯一識別碼",
+            "schema": {
+              "type": "string"
+            },
+            "example": "abc-123-def-456"
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "description": "檔案唯一識別碼（從 ModelFile.id 取得）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "file-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功下載檔案內容",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "json_file": {
+                    "summary": "JSON 檔案回應（如 dmcas_relativeimportance.json）",
+                    "value": {
+                      "data": [
+                        {
+                          "dataMap": {
+                            "Variable": "AGE",
+                            "RelativeImportance": "0.35"
+                          }
+                        },
+                        {
+                          "dataMap": {
+                            "Variable": "INCOME",
+                            "RelativeImportance": "0.28"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "text/plain": {
+                "examples": {
+                  "sas_file": {
+                    "summary": "SAS 評分代碼檔案回應（如 dmcas_epscorecode.sas）",
+                    "value": "data _score_;\n  set _input_;\n  P_EVENT1 = ...;\nrun;\n"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "模型或檔案不存在"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/modelRepository/projects": {
+      "get": {
+        "summary": "取得所有專案",
+        "operationId": "getAllProjects",
+        "tags": [
+          "Projects"
+        ],
+        "description": "從 SAS Viya Model Repository 取得所有已登錄的專案清單。\n\n**HTTP Method**：GET\n\n**使用場景**：\n- 取得所有可用專案的清單\n- 搭配 `process_projects_response_by_project_name` 在 client 端以專案名稱篩選，\n  取得目標專案的 `id`（用於後續取得 Champion Model）\n\n**必要 Headers**：\n```\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.models.model+json, application/json\n```\n\n**注意**：API 層預設 `limit=1000`，通常一次取回所有專案後在 client 端過濾，\n不直接支援依名稱查詢。\n\n**來源程式碼**：`utils/_api/project.py::fetch_all_projects_response`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "回傳最大筆數（API 呼叫時預設 1000）",
+            "schema": {
+              "type": "integer",
+              "default": 1000
+            },
+            "example": 1000
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得專案清單",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectsListResponse"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功回應範例",
+                    "value": {
+                      "version": 2.0,
+                      "accept": "application/vnd.sas.collection+json",
+                      "count": 2,
+                      "start": 0,
+                      "limit": 1000,
+                      "name": "projects",
+                      "items": [
+                        {
+                          "id": "proj-456-abc-789",
+                          "name": "Churn_Prediction_Project",
+                          "version": 1.0,
+                          "latestVersion": "1",
+                          "status": "development",
+                          "repositoryId": "repo-001",
+                          "folderId": "folder-001",
+                          "links": []
+                        },
+                        {
+                          "id": "proj-789-def-012",
+                          "name": "Fall_Risk_Project",
+                          "version": 1.0,
+                          "latestVersion": "2",
+                          "status": "development",
+                          "repositoryId": "repo-001",
+                          "folderId": "folder-001",
+                          "links": []
+                        }
+                      ],
+                      "links": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求無效"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/modelRepository/projects/{projectId}/champion": {
+      "get": {
+        "summary": "取得專案的 Champion Model",
+        "operationId": "getChampionModel",
+        "tags": [
+          "Projects",
+          "Champion Model"
+        ],
+        "description": "取得指定專案目前的 Champion Model 詳細資訊，包含模型類型、檔案清單（`files`）及輸入/輸出變數。\n\n**HTTP Method**：GET\n\n**URL 組合方式**（來源 `project.py::get_champion_model_url`）：\n```python\nurl = f\"{base_url}modelRepository/projects/{project_item.id}/champion\"\n```\n其中 `project_item.id` 需先透過 `GET /modelRepository/projects` 取得。\n\n**使用場景**：\n1. 先呼叫 `GET /modelRepository/projects?limit=1000`，在 client 端找到目標專案取得 `projectId`\n2. 再呼叫此端點取得 Champion Model 的 `id`、`scoreCodeType`、`files` 等資訊\n3. 依 `files` 清單下載所需的模型檔案（score code、metadata JSON 等）\n\n**模型類型判斷**（來源 `project.py::_get_model_type`）：\n- 若 `modelType` 欄位有值 → 直接使用\n- 否則依 `scoreCodeType` 推斷：\n  - `ds2MultiType` → `astore` 類型（需要 `AstoreMetadata.json`）\n  - `dataStep` → `dataStep` 類型（需要 `ScoreCode[0-9]+.sas`）\n\n**必要 Headers**：\n```\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.models.model+json, application/json\n```\n\n**來源程式碼**：`utils/_api/project.py::fetch_champion_model`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "description": "專案唯一識別碼（由 GET /modelRepository/projects 取得）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-456-abc-789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得 Champion Model 資訊",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChampionModelResponse"
+                },
+                "examples": {
+                  "astore_type": {
+                    "summary": "astore 類型 Champion Model（scoreCodeType=ds2MultiType）",
+                    "value": {
+                      "id": "model-id-abc-123",
+                      "name": "LogisticRegressionModel",
+                      "role": "champion",
+                      "scoreCodeType": "ds2MultiType",
+                      "modelType": "astore",
+                      "algorithm": "Logistic regression",
+                      "function": "classification",
+                      "modeler": "sas_user",
+                      "modifiedTimeStamp": "2024-01-15T10:30:00.000Z",
+                      "eventProbVar": "P_EVENT1",
+                      "projectId": "proj-456-abc-789",
+                      "files": [
+                        {
+                          "id": "file-001",
+                          "name": "dmcas_relativeimportance.json",
+                          "fileUri": "/modelRepository/models/model-id-abc-123/contents/file-001",
+                          "modelId": "model-id-abc-123",
+                          "version": 1
+                        },
+                        {
+                          "id": "file-002",
+                          "name": "dmcas_scoreinputs.json",
+                          "fileUri": "/modelRepository/models/model-id-abc-123/contents/file-002",
+                          "modelId": "model-id-abc-123",
+                          "version": 1
+                        },
+                        {
+                          "id": "file-003",
+                          "name": "col_zh_table.csv",
+                          "fileUri": "/modelRepository/models/model-id-abc-123/contents/file-003",
+                          "modelId": "model-id-abc-123",
+                          "version": 1
+                        },
+                        {
+                          "id": "file-004",
+                          "name": "dmcas_packagemetadata.json",
+                          "fileUri": "/modelRepository/models/model-id-abc-123/contents/file-004",
+                          "modelId": "model-id-abc-123",
+                          "version": 1
+                        },
+                        {
+                          "id": "file-005",
+                          "name": "AstoreMetadata.json",
+                          "fileUri": "/modelRepository/models/model-id-abc-123/contents/file-005",
+                          "modelId": "model-id-abc-123",
+                          "version": 1
+                        },
+                        {
+                          "id": "file-006",
+                          "name": "dmcas_epscorecode.sas",
+                          "fileUri": "/modelRepository/models/model-id-abc-123/contents/file-006",
+                          "modelId": "model-id-abc-123",
+                          "version": 1
+                        }
+                      ],
+                      "inputVariables": [],
+                      "outputVariables": []
+                    }
+                  },
+                  "datastep_type": {
+                    "summary": "dataStep 類型 Champion Model",
+                    "value": {
+                      "id": "model-id-def-456",
+                      "name": "GBMModel",
+                      "role": "champion",
+                      "scoreCodeType": "dataStep",
+                      "modelType": "dataStep",
+                      "algorithm": "Gradient boosting",
+                      "modifiedTimeStamp": "2024-02-01T08:00:00.000Z",
+                      "eventProbVar": "P_BAD1",
+                      "projectId": "proj-789-def-012",
+                      "files": [
+                        {
+                          "id": "file-007",
+                          "name": "dmcas_relativeimportance.json",
+                          "modelId": "model-id-def-456",
+                          "fileUri": "/modelRepository/models/model-id-def-456/contents/file-007",
+                          "version": 1
+                        },
+                        {
+                          "id": "file-008",
+                          "name": "ScoreCode001.sas",
+                          "modelId": "model-id-def-456",
+                          "fileUri": "/modelRepository/models/model-id-def-456/contents/file-008",
+                          "version": 1
+                        },
+                        {
+                          "id": "file-009",
+                          "name": "dmcas_scorecode.sas",
+                          "modelId": "model-id-def-456",
+                          "fileUri": "/modelRepository/models/model-id-def-456/contents/file-009",
+                          "version": 1
+                        }
+                      ],
+                      "inputVariables": [],
+                      "outputVariables": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求無效"
+          },
+          "404": {
+            "description": "專案不存在或該專案無 Champion Model"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables": {
+      "get": {
+        "summary": "取得 Caslib 下的所有資料表",
+        "operationId": "getTableInfos",
+        "tags": [
+          "Tables"
+        ],
+        "description": "取得指定 Caslib 下的所有 CAS 資料表清單，含各表的載入狀態。\n\n**HTTP Method**：GET\n\n**URL 格式**（來源 `table.py` 常數）：\n```\n{base_url}casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables?limit={limit}&start=0\n```\n\n**路徑中的編碼說明**：\n- `cas~fs~cas-shared-default~fs~{caslib}` 是路徑式的 dataSource 識別碼\n- `cas` → CAS 伺服器\n- `cas-shared-default` → CAS Server 名稱\n- `{caslib}` → 目標 Caslib 名稱（如 `CASUSER`, `Public` 等）\n\n**使用場景**：\n- 列出 Caslib 下所有可用的 CAS 資料表\n- 確認特定資料表是否已載入（state = `loaded`）\n\n⚠️ **已知 Bug**：此端點對應的 `get_table_infos` 函式引用了不存在的\n`sas_viya_table_get_headers`，實際執行時會拋出 `ImportError`。\n\n**來源程式碼**：`utils/_api/table.py::get_table_infos`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "caslib",
+            "in": "path",
+            "required": true,
+            "description": "CAS Library 名稱（大小寫敏感）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "CASUSER"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "最大回傳筆數",
+            "schema": {
+              "type": "integer",
+              "default": 1000
+            },
+            "example": 1000
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "description": "分頁起始位置（固定為 0）",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "example": 0
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得資料表清單",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TablesListResponse"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功回應範例",
+                    "value": {
+                      "version": 1.0,
+                      "count": 3,
+                      "start": 0,
+                      "limit": 1000,
+                      "items": [
+                        {
+                          "id": "table-id-001",
+                          "name": "SCORING_INPUT",
+                          "caslib": "CASUSER",
+                          "state": "loaded",
+                          "rowCount": 5000,
+                          "columnCount": 25
+                        },
+                        {
+                          "id": "table-id-002",
+                          "name": "PATIENT_HISTORY",
+                          "caslib": "CASUSER",
+                          "state": "unloaded",
+                          "rowCount": null,
+                          "columnCount": null
+                        },
+                        {
+                          "id": "table-id-003",
+                          "name": "MODEL_OUTPUT",
+                          "caslib": "CASUSER",
+                          "state": "loaded",
+                          "rowCount": 200,
+                          "columnCount": 5
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求無效（Caslib 不存在）"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables/{tableName}": {
+      "get": {
+        "summary": "取得特定資料表詳細資訊",
+        "operationId": "getTable",
+        "tags": [
+          "Tables"
+        ],
+        "description": "根據 Caslib 和資料表名稱，取得單一 CAS 資料表的詳細資訊。\n\n**HTTP Method**：GET\n\n**URL 格式**：\n```\n{base_url}casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables/{tableName}\n```\n\n**使用場景**：\n- 確認特定資料表的載入狀態\n- 取得資料表的 Row Count 和 Column Count\n- 在執行 scoring job 前確認 input table 已 loaded\n\n⚠️ **已知 Bug**：此端點對應的 `get_table` 函式引用了不存在的\n`sas_viya_item_get_headers`，實際執行時會拋出 `ImportError`。\n\n**來源程式碼**：`utils/_api/table.py::get_table`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "caslib",
+            "in": "path",
+            "required": true,
+            "description": "CAS Library 名稱",
+            "schema": {
+              "type": "string"
+            },
+            "example": "CASUSER"
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "description": "資料表名稱（大小寫敏感）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "SCORING_INPUT"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得資料表詳細資訊",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableItem"
+                },
+                "examples": {
+                  "loaded": {
+                    "summary": "已載入的資料表",
+                    "value": {
+                      "id": "table-id-001",
+                      "name": "SCORING_INPUT",
+                      "caslib": "CASUSER",
+                      "state": "loaded",
+                      "rowCount": 5000,
+                      "columnCount": 25,
+                      "version": 1
+                    }
+                  },
+                  "unloaded": {
+                    "summary": "未載入的資料表",
+                    "value": {
+                      "id": "table-id-002",
+                      "name": "PATIENT_HISTORY",
+                      "caslib": "CASUSER",
+                      "state": "unloaded",
+                      "rowCount": null,
+                      "columnCount": null,
+                      "version": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "資料表不存在"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/casManagement/servers/cas-shared-default/caslibs/{caslib}/tables/{tableName}/state": {
+      "put": {
+        "summary": "切換 CAS 資料表載入狀態",
+        "operationId": "changeCasTableState",
+        "tags": [
+          "Tables"
+        ],
+        "description": "切換指定 CAS 資料表的載入狀態（`loaded` 或 `unloaded`）。\n\n**HTTP Method**：PUT\n\n**URL 格式**（來源 `table.py::change_castable_state`）：\n```\n{base_url}casManagement/servers/cas-shared-default/caslibs/{caslib}/tables/{tableName}/state?value={state}\n```\n\n**使用場景**：\n- `value=loaded`：將資料表載入 CAS in-memory（在 Scoring Job 前需確保 input table 已 loaded）\n- `value=unloaded`：將資料表從 CAS 記憶體卸載（釋放記憶體）\n\n**注意事項**：\n- Query parameter `value` 指定目標狀態\n- Request body 中的 `outputCaslibName` 和 `outputTableName` 需提供，\n  通常與 path 參數相同\n- `TABLE_STATE` 型別：`Literal[\"loaded\", \"unloaded\"]`（來源 `project_typing/_typing.py`）\n\n⚠️ **已知 Bug**：此端點對應的 `change_castable_state` 函式引用了不存在的\n`sas_viya_table_put_headers`，實際執行時會拋出 `ImportError`。\n\n**來源程式碼**：`utils/_api/table.py::change_castable_state`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "caslib",
+            "in": "path",
+            "required": true,
+            "description": "CAS Library 名稱",
+            "schema": {
+              "type": "string"
+            },
+            "example": "CASUSER"
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "description": "資料表名稱",
+            "schema": {
+              "type": "string"
+            },
+            "example": "SCORING_INPUT"
+          },
+          {
+            "name": "value",
+            "in": "query",
+            "required": true,
+            "description": "目標狀態",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "loaded",
+                "unloaded"
+              ]
+            },
+            "example": "loaded"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableStateBody"
+              },
+              "examples": {
+                "load_table": {
+                  "summary": "載入資料表（loaded）",
+                  "value": {
+                    "outputCaslibName": "CASUSER",
+                    "outputTableName": "SCORING_INPUT"
+                  }
+                },
+                "unload_table": {
+                  "summary": "卸載資料表（unloaded）",
+                  "value": {
+                    "outputCaslibName": "CASUSER",
+                    "outputTableName": "SCORING_INPUT"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "資料表狀態切換成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableStateResponse"
+                },
+                "examples": {
+                  "loaded": {
+                    "summary": "已成功載入",
+                    "value": {
+                      "state": "loaded"
+                    }
+                  },
+                  "unloaded": {
+                    "summary": "已成功卸載",
+                    "value": {
+                      "state": "unloaded"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求無效（如狀態值不在 loaded/unloaded 範圍內）"
+          },
+          "404": {
+            "description": "資料表或 Caslib 不存在"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/jobExecution/jobRequests/{jobRequestId}/jobs": {
+      "post": {
+        "summary": "啟動 Job 執行",
+        "operationId": "startJob",
+        "tags": [
+          "Job Execution"
+        ],
+        "description": "根據指定的 Job Request ID，建立並啟動新的 SAS Job 執行。\n\n**HTTP Method**：POST\n\n**URL 組合方式**（來源 `job_execution.py`）：\n```python\nJOB_EXECUTION_URL = f\"{base_url}jobExecution/jobRequests\"\nurl = f\"{JOB_EXECUTION_URL}/{job_request_id}/jobs\"\n```\n\n**使用場景**：\n- 觸發 SAS Scoring Job（在 CAS 中執行評分程序）\n- `job_request_id` 為預先設定好的 SAS Job Request UUID\n\n**必要 Headers**（`sas_viya_post_job_execution_headers`）：\n```\nDelegate-Domain: \"\"\nContent-Type: application/json\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json\n```\n\n**Request Body**：空物件 `{}`（使用 Job Request 的預設設定）\n\n**回傳**：新建的 Job 物件，其中 `id` 欄位為後續查詢 Job 狀態所需的 `jobId`\n\n⚠️ **已知 Bug**：`start_job` 呼叫 header 函式時傳入了不存在的 `is_text=False` 參數。\n\n**逾時設定**：`timeout=180` 秒\n\n**來源程式碼**：`utils/_api/job_execution.py::start_job`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "jobRequestId",
+            "in": "path",
+            "required": true,
+            "description": "Job Request 唯一識別碼（SAS Viya 預先設定的 Job Request UUID）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "job-request-abc-123"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartJobRequestBody"
+              },
+              "examples": {
+                "default": {
+                  "summary": "標準啟動請求（空 Body）",
+                  "value": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Job 已成功建立並啟動",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobInfo"
+                },
+                "examples": {
+                  "created": {
+                    "summary": "成功建立 Job 回應",
+                    "value": {
+                      "id": "job-id-abc-123",
+                      "state": "running",
+                      "creationTimeStamp": "2024-01-15T10:30:00.000Z",
+                      "createdBy": "sas_user",
+                      "jobRequest": {
+                        "id": "job-request-abc-123",
+                        "name": "ScoringJobRequest"
+                      },
+                      "links": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求無效（Job Request 不存在）"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/jobExecution/jobs/{jobId}": {
+      "get": {
+        "summary": "取得 Job 詳細資訊",
+        "operationId": "getJobInfo",
+        "tags": [
+          "Job Execution"
+        ],
+        "description": "取得指定 Job ID 的完整資訊，包含執行狀態、結果摘要及 HATEOAS 連結。\n\n**HTTP Method**：GET\n\n**URL 組合方式**（來源 `job_execution.py`）：\n```python\nJOBS_URL = f\"{base_url}jobExecution/jobs\"\nurl = f\"{JOBS_URL}/{job_request_id}\"  # 注意：參數名稱在 code 中是 job_request_id，實際為 jobId\n```\n\n**使用場景**：\n- 輪詢 Job 狀態（完整資訊版本）\n- 取得 Job 完成後的 `results` 物件\n- 用於除錯，取得完整的 Job 執行資訊\n\n⚠️ **已知 Bug**：`get_job_info` 呼叫 header 函式時傳入了不存在的 `is_text=True` 參數。\n\n**來源程式碼**：`utils/_api/job_execution.py::get_job_info`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "description": "Job 唯一識別碼（由 POST /jobExecution/jobRequests/{jobRequestId}/jobs 回傳）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "job-id-abc-123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得 Job 詳細資訊",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobInfo"
+                },
+                "examples": {
+                  "running": {
+                    "summary": "執行中的 Job",
+                    "value": {
+                      "id": "job-id-abc-123",
+                      "state": "running",
+                      "creationTimeStamp": "2024-01-15T10:30:00.000Z",
+                      "modifiedTimeStamp": "2024-01-15T10:30:05.000Z",
+                      "createdBy": "sas_user",
+                      "elapsedTime": 5.2
+                    }
+                  },
+                  "completed": {
+                    "summary": "已完成的 Job",
+                    "value": {
+                      "id": "job-id-abc-123",
+                      "state": "completed",
+                      "creationTimeStamp": "2024-01-15T10:30:00.000Z",
+                      "modifiedTimeStamp": "2024-01-15T10:32:30.000Z",
+                      "createdBy": "sas_user",
+                      "elapsedTime": 150.3,
+                      "results": {
+                        "outputTable": "SCORING_OUTPUT",
+                        "outputCaslib": "CASUSER"
+                      }
+                    }
+                  },
+                  "failed": {
+                    "summary": "執行失敗的 Job",
+                    "value": {
+                      "id": "job-id-abc-123",
+                      "state": "failed",
+                      "creationTimeStamp": "2024-01-15T10:30:00.000Z",
+                      "modifiedTimeStamp": "2024-01-15T10:30:10.000Z",
+                      "createdBy": "sas_user",
+                      "elapsedTime": 10.1,
+                      "results": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job 不存在"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/jobExecution/jobs/{jobId}/state": {
+      "get": {
+        "summary": "取得 Job 執行狀態",
+        "operationId": "getJobState",
+        "tags": [
+          "Job Execution"
+        ],
+        "description": "取得指定 Job 的目前執行狀態，為輕量級查詢端點（僅回傳狀態字串）。\n\n**HTTP Method**：GET\n\n**URL 組合方式**：\n```python\nurl = f\"{JOBS_URL}/{job_request_id}/state\"\n```\n\n**使用場景**：\n- **輪詢 Job 狀態**（比 `GET /jobExecution/jobs/{jobId}` 更輕量）\n- 典型使用模式：\n  1. `POST /jobExecution/jobRequests/{id}/jobs` → 取得 `jobId`\n  2. 定時輪詢 `GET /jobExecution/jobs/{jobId}/state`\n  3. 直到 `state` 為 `completed` / `failed` / `canceled` 才停止輪詢\n\n**狀態值說明**：\n- `pending`：等待執行\n- `running`：執行中\n- `completed`：執行成功（可接著取得 output table）\n- `failed`：執行失敗（需排查 SAS log）\n- `canceled`：已手動取消\n\n⚠️ **已知 Bug**：`get_job_state` 呼叫 header 函式時傳入了不存在的 `is_text=True` 參數。\n\n**來源程式碼**：`utils/_api/job_execution.py::get_job_state`\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "description": "Job 唯一識別碼",
+            "schema": {
+              "type": "string"
+            },
+            "example": "job-id-abc-123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得 Job 狀態",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStateResponse"
+                },
+                "examples": {
+                  "pending": {
+                    "summary": "等待執行",
+                    "value": {
+                      "state": "pending"
+                    }
+                  },
+                  "running": {
+                    "summary": "執行中",
+                    "value": {
+                      "state": "running"
+                    }
+                  },
+                  "completed": {
+                    "summary": "執行完成",
+                    "value": {
+                      "state": "completed"
+                    }
+                  },
+                  "failed": {
+                    "summary": "執行失敗",
+                    "value": {
+                      "state": "failed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job 不存在"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BasicAuth": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "SAS Viya 官方 OAuth client 的固定 Basic Auth。\n值為 `c2FzLmNsaTo=`（即 `sas.cli:` 的 Base64 編碼）。\nHeader 格式：`Authorization: Basic c2FzLmNsaTo=`\n\n**注意**：此值固定，不可由使用者自訂。\n"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "SAS Viya OAuth 2.0 Bearer Token。\nHeader 格式：`Authorization: Bearer {access_token}`\n"
+      }
+    },
+    "schemas": {
+      "PasswordGrantRequest": {
+        "type": "object",
+        "description": "帳號密碼 grant 請求體",
+        "required": [
+          "grant_type",
+          "username",
+          "password"
+        ],
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "password"
+            ],
+            "description": "OAuth grant type，固定為 \"password\""
+          },
+          "username": {
+            "type": "string",
+            "description": "SAS Viya 使用者帳號（來自環境變數 `user_id`）",
+            "example": "sas_user"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "description": "SAS Viya 使用者密碼（來自環境變數 `user_password`）"
+          }
+        }
+      },
+      "RefreshTokenGrantRequest": {
+        "type": "object",
+        "description": "refresh_token grant 請求體",
+        "required": [
+          "grant_type",
+          "refresh_token"
+        ],
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "refresh_token"
+            ],
+            "description": "OAuth grant type，固定為 \"refresh_token\""
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "先前取得的 refresh_token"
+          }
+        }
+      },
+      "SASViyaTokenResponse": {
+        "type": "object",
+        "description": "SAS Viya OAuth token 回應。\n來源：`schema/_token_response.py::SASViyaTokenResponse`\n",
+        "required": [
+          "access_token",
+          "token_type",
+          "id_token",
+          "refresh_token",
+          "expires_in",
+          "scope",
+          "jti"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "Bearer token，所有 SAS Viya API 呼叫的認證憑證"
+          },
+          "token_type": {
+            "type": "string",
+            "description": "token 類型，固定為 \"bearer\"",
+            "example": "bearer"
+          },
+          "id_token": {
+            "type": "string",
+            "description": "OpenID Connect ID token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "用於重新取得 access_token 的 refresh token"
+          },
+          "expires_in": {
+            "type": "integer",
+            "description": "access_token 有效秒數（程式碼中預留 10 秒緩衝）",
+            "example": 3600
+          },
+          "scope": {
+            "type": "string",
+            "description": "token 授權範圍",
+            "example": "openid"
+          },
+          "jti": {
+            "type": "string",
+            "description": "JWT ID，token 的唯一識別碼"
+          }
+        }
+      },
+      "Link": {
+        "type": "object",
+        "description": "SAS Viya HATEOAS 連結物件。\n來源：`schema/sas_viya/model/all_models_schema.py::Link`\n",
+        "required": [
+          "method",
+          "rel",
+          "href",
+          "uri"
+        ],
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE"
+            ]
+          },
+          "rel": {
+            "type": "string",
+            "description": "連結關係名稱"
+          },
+          "href": {
+            "type": "string",
+            "description": "絕對路徑 URL"
+          },
+          "uri": {
+            "type": "string",
+            "description": "相對路徑 URI"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseItemType": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemType": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Variable": {
+        "type": "object",
+        "description": "模型輸入/輸出變數。\n來源：`schema/sas_viya/model/all_models_schema.py::Variable`\n",
+        "properties": {
+          "creationTimeStamp": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedTimeStamp": {
+            "type": "string"
+          },
+          "modifiedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "變數名稱"
+          },
+          "description": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "description": "變數角色（INPUT / OUTPUT 等）"
+          },
+          "type": {
+            "type": "string",
+            "description": "資料型別（num / char 等）"
+          },
+          "level": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "aggregation": {
+            "type": "string"
+          },
+          "length": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "holderId": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            }
+          },
+          "projectVariableId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ModelItem": {
+        "type": "object",
+        "description": "模型清單中的單筆模型摘要。\n來源：`schema/sas_viya/model/all_models_schema.py::ModelItem`\n",
+        "required": [
+          "id",
+          "name",
+          "version"
+        ],
+        "properties": {
+          "creationTimeStamp": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedTimeStamp": {
+            "type": "string"
+          },
+          "modifiedBy": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "description": "模型唯一識別碼",
+            "example": "abc-123-def-456"
+          },
+          "name": {
+            "type": "string",
+            "description": "模型名稱",
+            "example": "LogisticRegressionModel"
+          },
+          "role": {
+            "type": "string"
+          },
+          "scoreCodeType": {
+            "type": "string",
+            "description": "評分代碼類型（ds2MultiType / dataStep 等）",
+            "example": "ds2MultiType"
+          },
+          "algorithm": {
+            "type": "string",
+            "example": "Logistic regression"
+          },
+          "function": {
+            "type": "string",
+            "example": "classification"
+          },
+          "modeler": {
+            "type": "string"
+          },
+          "modelType": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "astore",
+              "spk",
+              "dataStep"
+            ],
+            "description": "模型類型"
+          },
+          "trainTable": {
+            "type": "string",
+            "nullable": true,
+            "description": "訓練時使用的資料表名稱"
+          },
+          "eventProbVar": {
+            "type": "string",
+            "nullable": true,
+            "description": "事件機率變數名稱"
+          },
+          "targetVariable": {
+            "type": "string"
+          },
+          "targetEvent": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "tool": {
+            "type": "string",
+            "nullable": true
+          },
+          "toolVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "candidateChampion": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "version": {
+            "type": "number"
+          },
+          "indirectFolderId": {
+            "type": "string"
+          },
+          "repositoryId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectVersionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "immutable": {
+            "type": "boolean"
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "inputVariables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Variable"
+            }
+          },
+          "outputVariables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Variable"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            }
+          }
+        }
+      },
+      "FileLink": {
+        "type": "object",
+        "description": "模型檔案的 HATEOAS 連結，用於找到檔案內容下載 URL",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE"
+            ]
+          },
+          "rel": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "nullable": true
+          },
+          "uri": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ModelFile": {
+        "type": "object",
+        "description": "模型相關檔案（e.g. score code, metadata JSON）。\n來源：`schema/sas_viya/model/one_model_schema.py::File`\n\n下載檔案內容時，從 `links` 中找到 `rel=\"content\"` 且 `type=\"application/octet-stream\"` 的連結，\n其 `uri` 即為下載路徑（需加上 base_url）。\n",
+        "required": [
+          "id",
+          "name",
+          "fileUri",
+          "modelId"
+        ],
+        "properties": {
+          "creationTimeStamp": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedTimeStamp": {
+            "type": "string"
+          },
+          "modifiedBy": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string",
+            "description": "檔案唯一識別碼",
+            "example": "file-id-123"
+          },
+          "name": {
+            "type": "string",
+            "description": "檔案名稱",
+            "example": "dmcas_epscorecode.sas"
+          },
+          "fileUri": {
+            "type": "string",
+            "description": "檔案相對 URI",
+            "example": "/modelRepository/models/abc-123/contents/file-id-123"
+          },
+          "modelId": {
+            "type": "string",
+            "description": "所屬模型 ID"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileLink"
+            }
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ModelsListResponse": {
+        "type": "object",
+        "description": "模型清單回應。\n來源：`schema/sas_viya/model/response.py::SASViyaModelsResponse`\nSAS Viya 官方文檔：https://developers.sas.com/rest-apis/modelRepository-v8?operation=getModels\n",
+        "required": [
+          "count",
+          "items"
+        ],
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "accept": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "description": "符合條件的模型總數",
+            "example": 42
+          },
+          "start": {
+            "type": "integer",
+            "description": "本次回傳的起始索引",
+            "example": 0
+          },
+          "limit": {
+            "type": "integer",
+            "description": "本次回傳的最大筆數",
+            "example": 20
+          },
+          "name": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModelItem"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            }
+          }
+        }
+      },
+      "ProjectLink": {
+        "type": "object",
+        "description": "HATEOAS 連結物件（來源：schema/sas_viya/project/all_project_schema.py::Link）",
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "rel": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemType": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ProjectItem": {
+        "type": "object",
+        "description": "單筆專案資訊。\n來源：`schema/sas_viya/project/all_project_schema.py::Item`\n",
+        "required": [
+          "id",
+          "name",
+          "status"
+        ],
+        "properties": {
+          "creationTimeStamp": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedTimeStamp": {
+            "type": "string"
+          },
+          "modifiedBy": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string",
+            "description": "專案唯一識別碼",
+            "example": "proj-456-abc-789"
+          },
+          "name": {
+            "type": "string",
+            "description": "專案名稱",
+            "example": "Churn_Prediction_Project"
+          },
+          "function": {
+            "type": "string",
+            "nullable": true,
+            "description": "模型功能類型（classification 等）"
+          },
+          "externalProjectId": {
+            "type": "string",
+            "nullable": true
+          },
+          "candidateChampionHonored": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "trainTable": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetVariable": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetEventValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventProbabilityVariable": {
+            "type": "string",
+            "nullable": true,
+            "description": "事件機率變數名稱"
+          },
+          "latestVersion": {
+            "type": "string",
+            "description": "最新版本號"
+          },
+          "status": {
+            "type": "string",
+            "description": "專案狀態",
+            "example": "development"
+          },
+          "repositoryId": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectLink"
+            }
+          }
+        }
+      },
+      "ProjectsListResponse": {
+        "type": "object",
+        "description": "專案清單回應。\n來源：`schema/sas_viya/project/response.py::SASViyaProjectsResponse`\n",
+        "required": [
+          "count",
+          "items"
+        ],
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "accept": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "description": "符合條件的專案總數"
+          },
+          "start": {
+            "type": "integer",
+            "description": "本次回傳的起始索引"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "本次回傳的最大筆數（API 呼叫時預設 1000）"
+          },
+          "name": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectItem"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectLink"
+            }
+          }
+        }
+      },
+      "ChampionModelFile": {
+        "type": "object",
+        "description": "Champion Model 的相關檔案。\n來源：`schema/sas_viya/project/champion.py::File`\n",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "檔案 ID（用於組合下載 URL）",
+            "example": "file-id-001"
+          },
+          "name": {
+            "type": "string",
+            "description": "檔案名稱",
+            "example": "dmcas_epscorecode.sas"
+          },
+          "fileUri": {
+            "type": "string"
+          },
+          "modelId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "ChampionModelResponse": {
+        "type": "object",
+        "description": "Champion Model 詳細資訊。\n來源：`schema/sas_viya/project/response.py::SASViyaChampionModelResponse`\n\n**重要欄位**：\n- `scoreCodeType`：`\"ds2MultiType\"` → model_type 為 `astore`；`\"dataStep\"` → model_type 為 `dataStep`\n- `modelType`：若存在則直接使用；否則依 `scoreCodeType` 推斷\n- `files`：包含所有需要下載的模型檔案（score code、metadata 等）\n- `eventProbVar`：預測目標變數名稱（predict_target）\n",
+        "required": [
+          "id",
+          "name",
+          "scoreCodeType"
+        ],
+        "properties": {
+          "creationTimeStamp": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedTimeStamp": {
+            "type": "string",
+            "description": "模型最後修改時間（會存入 ChampionModelPayload.modified_timestamp）"
+          },
+          "modifiedBy": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "description": "Champion Model 的唯一識別碼（用於組合檔案下載 URL）",
+            "example": "model-id-abc-123"
+          },
+          "name": {
+            "type": "string",
+            "description": "Champion Model 名稱（存入 ChampionModelPayload.model_name）",
+            "example": "LogisticRegressionModel"
+          },
+          "role": {
+            "type": "string",
+            "example": "champion"
+          },
+          "scoreCodeType": {
+            "type": "string",
+            "enum": [
+              "ds2MultiType",
+              "dataStep"
+            ],
+            "description": "評分代碼類型，用於判斷 model_type：\n- `ds2MultiType` → model_type = `astore`（需要 AstoreMetadata.json）\n- `dataStep` → model_type = `dataStep`（需要 ScoreCode 的 SAS 檔案）\n"
+          },
+          "modelType": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "dataStep",
+              "astore"
+            ],
+            "description": "若存在則直接使用；否則由 scoreCodeType 推斷"
+          },
+          "eventProbVar": {
+            "type": "string",
+            "description": "事件機率預測目標變數（ChampionModelPayload.predict_target）",
+            "example": "P_EVENT1"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "description": "模型相關檔案清單，用於組合下載 URL：\n`{base_url}/modelRepository/models/{champion.id}/contents/{file.id}/content`\n",
+            "items": {
+              "$ref": "#/components/schemas/ChampionModelFile"
+            }
+          },
+          "inputVariables": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "outputVariables": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "TableLink": {
+        "type": "object",
+        "description": "HATEOAS 連結物件",
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "rel": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TableItem": {
+        "type": "object",
+        "description": "CAS 資料表摘要。\n來源：`schema/sas_viya/table/response.py` (推斷，因 table.py 有 import bug)\n",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string",
+            "description": "資料表唯一識別碼",
+            "example": "table-id-001"
+          },
+          "name": {
+            "type": "string",
+            "description": "資料表名稱",
+            "example": "SCORING_INPUT"
+          },
+          "caslib": {
+            "type": "string",
+            "description": "所屬 Caslib 名稱",
+            "example": "CASUSER"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "loaded",
+              "unloaded"
+            ],
+            "description": "資料表載入狀態"
+          },
+          "rowCount": {
+            "type": "integer",
+            "description": "資料表行數",
+            "nullable": true
+          },
+          "columnCount": {
+            "type": "integer",
+            "description": "資料表欄位數",
+            "nullable": true
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableLink"
+            }
+          }
+        }
+      },
+      "TablesListResponse": {
+        "type": "object",
+        "description": "CAS 資料表清單回應",
+        "required": [
+          "count",
+          "items"
+        ],
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "count": {
+            "type": "integer",
+            "description": "符合條件的資料表總數"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableItem"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableLink"
+            }
+          }
+        }
+      },
+      "TableStateBody": {
+        "type": "object",
+        "description": "切換資料表狀態的請求 Body。\n來源：`utils/_api/table.py::change_castable_state`\n\n**注意**：`outputCaslibName` 和 `outputTableName` 為必填欄位，\n內容與目前的 Caslib 和 Table 名稱相同（即原地 load/unload）。\n",
+        "required": [
+          "outputCaslibName",
+          "outputTableName"
+        ],
+        "properties": {
+          "outputCaslibName": {
+            "type": "string",
+            "description": "輸出 Caslib 名稱（通常與操作目標相同）",
+            "example": "CASUSER"
+          },
+          "outputTableName": {
+            "type": "string",
+            "description": "輸出資料表名稱（通常與操作目標相同）",
+            "example": "SCORING_INPUT"
+          }
+        }
+      },
+      "TableStateResponse": {
+        "type": "object",
+        "description": "資料表狀態更新回應",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "loaded",
+              "unloaded"
+            ],
+            "description": "更新後的資料表狀態"
+          }
+        }
+      },
+      "JobLink": {
+        "type": "object",
+        "description": "HATEOAS 連結物件",
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "rel": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "StartJobRequestBody": {
+        "type": "object",
+        "description": "啟動 Job 的請求 Body。\n來源：`utils/_api/job_execution.py::start_job`\n\n**注意**：`start_job` 以空的 JSON body `{}` 呼叫此端點，\n實際上 SAS Viya 會以 Job Request 的預設設定啟動 Job。\nBody 為空物件，僅需提供 `Content-Type: application/json` header。\n",
+        "properties": {},
+        "example": {}
+      },
+      "JobInfo": {
+        "type": "object",
+        "description": "Job 詳細資訊。\n來源：`schema/sas_viya/job_execution/response.py::SASViyaJobInfoResponse`\n",
+        "required": [
+          "id",
+          "state"
+        ],
+        "properties": {
+          "creationTimeStamp": {
+            "type": "string",
+            "description": "Job 建立時間",
+            "example": "2024-01-15T10:30:00.000Z"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedTimeStamp": {
+            "type": "string"
+          },
+          "modifiedBy": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string",
+            "description": "Job 唯一識別碼",
+            "example": "job-id-abc-123"
+          },
+          "jobRequest": {
+            "type": "object",
+            "description": "對應的 Job Request 參考物件",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "links": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/JobLink"
+                }
+              }
+            }
+          },
+          "state": {
+            "type": "string",
+            "description": "Job 執行狀態。\n完成狀態：`completed` / `failed` / `canceled`\n執行中狀態：`running` / `pending`\n",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "canceled"
+            ],
+            "example": "running"
+          },
+          "results": {
+            "type": "object",
+            "description": "Job 完成後的結果摘要（`state=completed` 時才會有值）\n",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobLink"
+            }
+          },
+          "logLocation": {
+            "type": "string",
+            "nullable": true,
+            "description": "執行 log 的存放路徑"
+          },
+          "elapsedTime": {
+            "type": "number",
+            "nullable": true,
+            "description": "Job 執行耗時（秒）"
+          },
+          "heartbeatInterval": {
+            "type": "integer",
+            "nullable": true
+          },
+          "heartbeatTimeStamp": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "JobStateResponse": {
+        "type": "object",
+        "description": "Job 執行狀態（純狀態查詢）。\n來源：`schema/sas_viya/job_execution/response.py::SASViyaJobStateResponse`\n",
+        "required": [
+          "state"
+        ],
+        "properties": {
+          "state": {
+            "type": "string",
+            "description": "Job 目前狀態：\n- `pending`：等待執行\n- `running`：執行中\n- `completed`：執行成功\n- `failed`：執行失敗\n- `canceled`：已取消\n",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "canceled"
+            ],
+            "example": "completed"
+          }
+        }
+      }
+    }
+  }
+}

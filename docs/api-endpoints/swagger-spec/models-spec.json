@@ -1,0 +1,707 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SAS Viya Model Repository API",
+    "description": "SAS Viya 模型管理端點文檔。\n\n覆蓋 `modelRepository/models` 相關操作，包含取得模型清單、單一模型詳情、模型檔案清單，以及模型檔案內容下載。\n\n**所有請求均需攜帶 Bearer Token**（由 Authentication API 取得）。\n\n**Header 說明**：\n- 一般 GET（模型清單/詳情）使用 `sas_viya_get_headers`：\n  ```\n  Authorization: Bearer {access_token}\n  Accept: application/vnd.sas.models.model+json, application/json\n  ```\n- 檔案內容下載使用 `sas_viya_get_content_headers`：\n  ```\n  If-Range: \"\"\n  Range: \"\"\n  Access-Quarantine: \"\"\n  Authorization: Bearer {access_token}\n  ```\n\n**來源程式碼**：`utils/_api/get_model.py`\n",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://{sas_viya_host}",
+      "description": "SAS Viya 伺服器",
+      "variables": {
+        "sas_viya_host": {
+          "default": "your-sas-viya-instance",
+          "description": "由環境變數 `base_url` 設定"
+        }
+      }
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "SAS Viya OAuth 2.0 Bearer Token。\nHeader 格式：`Authorization: Bearer {access_token}`\n"
+      }
+    },
+    "schemas": {
+      "Link": {
+        "type": "object",
+        "description": "SAS Viya HATEOAS 連結物件。\n來源：`schema/sas_viya/model/all_models_schema.py::Link`\n",
+        "required": [
+          "method",
+          "rel",
+          "href",
+          "uri"
+        ],
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE"
+            ]
+          },
+          "rel": {
+            "type": "string",
+            "description": "連結關係名稱"
+          },
+          "href": {
+            "type": "string",
+            "description": "絕對路徑 URL"
+          },
+          "uri": {
+            "type": "string",
+            "description": "相對路徑 URI"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseItemType": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemType": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Variable": {
+        "type": "object",
+        "description": "模型輸入/輸出變數。\n來源：`schema/sas_viya/model/all_models_schema.py::Variable`\n",
+        "properties": {
+          "creationTimeStamp": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedTimeStamp": {
+            "type": "string"
+          },
+          "modifiedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "變數名稱"
+          },
+          "description": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "description": "變數角色（INPUT / OUTPUT 等）"
+          },
+          "type": {
+            "type": "string",
+            "description": "資料型別（num / char 等）"
+          },
+          "level": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "aggregation": {
+            "type": "string"
+          },
+          "length": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "holderId": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            }
+          },
+          "projectVariableId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ModelItem": {
+        "type": "object",
+        "description": "模型清單中的單筆模型摘要。\n來源：`schema/sas_viya/model/all_models_schema.py::ModelItem`\n",
+        "required": [
+          "id",
+          "name",
+          "version"
+        ],
+        "properties": {
+          "creationTimeStamp": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedTimeStamp": {
+            "type": "string"
+          },
+          "modifiedBy": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "description": "模型唯一識別碼",
+            "example": "abc-123-def-456"
+          },
+          "name": {
+            "type": "string",
+            "description": "模型名稱",
+            "example": "LogisticRegressionModel"
+          },
+          "role": {
+            "type": "string"
+          },
+          "scoreCodeType": {
+            "type": "string",
+            "description": "評分代碼類型（ds2MultiType / dataStep 等）",
+            "example": "ds2MultiType"
+          },
+          "algorithm": {
+            "type": "string",
+            "example": "Logistic regression"
+          },
+          "function": {
+            "type": "string",
+            "example": "classification"
+          },
+          "modeler": {
+            "type": "string"
+          },
+          "modelType": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "astore",
+              "spk",
+              "dataStep"
+            ],
+            "description": "模型類型"
+          },
+          "trainTable": {
+            "type": "string",
+            "nullable": true,
+            "description": "訓練時使用的資料表名稱"
+          },
+          "eventProbVar": {
+            "type": "string",
+            "nullable": true,
+            "description": "事件機率變數名稱"
+          },
+          "targetVariable": {
+            "type": "string"
+          },
+          "targetEvent": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "tool": {
+            "type": "string",
+            "nullable": true
+          },
+          "toolVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "candidateChampion": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "version": {
+            "type": "number"
+          },
+          "indirectFolderId": {
+            "type": "string"
+          },
+          "repositoryId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectVersionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "immutable": {
+            "type": "boolean"
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "inputVariables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Variable"
+            }
+          },
+          "outputVariables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Variable"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            }
+          }
+        }
+      },
+      "FileLink": {
+        "type": "object",
+        "description": "模型檔案的 HATEOAS 連結，用於找到檔案內容下載 URL",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE"
+            ]
+          },
+          "rel": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "nullable": true
+          },
+          "uri": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ModelFile": {
+        "type": "object",
+        "description": "模型相關檔案（e.g. score code, metadata JSON）。\n來源：`schema/sas_viya/model/one_model_schema.py::File`\n\n下載檔案內容時，從 `links` 中找到 `rel=\"content\"` 且 `type=\"application/octet-stream\"` 的連結，\n其 `uri` 即為下載路徑（需加上 base_url）。\n",
+        "required": [
+          "id",
+          "name",
+          "fileUri",
+          "modelId"
+        ],
+        "properties": {
+          "creationTimeStamp": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedTimeStamp": {
+            "type": "string"
+          },
+          "modifiedBy": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string",
+            "description": "檔案唯一識別碼",
+            "example": "file-id-123"
+          },
+          "name": {
+            "type": "string",
+            "description": "檔案名稱",
+            "example": "dmcas_epscorecode.sas"
+          },
+          "fileUri": {
+            "type": "string",
+            "description": "檔案相對 URI",
+            "example": "/modelRepository/models/abc-123/contents/file-id-123"
+          },
+          "modelId": {
+            "type": "string",
+            "description": "所屬模型 ID"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileLink"
+            }
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ModelsListResponse": {
+        "type": "object",
+        "description": "模型清單回應。\n來源：`schema/sas_viya/model/response.py::SASViyaModelsResponse`\nSAS Viya 官方文檔：https://developers.sas.com/rest-apis/modelRepository-v8?operation=getModels\n",
+        "required": [
+          "count",
+          "items"
+        ],
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "accept": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "description": "符合條件的模型總數",
+            "example": 42
+          },
+          "start": {
+            "type": "integer",
+            "description": "本次回傳的起始索引",
+            "example": 0
+          },
+          "limit": {
+            "type": "integer",
+            "description": "本次回傳的最大筆數",
+            "example": 20
+          },
+          "name": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModelItem"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/modelRepository/models": {
+      "get": {
+        "summary": "取得所有模型",
+        "operationId": "getAllModels",
+        "tags": [
+          "Models"
+        ],
+        "description": "從 SAS Viya Model Repository 取得所有已登錄的模型清單。\n\n**HTTP Method**：GET\n\n**使用場景**：\n- 顯示所有可用模型的清單\n- 查詢某個專案底下的模型\n- 在呼叫 Champion Model 前，先確認模型存在\n\n**必要 Headers**：\n```\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.models.model+json, application/json\n```\n\n**來源程式碼**：`utils/_api/get_model.py::get_all_models`\n\n**SAS Viya 官方文檔**：https://developers.sas.com/rest-apis/modelRepository-v8?operation=getModels\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得模型清單",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelsListResponse"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功回應範例",
+                    "value": {
+                      "version": 2.0,
+                      "accept": "application/vnd.sas.models.model+json",
+                      "count": 2,
+                      "start": 0,
+                      "limit": 20,
+                      "name": "models",
+                      "items": [
+                        {
+                          "id": "abc-123-def-456",
+                          "name": "LogisticRegressionModel",
+                          "role": "champion",
+                          "scoreCodeType": "ds2MultiType",
+                          "algorithm": "Logistic regression",
+                          "function": "classification",
+                          "modeler": "sas_user",
+                          "modelType": "astore",
+                          "version": 1.0,
+                          "indirectFolderId": "folder-001",
+                          "repositoryId": "repo-001",
+                          "projectId": "proj-456",
+                          "immutable": false,
+                          "inputVariables": [],
+                          "outputVariables": [],
+                          "links": []
+                        },
+                        {
+                          "id": "def-789-ghi-012",
+                          "name": "GBMModel_v2",
+                          "role": "candidate",
+                          "scoreCodeType": "dataStep",
+                          "algorithm": "Gradient boosting",
+                          "function": "classification",
+                          "modeler": "sas_user",
+                          "modelType": "dataStep",
+                          "version": 2.0,
+                          "indirectFolderId": "folder-001",
+                          "repositoryId": "repo-001",
+                          "projectId": "proj-456",
+                          "immutable": false,
+                          "inputVariables": [],
+                          "outputVariables": [],
+                          "links": []
+                        }
+                      ],
+                      "links": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求無效"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/modelRepository/models/{modelId}": {
+      "get": {
+        "summary": "取得單一模型詳細資訊",
+        "operationId": "getOneModel",
+        "tags": [
+          "Models"
+        ],
+        "description": "根據指定的模型 ID，取得該模型的完整詳細資訊。\n\n**HTTP Method**：GET\n\n**使用場景**：\n- 取得模型的 `files` 清單（用於後續下載 score code 等檔案）\n- 取得輸入/輸出變數定義\n- 在 `get_model_files` 與 `get_model_file` 中作為底層呼叫\n\n**必要 Headers**：\n```\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.models.model+json, application/json\n```\n\n**來源程式碼**：`utils/_api/get_model.py::get_one_model`\n\n**SAS Viya 官方文檔**：https://developers.sas.com/rest-apis/modelRepository-v8?operation=getModel\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "description": "模型唯一識別碼（UUID 格式）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "abc-123-def-456"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得模型詳細資訊（包含 files, inputVariables, outputVariables 等）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "SASViyaModelResponse（詳細欄位見 schema/sas_viya/model/response.py）",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "scoreCodeType": {
+                      "type": "string"
+                    },
+                    "modelType": {
+                      "type": "string"
+                    },
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ModelFile"
+                      }
+                    },
+                    "inputVariables": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Variable"
+                      }
+                    },
+                    "outputVariables": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Variable"
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功回應範例（簡化版）",
+                    "value": {
+                      "id": "abc-123-def-456",
+                      "name": "LogisticRegressionModel",
+                      "scoreCodeType": "ds2MultiType",
+                      "modelType": "astore",
+                      "files": [
+                        {
+                          "id": "file-001",
+                          "name": "dmcas_epscorecode.sas",
+                          "fileUri": "/modelRepository/models/abc-123-def-456/contents/file-001",
+                          "modelId": "abc-123-def-456",
+                          "version": 1,
+                          "links": [
+                            {
+                              "method": "GET",
+                              "rel": "content",
+                              "uri": "/modelRepository/models/abc-123-def-456/contents/file-001/content",
+                              "type": "application/octet-stream"
+                            }
+                          ]
+                        }
+                      ],
+                      "inputVariables": [
+                        {
+                          "name": "AGE",
+                          "role": "INPUT",
+                          "type": "num"
+                        }
+                      ],
+                      "outputVariables": [
+                        {
+                          "name": "P_EVENT1",
+                          "role": "OUTPUT",
+                          "type": "num"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "模型不存在",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not_found": {
+                    "summary": "模型不存在範例",
+                    "value": {
+                      "status": 404,
+                      "message": "Model 'abc-123-def-456' not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    },
+    "/modelRepository/models/{modelId}/contents/{fileId}/content": {
+      "get": {
+        "summary": "下載模型檔案內容",
+        "operationId": "downloadModelFileContent",
+        "tags": [
+          "Model Files"
+        ],
+        "description": "下載指定模型特定檔案的實際內容（文字或 JSON）。\n\n**HTTP Method**：GET\n\n**URL 來源**：\n- 從 `GET /modelRepository/models/{modelId}` 的回應中，找到 `files[].links` 中\n  `rel=\"content\"` 且 `type=\"application/octet-stream\"` 的連結 `uri`\n- 或由 `project.py` 直接組合：`/modelRepository/models/{projectId}/contents/{file.id}/content`\n\n**使用場景**：\n- 下載模型 score code（`.sas` 檔案）\n- 下載模型 metadata（`.json` 檔案，如 `dmcas_relativeimportance.json`、`dmcas_scoreinputs.json`）\n- 下載欄位對照表（`.csv` 檔案，如 `col_zh_table.csv`）\n\n**必要 Headers**（`sas_viya_get_content_headers`）：\n```\nIf-Range: \"\"\nRange: \"\"\nAccess-Quarantine: \"\"\nAuthorization: Bearer {access_token}\n```\n\n**回應格式**：\n- 若檔案名稱結尾為 `.json` → 回傳 JSON\n- 否則 → 回傳純文字（`.sas`, `.csv` 等）\n\n**來源程式碼**：\n- `utils/_api/get_model.py::get_model_file_content`\n- `utils/_api/project.py::_fetch_file_content`\n\n**逾時設定**：`timeout=30` 秒\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "description": "模型唯一識別碼",
+            "schema": {
+              "type": "string"
+            },
+            "example": "abc-123-def-456"
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "description": "檔案唯一識別碼（從 ModelFile.id 取得）",
+            "schema": {
+              "type": "string"
+            },
+            "example": "file-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功下載檔案內容",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "json_file": {
+                    "summary": "JSON 檔案回應（如 dmcas_relativeimportance.json）",
+                    "value": {
+                      "data": [
+                        {
+                          "dataMap": {
+                            "Variable": "AGE",
+                            "RelativeImportance": "0.35"
+                          }
+                        },
+                        {
+                          "dataMap": {
+                            "Variable": "INCOME",
+                            "RelativeImportance": "0.28"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "text/plain": {
+                "examples": {
+                  "sas_file": {
+                    "summary": "SAS 評分代碼檔案回應（如 dmcas_epscorecode.sas）",
+                    "value": "data _score_;\n  set _input_;\n  P_EVENT1 = ...;\nrun;\n"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "模型或檔案不存在"
+          },
+          "401": {
+            "description": "Bearer Token 無效或過期"
+          }
+        }
+      }
+    }
+  }
+}
