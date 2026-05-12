@@ -25,7 +25,8 @@ and evidence-ledger guidance.
 本專案使用 contract-first workflow，把 `sasctl` 與 legacy SDK 的行為
 平移成 async client code。未來進行 API porting 時，必須先抽出 source
 request contract、撰寫 request-contract tests、定義 response / error
-boundaries，並更新 `docs/porting-ledger.md`，之後才能宣告 compatibility。
+boundaries，並同步更新 `docs/migration-map.md` 與 `docs/porting-ledger.md`，
+之後才能宣告 compatibility。
 
 ## Requirements
 
@@ -64,5 +65,6 @@ uv run ruff format .
 - `.github/copilot-instructions.md` — AI coding control plane
 - `.github/CONTRIBUTING.md` — development workflow and contribution rules
 - `docs/ARCHITECTURE.md` — design intent and skill map
+- `docs/migration-map.md` — source API 到 target async API 的集中遷移對照表
 - `docs/porting-ledger.md` — evidence ledger for contract-first API porting
 - `.github/agents/` — reusable workflow orchestration agents for planning and implementation
