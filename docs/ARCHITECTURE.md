@@ -90,4 +90,5 @@ This repository includes 1 custom workflow agent.
 - `analysis/api-client-porting-contract/requirements.md` — frozen API porting behavior requirements
 - `analysis/api-client-porting-contract/technical-spec.md` — technical mapping for API porting workflow artifacts
 - `plan/api-client-porting-contract/api-client-porting-contract.plan.md` — implementation contract for the porting workflow
+- `docs/migration-map.md` — centralized source-to-target migration map for endpoint families
 - `docs/porting-ledger.md` — evidence ledger for each ported source SDK API
