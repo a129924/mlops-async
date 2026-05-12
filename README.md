@@ -16,6 +16,13 @@ not implemented yet.
 - Separate unit tests from integration tests
 - Provide a reusable library for downstream projects
 
+## API porting workflow
+
+本專案使用 contract-first workflow，把 `sasctl` 與 legacy SDK 的行為
+平移成 async client code。未來進行 API porting 時，必須先抽出 source
+request contract、撰寫 request-contract tests、定義 response / error
+boundaries，並更新 `docs/porting-ledger.md`，之後才能宣告 compatibility。
+
 ## Requirements
 
 - Python `3.10`
@@ -41,7 +48,10 @@ uv run ruff format .
 - `src/mlops_async/` — package source
 - `tests/unit/` — pure unit tests
 - `tests/integration/` — integration tests
+- `analysis/` — repo-visible requirements and technical specs for governed topics
+- `plan/` — repo-visible implementation plans and step trackers
 - `.github/skills/` — installed project skills
+- `.github/agents/` — installed custom workflow agents
 - `docs/` — human-facing reference documents
 
 ## References
@@ -50,3 +60,5 @@ uv run ruff format .
 - `.github/copilot-instructions.md` — AI coding control plane
 - `.github/CONTRIBUTING.md` — development workflow and contribution rules
 - `docs/ARCHITECTURE.md` — design intent and skill map
+- `docs/porting-ledger.md` — evidence ledger for contract-first API porting
+- `.github/agents/` — reusable workflow orchestration agents for planning and implementation
