@@ -45,7 +45,7 @@ This file defines decision rules for AI agents writing code in this repository.
 - 在 porting 任何 `sasctl` 或 legacy SDK API 之前，先閱讀 `analysis/api-client-porting-contract/requirements.md` 與 `analysis/api-client-porting-contract/technical-spec.md`
 - 使用 `.github/skills/api-client-porting-planner/` 做 endpoint-family discovery、request contract drafts、risk classification、porting order 與 stop flags
 - 只有在 planner output 或等價的 source / request contract evidence 已存在後，才可使用 `.github/skills/api-client-porting-implementer/`
-- 每個 ported API 都必須更新 `docs/porting-ledger.md`，之後才能宣告 compatibility
+- 每個 ported API 都必須先更新 `docs/migration-map.md` 的對照狀態，再更新 `docs/porting-ledger.md` 的證據內容，之後才能宣告 compatibility
 - 遇到 upload/download、streaming、polling、retry、pagination expansion、global session side effects、conditional endpoint selection、unclear source behavior 或 unclear response schema 時，停止並交給人工 review
 
 ### Response Models
@@ -130,6 +130,7 @@ For detailed guidance, see:
 - **`.github/skills/`**: 28 installed Agent Skills with detailed rule references
 - **`.github/agents/`**: workflow orchestration agents for plan-to-review execution
 - **`analysis/api-client-porting-contract/`**: frozen requirements and technical spec for contract-first API porting
+- **`docs/migration-map.md`**: source API 到 target async API 的集中 migration 對照表
 - **`docs/porting-ledger.md`**: compatibility and evidence ledger for ported source SDK APIs
 
 ---
@@ -139,11 +140,12 @@ For detailed guidance, see:
 1. For source SDK porting, start with `analysis/api-client-porting-contract/requirements.md`
 2. Use `.github/skills/api-client-porting-planner/SKILL.md` before implementation
 3. Use `.github/skills/api-client-porting-implementer/SKILL.md` only after request contract evidence exists
-4. Refer to `.github/skills/python-async-await/SKILL.md` for async patterns
-5. Refer to `.github/skills/python-error-handling/SKILL.md` for exception design
-6. Refer to `.github/skills/python-testing-pytest/SKILL.md` for test structure
-7. Use `.github/agents/python-implementation-workflow.agent.md` when the task needs gated plan → implementation → review orchestration
-8. Ask: "Does this decision affect how I write code right now?" If no → check documentation instead
+4. Use `docs/migration-map.md` to keep source-to-target mapping and status centralized
+5. Refer to `.github/skills/python-async-await/SKILL.md` for async patterns
+6. Refer to `.github/skills/python-error-handling/SKILL.md` for exception design
+7. Refer to `.github/skills/python-testing-pytest/SKILL.md` for test structure
+8. Use `.github/agents/python-implementation-workflow.agent.md` when the task needs gated plan → implementation → review orchestration
+9. Ask: "Does this decision affect how I write code right now?" If no → check documentation instead
 
 ---
 

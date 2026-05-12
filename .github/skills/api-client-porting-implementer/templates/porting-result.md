@@ -1,5 +1,19 @@
 # Porting result
 
+## Migration map update
+
+- Migration map path: `docs/migration-map.md` (canonical)
+- Source family:
+- Source module / function:
+- Source file / lines:
+- Target module / class / method:
+- Request status: missing | drafted | tested | implemented | blocked
+- Response status: missing | drafted | tested | implemented | blocked
+- Compatibility: equivalent | normalized | intentionally_changed | not_supported | unknown
+- Decision: continue | stable | needs-human-review | blocked
+- Stop reason / review note:
+- Ledger reference: docs/porting-ledger.md#... | planned | TBD
+
 ## Scope
 
 - API or batch name:
@@ -51,6 +65,7 @@
 - Known divergences:
 - Stop flags observed:
 - Human-review notes:
+- Migration map updated before ledger: yes | no
 - Validation commands run:
 - Validation not run / why:
 

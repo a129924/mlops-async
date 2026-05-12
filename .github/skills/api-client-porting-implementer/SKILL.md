@@ -1,6 +1,6 @@
 ---
 name: api-client-porting-implementer
-description: Implement one source SDK API or a safe same-family batch from planner output using request-test-first API client porting, response/error contract extraction, and ledger-backed stop decisions.
+description: Implement one source SDK API or a safe same-family batch from planner output using request-test-first API client porting, migration-map-first status updates, response/error contract extraction, and ledger-backed stop decisions.
 complexity: high
 risk_profile:
   - ambiguity_sensitive
@@ -11,6 +11,7 @@ inputs:
   - planner output or equivalent source/request contract
   - source SDK evidence with module, function, file, line range, and commit or version
   - target module, class, method, and allowed file scope
+  - current migration map path: `docs/migration-map.md`
   - local test command or validation expectations
   - current porting ledger location
 outputs:
@@ -18,13 +19,14 @@ outputs:
   - minimal target implementation
   - response and error contract tests
   - Pydantic request, response, and error schemas when needed
+  - updated migration-map row
   - updated or emitted porting ledger entry
   - final decision label
 use_when:
   - porting a source SDK API into an async-first API client after planning is complete
   - implementing a safe same-family batch with stable request patterns and no stop flags
   - converting source request/response behavior into tested target client behavior
-  - updating the porting ledger for implemented APIs
+  - updating the migration map and porting ledger for implemented APIs
 do_not_use_when:
   - source evidence or request contract is missing
   - the task is only endpoint discovery or family mapping
@@ -33,7 +35,7 @@ do_not_use_when:
 ---
 
 # Purpose
-Implement one API, or a safe same-family API batch, from planner output using a contract-first sequence: source evidence, request test first, minimal implementation, response/error tests, ledger update, and explicit stop/continue decision.
+Implement one API, or a safe same-family API batch, from planner output using a contract-first sequence: source evidence, request test first, minimal implementation, response/error tests, migration-map update, ledger update, and explicit stop/continue decision.
 
 # Trigger / When to use
 Use this skill when:
@@ -53,10 +55,11 @@ Do not use this skill when:
 - Source code evidence from the original SDK, commonly `sasctl` or another locally available legacy SDK checkout such as `<path-to-legacy-sas-api-checkout>`, but not limited to those SDKs.
 - Target async client location, method name, public contract, and allowed files from the active plan.
 - Existing test style and local validation commands.
+- Migration map path: `docs/migration-map.md`.
 - Ledger path, normally `docs/porting-ledger.md`, or another task-specific ledger path.
 
 # Process
-1. Confirm scope: identify the single API or safe same-family batch, allowed files, source evidence, target method, and ledger path.
+1. Confirm scope: identify the single API or safe same-family batch, allowed files, source evidence, target method, `docs/migration-map.md`, and ledger path.
 2. Block if source evidence or request contract is missing. Do not infer method, path, auth, headers, query params, body, or response behavior.
 3. Re-read source evidence locally and record the observed method, path, required header subset, query parameter semantics, body shape, auth behavior, and source line range.
 4. Write request contract tests before implementation. Assert HTTP method, endpoint path, required header subset, query param key-value semantics, and request body shape.
@@ -66,12 +69,13 @@ Do not use this skill when:
 8. Apply Pydantic external schema policy: request models default to `extra="forbid"`; response models default to `extra="ignore"` or `extra="allow"`; error response models default to `extra="allow"`.
 9. Add response tests for the observed success behavior and compatibility label. If raw SDK output is converted into typed Pydantic schema, mark response compatibility as `normalized`, not `equivalent`.
 10. Add error tests for observed or documented error response shape without overfitting unknown service internals.
-11. Run the relevant local validation commands for the changed files or explain why they could not run.
-12. Update or emit the ledger entry using `templates/porting-result.md`, including compatibility decisions, tests added, divergences, human-review notes, and final decision.
-13. End with exactly one decision label: `continue`, `stable`, `needs-human-review`, or `blocked`.
+11. Update `docs/migration-map.md` before the ledger so the row reflects the latest target method, request status, response status, compatibility, decision, review note, and ledger reference state.
+12. Run the relevant local validation commands for the changed files or explain why they could not run.
+13. Update or emit the ledger entry using `templates/porting-result.md`, including compatibility decisions, tests added, divergences, human-review notes, and final decision.
+14. End with exactly one decision label: `continue`, `stable`, `needs-human-review`, or `blocked`.
 
 # Examples
-- Positive: Given planner output for `sasctl.foo.get_bar` with file, line range, commit, method `GET`, path `/foo/{id}`, required accept header, query keys, and stable JSON fixture, first add a request test for method/path/header subset/query key-values, implement the minimal async method, add tolerant response and error tests, update the ledger, and finish with `continue`.
+- Positive: Given planner output for `sasctl.foo.get_bar` with file, line range, commit, method `GET`, path `/foo/{id}`, required accept header, query keys, and stable JSON fixture, first add a request test for method/path/header subset/query key-values, implement the minimal async method, add tolerant response and error tests, update `docs/migration-map.md`, then update the ledger, and finish with `continue`.
 - Negative: Do not implement `list_all_jobs` by guessing pagination, polling, retry, or response schema from endpoint naming; mark `needs-human-review` or `blocked` until source behavior and response evidence are clear.
 
 # Outputs
@@ -79,6 +83,7 @@ Do not use this skill when:
 - Minimal target async implementation for one API or an explicitly safe same-family batch.
 - Response contract test(s) and error contract test(s), when response/error evidence is available.
 - Pydantic models or schema updates with external-boundary `extra` policy documented.
+- Migration map row updated before ledger handoff.
 - Ledger entry updated or emitted for every ported API.
 - Final decision label: `continue`, `stable`, `needs-human-review`, or `blocked`.
 
@@ -93,6 +98,7 @@ Do not use this skill when:
 - Pydantic schema policy is applied and documented for request, response, and error models.
 - Compatibility labels use only `equivalent`, `normalized`, `intentionally_changed`, `not_supported`, or `unknown`.
 - Final decision uses only `continue`, `stable`, `needs-human-review`, or `blocked`.
+- `docs/migration-map.md` is updated before `docs/porting-ledger.md` when both files are in scope.
 - The ledger is updated or an explicit ledger entry is emitted before handoff.
 
 ## Quality Checks (best effort)
@@ -100,6 +106,7 @@ Do not use this skill when:
 - Tests follow existing repository style and avoid brittle transport details.
 - Response schema remains tolerant at the external API boundary unless stable behavior is proven.
 - Human-review notes explain any unknowns, divergences, fixture gaps, or source limitations.
+- The migration-map row and ledger entry do not contradict each other on status, compatibility, decision, or reference state.
 
 ## On Soft Fail
 - Mark workflow status as `INCOMPLETE` when non-blocking evidence is incomplete but the request contract remains safe.
@@ -151,4 +158,4 @@ When participating in a multi-agent workflow, include:
 # Local references
 - `reference.md`: compact rule reference for request gates, schema policy, compatibility labels, stop conditions, and final decisions.
 - `examples.md`: detailed positive and negative implementation patterns, including safe batching and blocked cases.
-- `templates/porting-result.md`: reusable ledger/handoff template for each implemented API or safe same-family batch.
+- `templates/porting-result.md`: reusable migration-map-first ledger/handoff template for each implemented API or safe same-family batch.

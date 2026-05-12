@@ -1,6 +1,6 @@
 # Endpoint family map template
 
-Use this template for `api-client-porting-planner` output. Keep unknown values explicit; do not infer missing source behavior.
+Use this template for `api-client-porting-planner` output. Keep unknown values explicit; do not infer missing source behavior. The planner result should include both a family map and migration-map row/status output.
 
 ## Planner metadata
 
@@ -58,6 +58,14 @@ human_review_notes:
 | Source function | Endpoint family | Method | Path pattern | Request pattern | Risk | Stop flags |
 | --- | --- | --- | --- | --- | --- | --- |
 |  |  |  |  |  |  |  |
+
+## Migration-map rows
+
+Use these rows to update `docs/migration-map.md` during planning handoff. If a ledger entry does not exist yet, use a placeholder such as `planned` or `TBD` in the ledger reference field and explain it in the review note.
+
+| Source family | Source module / function | Source file / lines | Target module / class / method | Request status | Response status | Compatibility | Decision | Stop reason / review note | Ledger reference |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  |  |  | planned | drafted | missing | unknown | continue |  | planned |
 
 ## Porting order
 
