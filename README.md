@@ -8,9 +8,9 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
-As of **v0.2.0**, the repository includes the workflow foundation for
-contract-first API porting, including planning, gated implementation, review,
-and evidence-ledger guidance.
+As of **v0.3.0**, the repository includes the workflow foundation for
+contract-first API porting, including migration-map integration, gated
+implementation, review, and evidence-ledger guidance.
 
 ## Goals
 
