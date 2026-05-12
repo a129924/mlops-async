@@ -6,11 +6,15 @@ This file defines decision rules for AI agents writing code in this repository.
 
 ## Language Requirement
 
-**All project communication must be in Traditional Chinese (繁體中文):**
-- Code comments, docstrings, and messages
+**本 repo 預設以繁體中文（Traditional Chinese）撰寫下列內容：**
+- repo 自有文件、註解與使用者可見訊息
 - Git commit messages
 - Issue descriptions and pull request content
-- Internal documentation
+- project-specific analysis / plan / ledger artifacts
+
+**例外：**
+- 若內容屬於 upstream / imported / shared assets，為了保留同步與可攜性，可維持原始語言
+- 新增的 repo 專屬補充內容仍優先使用繁體中文
 
 ---
 
@@ -38,11 +42,11 @@ This file defines decision rules for AI agents writing code in this repository.
 ## API Design
 
 ### Source SDK Porting
-- Before porting any `sasctl` or legacy SDK API, read `analysis/api-client-porting-contract/requirements.md` and `analysis/api-client-porting-contract/technical-spec.md`
-- Use `.github/skills/api-client-porting-planner/` for endpoint-family discovery, request contract drafts, risk classification, porting order, and stop flags
-- Use `.github/skills/api-client-porting-implementer/` only after planner output or equivalent source/request contract evidence exists
-- Update `docs/porting-ledger.md` for every ported API before claiming compatibility
-- Stop for human review on upload/download, streaming, polling, retry, pagination expansion, global session side effects, conditional endpoint selection, unclear source behavior, or unclear response schema
+- 在 porting 任何 `sasctl` 或 legacy SDK API 之前，先閱讀 `analysis/api-client-porting-contract/requirements.md` 與 `analysis/api-client-porting-contract/technical-spec.md`
+- 使用 `.github/skills/api-client-porting-planner/` 做 endpoint-family discovery、request contract drafts、risk classification、porting order 與 stop flags
+- 只有在 planner output 或等價的 source / request contract evidence 已存在後，才可使用 `.github/skills/api-client-porting-implementer/`
+- 每個 ported API 都必須更新 `docs/porting-ledger.md`，之後才能宣告 compatibility
+- 遇到 upload/download、streaming、polling、retry、pagination expansion、global session side effects、conditional endpoint selection、unclear source behavior 或 unclear response schema 時，停止並交給人工 review
 
 ### Response Models
 - Use `pydantic.BaseModel` for every SAS Viya API response type

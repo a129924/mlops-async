@@ -9,7 +9,7 @@
 本需求適用於任何將來源 SDK API 平移成 `mlops-async` async-first client 行為的工作，第一個 primary source 是：
 
 - `sasctl`
-- `<LOCAL_LEGACY_SERVICE_CODE_PATH>`
+- legacy `sas-api` repository（實際本機或遠端路徑由使用者提供）
 
 本需求不直接要求修改 `src/mlops_async/` production code。production code 應在後續 endpoint family topic plan 中依本合約執行。
 

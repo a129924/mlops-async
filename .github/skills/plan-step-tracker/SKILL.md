@@ -6,7 +6,7 @@ risk_profile:
   - external_tooling
 inputs:
   - topic name that maps to plan/<topic>/<topic>.step.md
-  - operation: read_all, read_not_run, read_success, or check_all_succeeded
+  - operation: read_all, read_not_run, read_success, check_all_succeeded, or check_impl_steps_succeeded
 outputs:
   - Python CLI stdout with matching step lines or success/blocked summary
   - exit code 0 or 1 that the caller can use as a workflow gate
@@ -42,7 +42,7 @@ Do not use this skill when:
 # Inputs
 
 - `<topic>`: required topic name; resolves to `plan/<topic>/<topic>.step.md`
-- `<operation>`: one of `read_all`, `read_not_run`, `read_success`, `check_all_succeeded`
+- `<operation>`: one of `read_all`, `read_not_run`, `read_success`, `check_all_succeeded`, `check_impl_steps_succeeded`
 - current working directory at repository root so the Python CLI and fallback paths resolve correctly
 
 # Process
@@ -57,31 +57,32 @@ Do not use this skill when:
    - `[ ]` = pending
    - `[x]` = pending, with a warning on stderr
 4. Preserve the command contract by honoring exit codes:
-   - `read_all`, `read_not_run`, `read_success` return exit code `0` on successful reads
-   - `check_all_succeeded` returns exit code `0` only when nothing is pending
-   - missing `.step.md` returns exit code `1` and is blocking
-5. If Python CLI execution is unavailable, use the grep fallback from `reference.md`, and explicitly note that grep cannot reproduce the lowercase `[x]` warning by itself.
-6. Never modify `.step.md`, normalize checkbox casing, or continue past a blocking `check_all_succeeded` result.
+    - `read_all`, `read_not_run`, `read_success` return exit code `0` on successful reads
+    - `check_all_succeeded` returns exit code `0` only when nothing is pending
+    - `check_impl_steps_succeeded` returns exit code `0` only when no pending items remain under `## Implementation Steps`
+    - missing `.step.md` returns exit code `1` and is blocking
+5. Use `check_impl_steps_succeeded` when the workflow gate must evaluate only `## Implementation Steps` and ignore informational items under later headings such as `## Workflow Stages`.
+6. If Python CLI execution is unavailable, use the grep fallback from `reference.md`, and explicitly note that grep cannot reproduce the lowercase `[x]` warning by itself.
+7. Never modify `.step.md`, normalize checkbox casing, or continue past a blocking `check_all_succeeded` or `check_impl_steps_succeeded` result.
 
 # Examples
 
-**Positive: Use the blocking command before a gated handoff**
+**Positive: Use the implementation-only blocking command before implementation review**
 ```bash
-$ python .github/skills/plan-step-tracker/scripts/step_tracker.py check_all_succeeded my-feature
-❌ BLOCKED: 2 steps pending (exit code 1)
+$ python .github/skills/plan-step-tracker/scripts/step_tracker.py check_impl_steps_succeeded my-feature
+❌ 阻擋：仍有 1 個實作步驟待完成（exit code 1）
 [ ] implementation-review
-[x] code-review
 ```
-The caller stops and reports the pending steps.
+The caller stops because an implementation step is still pending, even if later informational workflow-stage items exist elsewhere in the file.
 
-**Negative: Treat lowercase `[x]` as complete or ignore exit code 1**
+**Negative: Treat lowercase `[x]` as complete or use the broad gate when only implementation steps matter**
 ```bash
-$ python .github/skills/plan-step-tracker/scripts/step_tracker.py check_all_succeeded my-feature
-Warning: Found lowercase [x] at line 18; treating as pending
-❌ BLOCKED: 1 steps pending (exit code 1)
+$ python .github/skills/plan-step-tracker/scripts/step_tracker.py check_impl_steps_succeeded my-feature
+警告：在第 18 行發現小寫 [x]；將視為待完成
+❌ 阻擋：仍有 1 個實作步驟待完成（exit code 1）
 [x] code-review
 ```
-Wrong follow-up: continuing anyway or rewriting the file inside this skill.
+Wrong follow-up: continuing anyway, or using `check_all_succeeded` to block on informational `## Workflow Stages` entries when the gate is supposed to read only `## Implementation Steps`.
 
 # Outputs
 
@@ -89,16 +90,17 @@ Wrong follow-up: continuing anyway or rewriting the file inside this skill.
 - `read_not_run`: pending lines on stdout, including lowercase `[x]`; exit code `0`
 - `read_success`: completed `[X]` lines on stdout; exit code `0`
 - `check_all_succeeded`: success summary with exit code `0`, or blocked summary plus pending lines with exit code `1`
-- errors: `Error: File not found: plan/<topic>/<topic>.step.md` on stderr with exit code `1`
+- `check_impl_steps_succeeded`: implementation-only success summary with exit code `0`, or blocked summary plus pending `## Implementation Steps` lines with exit code `1`
+- errors: `錯誤：找不到檔案：plan/<topic>/<topic>.step.md` on stderr with exit code `1`
 
 # Validation
 
 ## Required Checks
-- run only one of the four supported operations
-- keep the command path as `python .github/skills/plan-step-tracker/scripts/step_tracker.py <operation> <topic>`
-- treat exit code `1` from `check_all_succeeded` or missing files as blocking
-- treat lowercase `[x]` as pending, not done
-- keep the workflow read-only
+ - run only one of the five supported operations
+ - keep the command path as `python .github/skills/plan-step-tracker/scripts/step_tracker.py <operation> <topic>`
+ - treat exit code `1` from `check_all_succeeded`, `check_impl_steps_succeeded`, or missing files as blocking
+ - treat lowercase `[x]` as pending, not done
+ - keep the workflow read-only
 
 ## Quality Checks (best effort)
 - prefer the Python CLI over grep so warning and exit-code semantics stay exact
@@ -126,8 +128,8 @@ Wrong follow-up: continuing anyway or rewriting the file inside this skill.
 
 # Verification
 
-- verify exit code `0` from `check_all_succeeded` before continuing a gated workflow
-- verify exit code `1` blocks continuation when any pending step or missing file is reported
+- verify exit code `0` from `check_all_succeeded` or `check_impl_steps_succeeded` before continuing the matching gated workflow
+- verify exit code `1` blocks continuation when any pending step, pending implementation step, or missing file is reported
 - verify lowercase `[x]` remains pending and produces a warning when the Python CLI is used
 - verify fallback grep guidance is presented as an approximation, not as a replacement for the CLI warning behavior
 

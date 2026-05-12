@@ -41,7 +41,7 @@ Input:
 
 - Source SDK: legacy `sas-api` repository
 - Endpoint family: deployment endpoints
-- Source location: `<LOCAL_LEGACY_SERVICE_CODE_PATH>`
+- Source location: `<path-to-legacy-sas-api-checkout>`
 
 Good output behavior:
 

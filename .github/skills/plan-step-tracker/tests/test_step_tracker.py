@@ -117,7 +117,7 @@ topic: test-lowercase
 
         assert len(steps) == 1
         assert steps[0].status == "pending"
-        assert "[x]" in captured.err or "lowercase" in captured.err
+        assert "[x]" in captured.err or "小寫" in captured.err
 
     def test_ignore_non_checkbox_lines(self, temp_plan_dir):
         """Ignore lines that don't start with checkbox pattern."""
@@ -183,7 +183,7 @@ topic: all-done
         captured = capsys.readouterr()
 
         assert result == 1
-        assert "not found" in captured.err.lower()
+        assert "找不到檔案" in captured.err
 
 
 class TestReadSuccess:
@@ -225,7 +225,7 @@ topic: all-pending
         captured = capsys.readouterr()
 
         assert result == 1
-        assert "not found" in captured.err.lower()
+        assert "找不到檔案" in captured.err
 
 
 class TestReadAll:
@@ -254,11 +254,11 @@ class TestReadAll:
         captured = capsys.readouterr()
 
         assert result == 1
-        assert "not found" in captured.err.lower()
+        assert "找不到檔案" in captured.err
 
 
 class TestCheckAllSucceeded:
-    """Test check_all_succeeded: SUCCESS if all done, BLOCKED if any pending."""
+    """Test check_all_succeeded: success if all done, blocked if any pending."""
 
     def test_check_all_succeeded_all_done(self, temp_plan_dir, capsys):
         """Return exit 0 when all steps complete."""
@@ -279,7 +279,7 @@ topic: all-complete
         captured = capsys.readouterr()
 
         assert result == 0
-        assert "SUCCESS" in captured.out
+        assert "成功" in captured.out
         assert "3" in captured.out
 
     def test_check_all_succeeded_has_pending(self, sample_step_file, capsys):
@@ -290,7 +290,7 @@ topic: all-complete
         captured = capsys.readouterr()
 
         assert result == 1
-        assert "BLOCKED" in captured.out
+        assert "阻擋" in captured.out
         # Should list BLOCKED header + pending steps (all on stdout)
         lines = captured.out.strip().split("\n")
         assert len(lines) == 5  # BLOCKED header + 4 pending steps
@@ -301,10 +301,10 @@ topic: all-complete
         captured = capsys.readouterr()
 
         assert result == 1
-        assert "not found" in captured.err.lower()
+        assert "找不到檔案" in captured.err
 
     def test_check_all_succeeded_no_steps(self, temp_plan_dir, capsys):
-        """Return SUCCESS when no steps (empty list is complete)."""
+        """Return success when no steps (empty list is complete)."""
         topic = "no-steps"
         topic_dir = temp_plan_dir / topic
         topic_dir.mkdir()
@@ -321,7 +321,7 @@ topic: no-steps
         captured = capsys.readouterr()
 
         assert result == 0
-        assert "SUCCESS" in captured.out
+        assert "成功" in captured.out
         assert "0" in captured.out
 
 
@@ -361,7 +361,7 @@ created: 2025-01-15
         with pytest.raises(FileNotFoundError) as exc_info:
             parse_steps("missing-topic", temp_plan_dir)
 
-        assert "not found" in str(exc_info.value).lower()
+        assert "找不到檔案" in str(exc_info.value)
 
     def test_no_checkbox_lines(self, temp_plan_dir):
         """Handle file with no checkbox lines."""
@@ -457,8 +457,8 @@ class TestImplementationStepsGate:
         captured = capsys.readouterr()
 
         assert result == 0
-        assert "SUCCESS" in captured.out
-        assert "implementation steps complete" in captured.out
+        assert "成功" in captured.out
+        assert "實作步驟都已完成" in captured.out
 
     def test_check_impl_steps_succeeded_blocked_when_impl_pending(self, temp_plan_dir, capsys):
         """Pending implementation items should block gate."""
@@ -483,7 +483,7 @@ topic: impl-pending
         captured = capsys.readouterr()
 
         assert result == 1
-        assert "BLOCKED" in captured.out
+        assert "阻擋" in captured.out
         assert "Pending step" in captured.out
 
     def test_main_check_impl_steps_succeeded_command_success(
@@ -502,7 +502,7 @@ topic: impl-pending
         captured = capsys.readouterr()
 
         assert result == 0
-        assert "SUCCESS" in captured.out
+        assert "成功" in captured.out
 
     def test_main_check_impl_steps_succeeded_command_blocked(
         self, temp_plan_dir, monkeypatch, capsys
@@ -535,4 +535,49 @@ topic: impl-command-blocked
         captured = capsys.readouterr()
 
         assert result == 1
-        assert "BLOCKED" in captured.out
+        assert "阻擋" in captured.out
+
+    def test_parse_impl_steps_preserves_original_line_numbers(self, temp_plan_dir, capsys):
+        """Warnings from implementation parsing should use source file line numbers."""
+        topic = "impl-line-numbers"
+        topic_dir = temp_plan_dir / topic
+        topic_dir.mkdir()
+
+        content = """---
+topic: impl-line-numbers
+---
+
+## Workflow Stages
+- [ ] Plan Review
+
+## Implementation Steps
+- [x] Lowercase implementation marker
+"""
+        (topic_dir / f"{topic}.step.md").write_text(content)
+
+        parse_impl_steps(topic, temp_plan_dir)
+        captured = capsys.readouterr()
+
+        assert "第 9 行" in captured.err
+
+    def test_check_impl_steps_succeeded_blocks_when_header_missing(self, temp_plan_dir, capsys):
+        """Missing implementation section should block the implementation gate."""
+        topic = "impl-missing-header"
+        topic_dir = temp_plan_dir / topic
+        topic_dir.mkdir()
+
+        content = """---
+topic: impl-missing-header
+---
+
+## Workflow Stages
+- [X] Plan Review
+- [ ] Code Review
+"""
+        (topic_dir / f"{topic}.step.md").write_text(content)
+
+        result = check_impl_steps_succeeded(topic, temp_plan_dir)
+        captured = capsys.readouterr()
+
+        assert result == 1
+        assert "缺少必要區段" in captured.err

@@ -2,11 +2,14 @@
 
 ## Purpose
 
-This ledger records evidence for APIs ported into `mlops-async` from `sasctl`, the legacy `sas-api` repository, or another source SDK. Every implemented API must leave enough source, request, response, error, compatibility, and validation evidence for a reviewer to understand what was preserved, normalized, intentionally changed, or blocked.
+這份 ledger 用來記錄從 `sasctl`、legacy `sas-api` repository 或其他 source SDK
+平移到 `mlops-async` 的 API 證據。每個已實作的 API 都必須留下足夠的 source、
+request、response、error、compatibility 與 validation 證據，讓 reviewer 能理解
+哪些行為被 preserved、normalized、intentionally changed 或 blocked。
 
 ## Authoritative workflow
 
-API porting work must start from:
+API porting work 必須從下列 artifact 開始：
 
 1. `analysis/api-client-porting-contract/requirements.md`
 2. `analysis/api-client-porting-contract/technical-spec.md`
@@ -16,7 +19,7 @@ API porting work must start from:
 
 ## Compatibility labels
 
-Use only these labels:
+只允許使用下列 labels：
 
 - `equivalent`
 - `normalized`
@@ -24,11 +27,12 @@ Use only these labels:
 - `not_supported`
 - `unknown`
 
-Do not mark a response as `equivalent` when `mlops-async` converts raw SDK output into a typed Pydantic schema. Use `normalized`.
+如果 `mlops-async` 把 raw SDK output 轉成 typed Pydantic schema，就不能把
+response 標成 `equivalent`；應使用 `normalized`。
 
 ## Decision labels
 
-Use only these final decisions:
+只允許使用下列 final decisions：
 
 - `continue`
 - `stable`
@@ -37,83 +41,83 @@ Use only these final decisions:
 
 ## Entry template
 
-Copy this template for each API or safe same-family batch.
+每個 API 或安全的 same-family batch 都請複製這份模板。
 
 ```md
 ## <endpoint-family>: <source-function-or-api-name>
 
 ### Source
 
-- Source SDK:
-- Source module:
-- Source function:
-- Source file:
-- Source line range:
-- Source commit, tag, or package version:
+- Source SDK：
+- Source module：
+- Source function：
+- Source file：
+- Source line range：
+- Source commit、tag 或 package version：
 
 ### Request Contract
 
-- HTTP method:
-- Path:
-- Required headers:
-- Query params:
-- Body:
-- Auth behavior:
-- Status: missing | drafted | tested | implemented | blocked
+- HTTP method：
+- Path：
+- Required headers：
+- Query params：
+- Body：
+- Auth behavior：
+- Status：missing | drafted | tested | implemented | blocked
 
 ### Target
 
-- Target module:
-- Target class:
-- Target method:
-- Async: true | false
+- Target module：
+- Target class：
+- Target method：
+- Async：true | false
 
 ### Response Contract
 
-- Success status codes:
-- Schema model:
-- Extra policy:
-- Nullable fields:
-- Optional fields:
-- Aliases:
-- Transformations:
-- Pagination:
-- Empty response behavior:
-- Status: missing | drafted | tested | implemented | blocked
+- Success status codes：
+- Schema model：
+- Extra policy：
+- Nullable fields：
+- Optional fields：
+- Aliases：
+- Transformations：
+- Pagination：
+- Empty response behavior：
+- Status：missing | drafted | tested | implemented | blocked
 
 ### Error Contract
 
-- Error schema model:
-- Extra policy:
-- Error status handling:
-- Status: missing | drafted | tested | implemented | blocked
+- Error schema model：
+- Extra policy：
+- Error status handling：
+- Status：missing | drafted | tested | implemented | blocked
 
 ### Compatibility
 
-- Request: equivalent | normalized | intentionally_changed | not_supported | unknown
-- Response: equivalent | normalized | intentionally_changed | not_supported | unknown
-- Error: equivalent | normalized | intentionally_changed | not_supported | unknown
-- Session: equivalent | normalized | intentionally_changed | not_supported | unknown
+- Request：equivalent | normalized | intentionally_changed | not_supported | unknown
+- Response：equivalent | normalized | intentionally_changed | not_supported | unknown
+- Error：equivalent | normalized | intentionally_changed | not_supported | unknown
+- Session：equivalent | normalized | intentionally_changed | not_supported | unknown
 
 ### Tests
 
-- Request tests:
-- Response tests:
-- Error tests:
-- Validation commands:
-- Validation not run / why:
+- Request tests：
+- Response tests：
+- Error tests：
+- Validation commands：
+- Validation not run / why：
 
 ### Divergences and Review Notes
 
-- Known divergences:
-- Stop flags observed:
-- Human-review notes:
+- Known divergences：
+- Stop flags observed：
+- Human-review notes：
 
 ### Decision
 
-- Decision: continue | stable | needs-human-review | blocked
+- Decision：continue | stable | needs-human-review | blocked
 ```
 
 ## Ledger entries
 
-No APIs have been ported under this workflow yet.
+目前還沒有任何 API 依這份 workflow 完成 porting。
