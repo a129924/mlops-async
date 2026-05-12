@@ -16,7 +16,7 @@ inputs:
   - evidence that production code is NOT modified yet
 
 outputs:
-  - D1 structured verdict: `{ "verdict": "trivial|non-trivial", "reason": "..." }`
+  - 'D1 structured verdict: `{ "verdict": "trivial|non-trivial", "reason": "..." }`'
   - YAML verdict result file (machine-readable `verdict`, `d1_verdict`, `test_mapping`, `validation_checks`, `issues`, `next_step`)
 
 use_when:

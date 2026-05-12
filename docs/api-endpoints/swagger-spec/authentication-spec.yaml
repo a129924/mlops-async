@@ -1,0 +1,188 @@
+openapi: 3.0.0
+info:
+  title: SAS Viya Authentication API
+  description: |
+    SAS Viya 認證端點文檔。
+
+    使用 SASLogon OAuth 2.0 取得 access token，所有其他 SAS Viya API 呼叫均需以此 token 進行認證。
+
+    **認證流程**：
+    1. 使用帳號密碼 POST 取得 `access_token` 與 `refresh_token`
+    2. 後續 API 請求 header 帶入 `Authorization: Bearer {access_token}`
+    3. `access_token` 過期時使用 `refresh_token` 重新取得
+
+    **重要**：`Authorization: Basic c2FzLmNsaTo=` 是 SAS Viya 官方 OAuth client 的固定 Basic Auth，
+    其中 `c2FzLmNsaTo=` 為 `sas.cli:` 的 Base64 編碼，不可修改。
+  version: 1.0.0
+
+servers:
+  - url: https://{sas_viya_host}
+    description: SAS Viya 伺服器
+    variables:
+      sas_viya_host:
+        default: your-sas-viya-instance
+        description: SAS Viya 主機位址（由環境變數 `domain` 設定）
+
+paths:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # POST /SASLogon/oauth/token  (password grant)
+  # 功能：使用帳號密碼取得 access_token
+  # HTTP Method：POST
+  # Source：utils/_async/_token.py::obtain_access_token
+  # ─────────────────────────────────────────────────────────────────────────
+  /SASLogon/oauth/token:
+    post:
+      summary: 取得 Access Token
+      operationId: obtainAccessToken
+      tags:
+        - Authentication
+      description: |
+        使用帳號密碼（password grant）或 refresh token 向 SAS Viya 取得 OAuth access token。
+
+        **HTTP Method**：POST
+
+        **使用場景**：
+        - 初次登入，取得 `access_token` 與 `refresh_token`
+        - `access_token` 過期時，使用 `refresh_token` 重新取得
+
+        **來源程式碼**：`utils/_async/_token.py`
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/PasswordGrantRequest'
+                - $ref: '#/components/schemas/RefreshTokenGrantRequest'
+            examples:
+              password_grant:
+                summary: 帳號密碼登入
+                value:
+                  grant_type: password
+                  username: your_username
+                  password: your_password
+              refresh_token_grant:
+                summary: 使用 refresh_token 重新取得
+                value:
+                  grant_type: refresh_token
+                  refresh_token: your_refresh_token
+      responses:
+        '200':
+          description: 成功取得 access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SASViyaTokenResponse'
+              examples:
+                success:
+                  summary: 成功回應範例
+                  value:
+                    access_token: "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
+                    token_type: "bearer"
+                    id_token: "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
+                    refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
+                    expires_in: 3600
+                    scope: "openid"
+                    jti: "abc123-def456"
+        '401':
+          description: 認證失敗（帳號密碼錯誤、伺服器無法連線）
+          content:
+            application/json:
+              examples:
+                unauthorized:
+                  summary: 認證失敗範例
+                  value:
+                    error: "unauthorized"
+                    error_description: "Bad credentials"
+
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: |
+        SAS Viya 官方 OAuth client 的固定 Basic Auth。
+        值為 `c2FzLmNsaTo=`（即 `sas.cli:` 的 Base64 編碼）。
+        Header 格式：`Authorization: Basic c2FzLmNsaTo=`
+
+        **注意**：此值固定，不可由使用者自訂。
+
+  schemas:
+    PasswordGrantRequest:
+      type: object
+      description: 帳號密碼 grant 請求體
+      required:
+        - grant_type
+        - username
+        - password
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - password
+          description: OAuth grant type，固定為 "password"
+        username:
+          type: string
+          description: SAS Viya 使用者帳號（來自環境變數 `user_id`）
+          example: sas_user
+        password:
+          type: string
+          format: password
+          description: SAS Viya 使用者密碼（來自環境變數 `user_password`）
+
+    RefreshTokenGrantRequest:
+      type: object
+      description: refresh_token grant 請求體
+      required:
+        - grant_type
+        - refresh_token
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - refresh_token
+          description: OAuth grant type，固定為 "refresh_token"
+        refresh_token:
+          type: string
+          description: 先前取得的 refresh_token
+
+    SASViyaTokenResponse:
+      type: object
+      description: |
+        SAS Viya OAuth token 回應。
+        來源：`schema/_token_response.py::SASViyaTokenResponse`
+      required:
+        - access_token
+        - token_type
+        - id_token
+        - refresh_token
+        - expires_in
+        - scope
+        - jti
+      properties:
+        access_token:
+          type: string
+          description: Bearer token，所有 SAS Viya API 呼叫的認證憑證
+        token_type:
+          type: string
+          description: token 類型，固定為 "bearer"
+          example: bearer
+        id_token:
+          type: string
+          description: OpenID Connect ID token
+        refresh_token:
+          type: string
+          description: 用於重新取得 access_token 的 refresh token
+        expires_in:
+          type: integer
+          description: access_token 有效秒數（程式碼中預留 10 秒緩衝）
+          example: 3600
+        scope:
+          type: string
+          description: token 授權範圍
+          example: openid
+        jti:
+          type: string
+          description: JWT ID，token 的唯一識別碼

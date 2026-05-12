@@ -8,7 +8,7 @@ risk_profile:
 inputs:
   - feature or change intent with scope
   - relevant codebase context (modules, packages, public APIs)
-  - D1 structured verdict when available: `{ "verdict": "trivial|non-trivial", "reason": "..." }`
+  - 'D1 structured verdict when available: `{ "verdict": "trivial|non-trivial", "reason": "..." }`'
   - all 7 required decision answers
   - at least 3 Non-goals
   - measurable requirements for the change
