@@ -149,4 +149,27 @@ For detailed guidance, see:
 
 ---
 
-*Control plane for mlops-async AI agents. Last updated: Phase 6 project initialization.*
+## Migration Context — Source Code Reference Paths
+
+**This section is auto-loaded by agents during porting workflows. Reference as needed, not for every request.**
+
+### Source SDK Locations
+- **sasctl SDK**: Official Viya REST API client (upstream)
+- **Legacy Service Code**: `/Users/andrew/code/python/sas-model-serving/legacy/need-refer-service/sas-api/` (reference implementation)
+  - Use for: endpoint patterns, request/response contracts, error handling precedents
+  - Note: This is source material only; do NOT copy code directly; always adapt to async-first patterns
+
+### Migration Target
+- **Target Library**: `src/mlops_async/` (this repository)
+  - Async-first, fully typed, Pydantic response models
+  - All APIs exposed via `src/mlops_async/__init__.py`
+
+### When Planning a Porting Task
+- Query source SDK for endpoint family (use `api-client-porting-planner`)
+- Extract request contracts from sasctl or legacy service code
+- Ensure target design follows async-first principles (see § Core Principles)
+- Document status in `docs/migration-map.md` and `docs/porting-ledger.md`
+
+---
+
+*Control plane for mlops-async AI agents. Last updated: Phase 6 project initialization + migration context.*
