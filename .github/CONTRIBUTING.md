@@ -26,8 +26,10 @@
 2. 使用 `api-client-porting-planner` 產生 source evidence、request contract drafts、risk classification、porting order 與 stop flags。
 3. 只有在 request contract evidence 已經存在後，才能使用 `api-client-porting-implementer`。
 4. 在 minimal implementation 之前，先寫 request-contract tests。
-5. 每個 ported API 都要更新 `docs/porting-ledger.md`，之後才能宣告 compatibility。
-6. 當 source behavior、response schema、pagination、polling、upload/download、streaming 或 global session side effects 不清楚時，停止並交給人工 review。
+5. 先把 source API -> target async API 的對照狀態更新到 `docs/migration-map.md`。
+6. 每個 ported API 都要更新 `docs/porting-ledger.md`，之後才能宣告 compatibility。
+7. `docs/migration-map.md` 用於集中追蹤 mapping、狀態與 review notes；`docs/porting-ledger.md` 用於完整證據。
+8. 當 source behavior、response schema、pagination、polling、upload/download、streaming 或 global session side effects 不清楚時，停止並交給人工 review。
 
 ## Git conventions
 
@@ -44,4 +46,5 @@
 - `.github/copilot-instructions.md` — AI-facing coding rules
 - `.github/skills/` — detailed skill-level guidance
 - `.github/agents/` — workflow orchestration guidance for multi-phase implementation work
+- `docs/migration-map.md` — source API 到 target async API 的集中遷移對照表
 - `docs/porting-ledger.md` — API porting evidence and compatibility ledger

@@ -16,6 +16,11 @@ API porting work 必須從下列 artifact 開始：
 3. `plan/api-client-porting-contract/api-client-porting-contract.plan.md`
 4. `.github/skills/api-client-porting-planner/`
 5. `.github/skills/api-client-porting-implementer/`
+6. `docs/migration-map.md`
+
+`docs/migration-map.md` 用來集中追蹤 source API -> target async API 的 mapping、
+目前狀態與 review notes；`docs/porting-ledger.md` 則保留完整證據與 compatibility
+判斷依據。
 
 ## Compatibility labels
 
