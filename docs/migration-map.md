@@ -6,8 +6,9 @@
 的來源函式、目標 async method、目前狀態與人工 review 註記放在同一個地方。
 
 它的目標是幫助規劃、追蹤與 handoff；不是用來取代 `docs/porting-ledger.md` 的證據責任。
-如果需要 source / request / response / error / compatibility 的完整證據，仍以
-`docs/porting-ledger.md` 為準。
+如果某列已經有對應的 ledger entry，source / request / response / error /
+compatibility 的完整證據仍以 `docs/porting-ledger.md` 為準；如果是尚未建立 ledger
+entry 的新 API，migration map 可以先保留規劃中的狀態與暫時 reference。
 
 ## Authoritative inputs
 
@@ -65,12 +66,14 @@
 ## Update rules
 
 1. 這份文件偏向「導航與追蹤」，不要把完整 request / response payload 細節全部貼在這裡。
-2. 每一列都應能追到對應的 source evidence 與 ledger entry。
-3. 若 target async method 尚未存在，可先保留 `planned` 或 `TBD`，但不可假裝已實作。
-4. 同一 endpoint family 可以集中在同一張表，但遇到 upload/download、streaming、
+2. 每一列都應能追到對應的 source evidence；若 ledger entry 已存在，應連到對應 entry。
+3. 若 ledger entry 尚未建立，可先在 `Ledger reference` 欄位填 `planned` 或 `TBD`，
+   等 `docs/porting-ledger.md` 補上後再回填實際 anchor。
+4. 若 target async method 尚未存在，可先保留 `planned` 或 `TBD`，但不可假裝已實作。
+5. 同一 endpoint family 可以集中在同一張表，但遇到 upload/download、streaming、
    polling、pagination expansion、retry、global session side effects 或 conditional
    endpoint selection 時，應拆成獨立列並明確標記 review note。
-5. 如果 planner 與 implementer 的結論不一致，先標 `needs-human-review`，不要自行消解。
+6. 如果 planner 與 implementer 的結論不一致，先標 `needs-human-review`，不要自行消解。
 
 ## Recommended table
 
@@ -88,14 +91,14 @@
 
 | Source family | Source module / function | Source file / lines | Target module / class / method | Request status | Response status | Compatibility | Decision | Stop reason / review note | Ledger reference |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| auth | `sasctl.session.SASsession.__init__` | `sasctl/session.py:L10-L90` | `mlops_async.auth.AuthClient.login` | drafted | missing | unknown | continue | Waiting for request-contract tests | `docs/porting-ledger.md#auth-login` |
+| auth | `sasctl.session.SASsession.__init__` | `sasctl/session.py:L10-L90` | `mlops_async.auth.AuthClient.login` | drafted | missing | unknown | continue | Waiting for request-contract tests | planned |
 | auth | `legacy.auth.login` | `legacy/auth.py:L1-L40` | `mlops_async.auth.AuthClient.login` | tested | drafted | normalized | continue | Session side effects need explicit note | `docs/porting-ledger.md#auth-login` |
 
 ## model-repository
 
 | Source family | Source module / function | Source file / lines | Target module / class / method | Request status | Response status | Compatibility | Decision | Stop reason / review note | Ledger reference |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| model-repository | `sasctl.repositories.register_model` | `sasctl/repositories.py:L120-L210` | `TBD` | drafted | missing | unknown | needs-human-review | Upload behavior detected; do not batch-port | `docs/porting-ledger.md#model-repository-register-model` |
+| model-repository | `sasctl.repositories.register_model` | `sasctl/repositories.py:L120-L210` | `TBD` | drafted | missing | unknown | needs-human-review | Upload behavior detected; do not batch-port; ledger entry not created yet | TBD |
 ```
 
 ## Current map
