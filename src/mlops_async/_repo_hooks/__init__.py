@@ -1,1 +1,1 @@
-"""Internal repository hooks for local developer workflows."""
+"""提供 repository 內部使用的本機開發 hooks."""

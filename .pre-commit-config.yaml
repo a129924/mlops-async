@@ -16,7 +16,7 @@ repos:
     hooks:
       - id: check-local-absolute-paths
         name: check local absolute paths
-        entry: python3 src/mlops_async/_repo_hooks/local_path_guard.py
+        entry: python src/mlops_async/_repo_hooks/local_path_guard.py
         language: system
         pass_filenames: true
       - id: pytest

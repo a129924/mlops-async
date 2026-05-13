@@ -1,4 +1,4 @@
-"""Pre-commit guard for machine-local absolute paths."""
+"""Pre-commit 防護: 阻擋提交機器本機的絕對路徑."""
 
 from __future__ import annotations
 
@@ -30,15 +30,15 @@ class Finding:
 _RULES: Final[tuple[_Rule, ...]] = (
     _Rule(
         name="macos_home_path",
-        pattern=re.compile("/" + "Users/" + _PATH_BODY_PATTERN),
+        pattern=re.compile(r"(?<![A-Za-z0-9.])/" + "Users/" + _PATH_BODY_PATTERN),
     ),
     _Rule(
         name="linux_home_path",
-        pattern=re.compile("/" + "home/" + _PATH_BODY_PATTERN),
+        pattern=re.compile(r"(?<![A-Za-z0-9.])/" + "home/" + _PATH_BODY_PATTERN),
     ),
     _Rule(
         name="windows_home_path",
-        pattern=re.compile(r"[A-Za-z]:" + r"\\Users\\" + _PATH_BODY_PATTERN),
+        pattern=re.compile(r"[A-Za-z]:(?:\\){1,2}Users(?:\\){1,2}" + _PATH_BODY_PATTERN),
     ),
 )
 
@@ -66,7 +66,7 @@ def _read_text_lines(path: Path) -> list[str] | None:
 
 
 def scan_paths(paths: list[str]) -> list[Finding]:
-    """Return all blocked local absolute path findings for the provided files."""
+    """回傳提供檔案中所有被阻擋的本機絕對路徑命中結果."""
     findings: list[Finding] = []
 
     for raw_path in paths:
@@ -95,7 +95,7 @@ def scan_paths(paths: list[str]) -> list[Finding]:
 
 
 def build_failure_message(findings: list[Finding]) -> str:
-    """Build a human- and agent-friendly error message for blocked paths."""
+    """建立同時適合人類與代理閱讀的阻擋訊息."""
     header = [
         "偵測到禁止提交的本機絕對路徑 (local absolute paths).",
         "請改用 <LOCAL_LEGACY_SERVICE_CODE_PATH> 或移除個人機器路徑後再 commit.",
@@ -123,7 +123,7 @@ def build_failure_message(findings: list[Finding]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the local path guard as a pre-commit entry point."""
+    """以 pre-commit entry point 方式執行本機路徑防護."""
     candidate_paths = list(sys.argv[1:] if argv is None else argv)
     findings = scan_paths(candidate_paths)
 
