@@ -8,10 +8,12 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
-As of **v0.4.0**, the repository includes the workflow foundation for
+As of **v0.5.0**, the repository includes the workflow foundation for
 contract-first API porting, including migration-map integration, gated
 implementation, review, and evidence-ledger guidance, as well as the project
-goal and guidelines documents as the governance baseline.
+goal and guidelines documents as the governance baseline. It also adds a
+pre-commit guard that blocks committing machine-local absolute paths while
+allowing documented placeholder values for local-only references.
 
 ## Goals
 
