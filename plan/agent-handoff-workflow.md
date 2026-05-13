@@ -36,7 +36,7 @@ If a topic affects stable-library surfaces (`README.md`, `VERSION`, release timi
 | `approved` | Reviewer accepted the draft | Reviewer -> Main Agent | `creator-in-progress`, `publish-in-progress` |
 | `publish-in-progress` | Approved work is being committed/pushed and prepared for PR or direct merge | Main Agent | `pr-open`, `merged` |
 | `pr-open` | PR is open and triage is active | Main Agent | `needs-rework`, `merged` |
-| `merged` | Changes are merged | Main Agent | `released`, terminal |
+| `merged` | Changes are merged | Main Agent | terminal |
 | `released` | Optional release/version actions are complete | Main Agent | terminal |
 
 ## Allowed transitions (canonical)
