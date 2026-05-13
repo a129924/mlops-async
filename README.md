@@ -8,13 +8,14 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
-As of **v0.5.0**, the repository includes the workflow foundation for
+As of **v0.6.0**, the repository includes the workflow foundation for
 contract-first API porting, including migration-map integration, gated
 implementation, review, and evidence-ledger guidance, as well as the project
 goal and guidelines documents as the governance baseline. 它也加入了
 pre-commit guard，用來阻擋提交機器本機的絕對路徑，同時允許文件中保留僅供
 本機參考的 placeholder 值。開發工具鏈亦納入 `tach`，讓 Python 模組邊界能隨著
-套件成長維持明確。
+套件成長維持明確，並新增 `plan-creator`、`plan-reviewer`、`worktree-manager`
+三個 repo workflow 技能來強化 topic handoff 與 worktree 管理。
 
 ## Goals
 
