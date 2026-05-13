@@ -3,12 +3,17 @@
 ## Development workflow
 
 1. Sync dependencies with `uv sync`.
-2. Make changes inside `src/mlops_async/` and `tests/`.
-3. Run local checks before pushing:
+2. Install commit hooks with `uv run pre-commit install`.
+3. Make changes inside `src/mlops_async/` and `tests/`.
+4. Run local checks before pushing:
    - `uv run pytest`
    - `uv run pyright`
    - `uv run ruff check .`
    - `uv run ruff format .`
+   - `uv run pre-commit run --all-files`
+
+`pre-commit` 會在 commit 前攔截使用者家目錄型態的本機絕對路徑。若文件需要保留
+環境中立的本機參考位置，請改用 `<LOCAL_LEGACY_SERVICE_CODE_PATH>` 這類佔位符。
 
 ## Quality expectations
 
