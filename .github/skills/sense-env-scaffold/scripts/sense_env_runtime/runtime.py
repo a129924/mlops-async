@@ -381,6 +381,7 @@ def _emit_to_stderr(payload: JsonObject) -> None:
 
 def _try_emit(manifest: Manifest, output_path: Path) -> bool:
     """Try to write manifest to output_path.
+
     On failure, annotates manifest with the error and emits to stderr.
     Returns True if written to disk, False if fell back to stderr.
     """
