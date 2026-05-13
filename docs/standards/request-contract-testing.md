@@ -1,10 +1,10 @@
-# Request Contract Testing Standard
+# 請求合約測試標準
 
-## Purpose
+## 目的
 
-定義 `mlops-async` 在 source 可執行時的 Request Contract Gate 標準流程，確保 request evidence 先被捕捉與固化，再進入 target request-contract tests。
+定義 `mlops-async` 在 source 可執行時的 `Request Contract Gate` 標準流程，確保 request evidence 先被捕捉與固化，再進入 target request-contract tests。
 
-## Scope
+## 範圍
 
 適用於：
 
@@ -15,9 +15,9 @@
 
 - 無法執行的 source（第一版直接 stop/escalate）
 
-## Gate pass definition
+## Gate 通過定義
 
-當 source 可執行時，Request Contract Gate 只有在下列條件都成立時才通過：
+當 source 可執行時，`Request Contract Gate` 只有在下列條件都成立時才通過：
 
 1. fully intercepted capture 成功完成
 2. request-flow fixture 已持久化
@@ -25,15 +25,15 @@
 
 缺任一項即不得通過 gate。
 
-## Interception rules
+## 攔截規則
 
 1. 所有 outbound HTTP request 必須被攔截。
 2. 未註冊 request 或 real-network escape 一律 fail-fast。
 3. capture run 必須留下失敗證據（包含違規 request）。
 
-## Snapshot and answer artifacts
+## 快照與回應產物
 
-### Required output shape
+### 必要輸出格式
 
 每次 capture invocation 都必須持久化兩份分離 artifact：
 
@@ -45,7 +45,7 @@
 
 兩份 artifact 必須可互相追溯到同一 capture run id。
 
-## Step purpose classification
+## 步驟用途分類
 
 至少支援：
 
@@ -61,9 +61,9 @@
 - `upload`
 - `download`
 
-## Request comparison rules
+## 請求比對規則
 
-### Must compare
+### 必須比對
 
 - HTTP method
 - endpoint path
@@ -71,7 +71,7 @@
 - query parameter semantics (key-value meaning)
 - request body shape
 
-### Must not compare
+### 不得比對
 
 - query order
 - transport-generated headers
@@ -79,7 +79,7 @@
 - content-length
 - connection headers
 
-## Auth divergence handling
+## Auth 差異處理
 
 當 source capture 觀察到 auth flow，但 target family 依設計不鏡像該 auth 行為時：
 
@@ -94,14 +94,14 @@
 
 未明確記錄即視為不合格。
 
-## Conflict policy
+## 衝突處理政策
 
 若 capture evidence 與 source review 對 baseline 的解讀衝突，且會改變 contract semantics：
 
 - 一律 `blocked` / `needs-human-review`
 - 禁止自動和解
 
-## First-version stop conditions
+## 第一版停止條件
 
 以下情境第一版不得自動放行：
 
@@ -113,7 +113,7 @@
 - `hidden_session_side_effects`
 - `unstable_repeat_capture`
 
-## Notes for skill integration
+## 技能整合備註
 
 - `api-client-porting-planner` / `api-client-porting-implementer` 應引用本標準並執行
 - skill 應保留 trigger/boundary/validation 摘要，不重複定義本標準全文

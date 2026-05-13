@@ -1,12 +1,12 @@
-# Agent Handoff Workflow Contract
+# 代理交接工作流程合約
 
-## Purpose
+## 目的
 
-Define the canonical topic-plan contract used by creator/reviewer workflow gates.
+定義 creator / reviewer workflow gate 使用的標準主題計畫合約。
 
-## Required plan sections
+## 必要計畫章節
 
-Every `plan/<topic>/<topic>.plan.md` must contain these sections:
+每個 `plan/<topic>/<topic>.plan.md` 都必須包含下列章節：
 
 1. `Goal / Outcome`
 2. `Scope`
@@ -20,26 +20,26 @@ Every `plan/<topic>/<topic>.plan.md` must contain these sections:
 10. `Post-merge / release actions`
 11. `Open Questions / Unresolved Items`
 
-### Stable library metadata (conditional)
+### 穩定函式庫中繼資料（條件式）
 
-If a topic affects stable-library surfaces (`README.md`, `VERSION`, release timing, or release notes), add `## Stable library metadata` and declare README action, VERSION bump, timing, and rationale.
+若主題會影響穩定函式庫介面（`README.md`、`VERSION`、release timing 或 release notes），必須新增 `## Stable library metadata`，並宣告 README action、VERSION bump、timing 與 rationale。
 
-## Canonical status model
+## 標準狀態模型
 
-| Status | Meaning | Owner | Allowed next |
+| 狀態 | 意義 | 擁有者 | 允許下一步 |
 | --- | --- | --- | --- |
-| `planned` | Topic plan is ready for execution routing | Planning actor | `creator-in-progress` |
-| `creator-in-progress` | Creator is drafting or applying required fixes | Creator | `review-ready` |
-| `review-ready` | Creator completed the latest draft and requests independent review | Creator | `reviewer-in-progress` |
-| `reviewer-in-progress` | Reviewer is evaluating the latest draft | Reviewer | `approved`, `needs-rework` |
-| `needs-rework` | Reviewer found blocking contract issues | Reviewer | `creator-in-progress` |
-| `approved` | Reviewer accepted the draft | Reviewer -> Main Agent | `creator-in-progress`, `publish-in-progress` |
-| `publish-in-progress` | Approved work is being committed/pushed and prepared for PR or direct merge | Main Agent | `pr-open`, `merged` |
-| `pr-open` | PR is open and triage is active | Main Agent | `needs-rework`, `merged` |
-| `merged` | Changes are merged | Main Agent | terminal |
-| `released` | Optional release/version actions are complete | Main Agent | terminal |
+| `planned` | 主題計畫已可進入執行路由 | 規劃角色 | `creator-in-progress` |
+| `creator-in-progress` | 建立者正在起草或套用必要修正 | 建立者 | `review-ready` |
+| `review-ready` | 建立者已完成最新版草稿並請求獨立審查 | 建立者 | `reviewer-in-progress` |
+| `reviewer-in-progress` | 審查者正在評估最新版草稿 | 審查者 | `approved`, `needs-rework` |
+| `needs-rework` | 審查者找到阻擋性的合約問題 | 審查者 | `creator-in-progress` |
+| `approved` | 審查者接受此草稿 | 審查者 -> 主代理 | `creator-in-progress`, `publish-in-progress` |
+| `publish-in-progress` | 已核准工作正在 commit / push，並準備進入 PR 或直接 merge | 主代理 | `pr-open`, `merged` |
+| `pr-open` | PR 已開啟且正在進行 triage | 主代理 | `needs-rework`, `merged` |
+| `merged` | 變更已完成 merge | 主代理 | terminal |
+| `released` | 選擇性的 release / version 動作已完成 | 主代理 | terminal |
 
-## Allowed transitions (canonical)
+## 標準允許轉移
 
 - `planned` -> `creator-in-progress`
 - `creator-in-progress` -> `review-ready`
@@ -55,23 +55,23 @@ If a topic affects stable-library surfaces (`README.md`, `VERSION`, release timi
 - `pr-open` -> `merged`
 - `merged` -> terminal
 
-Conditional rule:
+條件式規則：
 
-- If `Post-merge / release actions` declares an actual release action, add `merged` -> `released`.
+- 若 `Post-merge / release actions` 宣告了實際的 release action，需補上 `merged` -> `released`。
 
-## Step-tracker alignment
+## 步驟追蹤對齊規則
 
-- Canonical step file path: `plan/<topic>/<topic>.step.md`.
-- Completion gate must read only `## Implementation Steps` checkboxes.
-- Marker semantics: `[X]` done, `[ ]` pending (`[x]` is treated as pending).
-- Status alignment:
-  - keep `creator-in-progress` while any implementation step is pending or rework is active
-  - move to `review-ready` only after implementation steps for the current creator pass are complete
-  - if reviewer returns `needs-rework`, route back to `creator-in-progress`
+- 標準步驟檔案路徑：`plan/<topic>/<topic>.step.md`。
+- Completion gate 只能讀取 `## Implementation Steps` 的核取方塊。
+- 標記語意：`[X]` 表示完成、`[ ]` 表示待完成（`[x]` 視為待完成）。
+- 狀態對齊：
+  - 只要仍有任何 implementation step 待完成，或 rework 尚未結束，就維持 `creator-in-progress`
+  - 只有當本輪 creator pass 的 implementation steps 全部完成後，才能移到 `review-ready`
+  - 若 reviewer 回傳 `needs-rework`，就必須回到 `creator-in-progress`
 
-## Reviewer handoff JSON contract
+## 審查交接 JSON 合約
 
-`Reviewer Handoff` must contain one machine-consumable JSON object with this shape:
+`Reviewer Handoff` 必須包含一個可供機器消費的 JSON 物件，格式如下：
 
 ```json
 {
@@ -85,8 +85,8 @@ Conditional rule:
 }
 ```
 
-## Post-merge / release rule
+## 合併後 / 發版規則
 
-- Every topic plan must explicitly state post-merge behavior.
-- If no release action is required, say so explicitly.
-- If release is required, declare concrete release actions and ensure status transitions include `merged` -> `released`.
+- 每個主題計畫都必須明確說明 post-merge 行為。
+- 若不需要 release action，必須明確寫出不需要。
+- 若需要 release，必須宣告具體 release actions，並確認狀態轉移包含 `merged` -> `released`。
