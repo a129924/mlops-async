@@ -13,7 +13,9 @@ contract-first API porting, including migration-map integration, gated
 implementation, review, and evidence-ledger guidance, as well as the project
 goal and guidelines documents as the governance baseline. It also adds a
 pre-commit guard that blocks committing machine-local absolute paths while
-allowing documented placeholder values for local-only references.
+allowing documented placeholder values for local-only references. The
+development toolchain also includes `tach` to keep Python module boundaries
+explicit as the package grows.
 
 ## Goals
 
@@ -57,7 +59,22 @@ uv run pytest
 uv run pyright
 uv run ruff check .
 uv run ruff format .
+uv run tach check
 ```
+
+## Structural guardrails
+
+This repository uses `tach` for incremental dependency-boundary checks inside
+`src/mlops_async/`.
+
+- Configuration lives in `tach.toml`
+- Run `uv run tach check` to validate module boundaries locally
+- `pre-commit` also runs `tach check` before commit
+
+The current setup is intentionally minimal: it only governs the existing
+`mlops_async` package and the internal `_repo_hooks` submodule, so future
+package growth can tighten the rules incrementally instead of locking in a
+premature architecture.
 
 ## Repository layout
 

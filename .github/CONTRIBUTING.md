@@ -10,10 +10,19 @@
    - `uv run pyright`
    - `uv run ruff check .`
    - `uv run ruff format .`
+   - `uv run tach check`
    - `uv run pre-commit run --all-files`
 
 `pre-commit` 會在 commit 前攔截使用者家目錄型態的本機絕對路徑。若文件需要保留
 環境中立的本機參考位置，請改用 `<LOCAL_LEGACY_SERVICE_CODE_PATH>` 這類佔位符。
+它現在也會執行 `tach check`，確保 `src/mlops_async/` 的模組依賴邊界沒有被破壞。
+
+## Tach 結構治理
+
+- `tach.toml` 是本 repo 的 Python 結構邊界設定來源
+- 目前採 **incremental** 方式，只治理現有的 `mlops_async` 與
+  `mlops_async._repo_hooks`
+- 若未來新增新的 package/module，應先更新 `tach.toml`，再導入新的跨模組 import
 
 ## Quality expectations
 

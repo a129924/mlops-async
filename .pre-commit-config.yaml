@@ -19,6 +19,13 @@ repos:
         entry: python src/mlops_async/_repo_hooks/local_path_guard.py
         language: system
         pass_filenames: true
+      - id: tach-check
+        name: tach check
+        entry: uv run tach check
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
       - id: pytest
         name: pytest
         entry: uv run pytest
