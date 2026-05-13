@@ -1,0 +1,29 @@
+source_roots = ["src"]
+exclude = [
+    ".venv/",
+    "build/",
+    "dist/",
+]
+ignore_type_checking_imports = true
+forbid_circular_dependencies = true
+
+[[modules]]
+path = "mlops_async"
+depends_on = []
+
+[[modules]]
+path = "mlops_async._repo_hooks"
+depends_on = ["mlops_async._repo_hooks.local_path_guard"]
+
+[[modules]]
+path = "mlops_async._repo_hooks.local_path_guard"
+depends_on = []
+
+[[interfaces]]
+from = ["mlops_async._repo_hooks.local_path_guard"]
+expose = [
+    "Finding",
+    "build_failure_message",
+    "main",
+    "scan_paths",
+]
