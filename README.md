@@ -11,11 +11,10 @@ not implemented yet.
 As of **v0.5.0**, the repository includes the workflow foundation for
 contract-first API porting, including migration-map integration, gated
 implementation, review, and evidence-ledger guidance, as well as the project
-goal and guidelines documents as the governance baseline. It also adds a
-pre-commit guard that blocks committing machine-local absolute paths while
-allowing documented placeholder values for local-only references. The
-development toolchain also includes `tach` to keep Python module boundaries
-explicit as the package grows.
+goal and guidelines documents as the governance baseline. 它也加入了
+pre-commit guard，用來阻擋提交機器本機的絕對路徑，同時允許文件中保留僅供
+本機參考的 placeholder 值。開發工具鏈亦納入 `tach`，讓 Python 模組邊界能隨著
+套件成長維持明確。
 
 ## Goals
 
@@ -64,17 +63,14 @@ uv run tach check
 
 ## Structural guardrails
 
-This repository uses `tach` for incremental dependency-boundary checks inside
-`src/mlops_async/`.
+此 repository 使用 `tach` 對 `src/mlops_async/` 內部進行漸進式的依賴邊界檢查。
 
-- Configuration lives in `tach.toml`
-- Run `uv run tach check` to validate module boundaries locally
-- `pre-commit` also runs `tach check` before commit
+- 設定檔位於 `tach.toml`
+- 可執行 `uv run tach check` 在本機驗證模組邊界
+- `pre-commit` 也會在 commit 前執行 `tach check`
 
-The current setup is intentionally minimal: it only governs the existing
-`mlops_async` package and the internal `_repo_hooks` submodule, so future
-package growth can tighten the rules incrementally instead of locking in a
-premature architecture.
+目前的設定刻意維持最小範圍：只約束既有的 `mlops_async` 套件與內部
+`_repo_hooks` 子模組，讓未來套件成長時可以逐步收緊規則，而不是過早鎖死架構。
 
 ## Repository layout
 
