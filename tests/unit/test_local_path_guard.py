@@ -8,19 +8,19 @@ from mlops_async._repo_hooks.local_path_guard import Finding, build_failure_mess
 
 
 def _macos_path() -> str:
-    return "/" + "Users/andrew/code/python/mlops-async"
+    return "/" + "Users/example-user/work/sample-project"
 
 
 def _linux_path() -> str:
-    return "/" + "home/andrew/code/python/mlops-async"
+    return "/" + "home/example-user/work/sample-project"
 
 
 def _windows_path() -> str:
-    return "C:" + "\\Users\\andrew\\code\\python\\mlops-async"
+    return "C:" + "\\Users\\example-user\\work\\sample-project"
 
 
 def _escaped_windows_path() -> str:
-    return "C:" + "\\\\Users\\\\andrew\\\\code\\\\python\\\\mlops-async"
+    return "C:" + "\\\\Users\\\\example-user\\\\work\\\\sample-project"
 
 
 @pytest.mark.parametrize(
