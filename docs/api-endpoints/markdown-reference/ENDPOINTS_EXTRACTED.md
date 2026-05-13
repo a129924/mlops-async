@@ -1,6 +1,6 @@
 # SAS Viya API 端點清單（完整提取）
 
-> **來源**: Legacy `sas_api` 專案（`/Users/andrew/code/python/sas_api`）
+> **來源**: Legacy `sas_api` 專案（`<LOCAL_LEGACY_SERVICE_CODE_PATH>`，本機 clone 路徑，勿提交實際值）
 > **分析時間**: 嚴格依據原始程式碼，無任何推測或幻想
 
 ---

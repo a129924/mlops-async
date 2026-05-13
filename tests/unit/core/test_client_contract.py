@@ -1,5 +1,6 @@
 import inspect
 import json
+from collections.abc import Mapping
 from types import TracebackType
 from typing import get_type_hints
 
@@ -23,8 +24,8 @@ class FakeClient:
         method: HttpMethod,
         path: str,
         *,
-        headers: dict[str, str] | None = None,
-        params: dict[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
         json_body: JSONValue | None = None,
         content: bytes | None = None,
         options: ClientRequestOptions | None = None,
@@ -37,8 +38,8 @@ class FakeClient:
         method: HttpMethod,
         path: str,
         *,
-        headers: dict[str, str] | None = None,
-        params: dict[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
         json_body: JSONValue | None = None,
         content: bytes | None = None,
         options: ClientRequestOptions | None = None,

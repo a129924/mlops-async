@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
+from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Literal, cast
-from collections.abc import Mapping
 
 __all__ = ["ClientRequestOptions", "RequestTimeouts"]
 
@@ -23,7 +24,8 @@ class RequestTimeouts:
         invalid_fields = tuple(
             (field_name, value)
             for field_name in ("total", "connect", "read", "write")
-            if (value := getattr(self, field_name)) is not None and value <= 0
+            if (value := getattr(self, field_name)) is not None
+            and (not math.isfinite(value) or value <= 0)
         )
         if invalid_fields:
             field_list = ", ".join(f"{field_name}={value}" for field_name, value in invalid_fields)

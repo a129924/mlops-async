@@ -1,6 +1,6 @@
 [project]
 name = "mlops-async"
-version = "0.4.0"
+version = "0.6.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
@@ -25,6 +25,7 @@ dev = [
     "pytest-cov>=7.1.0",
     "ruff>=0.15.12",
     "sasctl>=1.11.8",
+    "tach>=0.35.0",
 ]
 
 [tool.ruff]

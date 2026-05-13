@@ -176,8 +176,9 @@ For detailed guidance, see:
 
 ### Source SDK Locations
 - **sasctl SDK**: Official Viya REST API client (upstream)
-- **Legacy Service Code**: `/Users/andrew/code/python/sas-model-serving/legacy/need-refer-service/sas-api/` (reference implementation)
+- **Legacy Service Code**: `<LOCAL_LEGACY_SERVICE_CODE_PATH>` (environment-specific local clone; reference implementation)
   - Use for: endpoint patterns, request/response contracts, error handling precedents
+  - If a task needs to inspect this external repo and no concrete local path is provided in the current session, ask the user before reading it
   - Note: This is source material only; do NOT copy code directly; always adapt to async-first patterns
 
 ### Migration Target

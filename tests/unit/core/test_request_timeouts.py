@@ -21,6 +21,8 @@ def test_request_timeouts_accept_positive_values() -> None:
         ({"connect": -1.0}, "connect"),
         ({"read": 0.0}, "read"),
         ({"write": -0.5}, "write"),
+        ({"total": float("inf")}, "total"),
+        ({"connect": float("nan")}, "connect"),
     ],
 )
 def test_request_timeouts_reject_non_positive_values(
