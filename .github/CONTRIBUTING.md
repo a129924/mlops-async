@@ -61,6 +61,21 @@
 - Keep commits atomic and reviewable
 - For larger or parallel topics, prefer worktree + feature branch isolation from `dev`
 
+### Language policy
+
+本 repo 以繁體中文為一般內文預設語言，規則如下：
+
+- **一般內文**（治理文件、analysis / plan 文件、repo 專屬說明）→ 繁體中文
+- **五類固定項目**可保留既有英文原文，不受繁中預設限制：
+  1. canonical section headings（存在於既有模板或 workflow 的固定章節標題）
+  2. plan / step tracker 固定章節名稱
+  3. fixed labels（狀態標籤、欄位名稱等）
+  4. workflow names（GitHub Actions 等 CI/CD pipeline 名稱）
+  5. 必要 canonical terms（技術術語或專有名詞）
+- **不確定情況**：若無法可靠判定某個標題 / label / workflow name / canonical term 是否屬於上述五類，預設保留既有 canonical English，而非自動翻譯。此預設僅限疑似固定項目，不適用於一般敘述內文。
+- **commit / PR / Issue 標題**的語言政策另行規範，本節不處理。
+- 完整決定規則見 `.github/copilot-instructions.md` 的 `Language Requirement` 一節，兩者為同一政策的正式來源，不得互相矛盾。
+
 ## Source of truth
 
 - `pyproject.toml` — dependencies and tool configuration

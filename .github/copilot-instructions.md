@@ -12,9 +12,25 @@ This file defines decision rules for AI agents writing code in this repository.
 - Issue descriptions and pull request content
 - project-specific analysis / plan / ledger artifacts
 
-**例外：**
+**例外 1 — upstream / imported assets：**
 - 若內容屬於 upstream / imported / shared assets，為了保留同步與可攜性，可維持原始語言
 - 新增的 repo 專屬補充內容仍優先使用繁體中文
+
+**例外 2 — Canonical English headings / terms（strict enumeration）：**
+
+下列五類固定項目可保留既有英文原文，不受繁體中文預設限制：
+1. **canonical section headings** — 存在於既有模板或 workflow 中的固定章節標題
+2. **plan / step tracker 固定章節名稱** — 如 `Goal / Outcome`、`Implementation Steps`、`Locked Decisions` 等
+3. **fixed labels** — 狀態標籤、欄位名稱等不可翻譯的固定 label
+4. **workflow names** — GitHub Actions workflow 名稱、CI/CD pipeline 名稱等
+5. **必要 canonical terms** — 技術術語或專有名詞（如 `pydantic`、`httpx`、`pyright`）
+
+**判定規則：**
+- 僅限被明確列入上述五類，或已存在於既有模板 / 標準中的固定項目，才可保留英文。
+- 一般敘述內文、repo 專屬補充說明與使用者可見政策內容，**一律回到繁體中文預設**，不得援用本例外。
+- 若 agent 無法可靠判定某個標題或術語是否屬於上述五類（不確定情況），**預設保留既有 canonical English**，而不是直接翻成繁中。此預設僅限疑似固定項目（標題、label、workflow name、canonical term），不適用於一般敘述內文。
+- 若某個英文內容不屬於 strict enumeration 範圍，回到繁中預設，不視為一般例外。
+- 本例外不影響 commit / PR / Issue 標題的語言政策（另行規範）。
 
 ---
 
