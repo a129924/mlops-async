@@ -4,6 +4,7 @@ import importlib
 import inspect
 from collections.abc import Awaitable, Callable, Mapping
 from types import ModuleType
+from typing import NoReturn
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
@@ -101,6 +102,22 @@ def test_constructor_surface_is_locked_to_minimal_transport_parameters() -> None
     assert "client" not in parameters
     assert "params" not in parameters
     assert "options" not in parameters
+
+
+def test_http_client_nominally_inherits_client_protocol() -> None:
+    http_client = _http_client_class()
+
+    assert http_client.__bases__ == (Client,)
+    assert Client in http_client.__mro__
+
+
+@pytest.mark.asyncio
+async def test_constructor_rejects_complete_async_client_injection() -> None:
+    http_client = _http_client_class()
+
+    async with httpx.AsyncClient() as injected_client:
+        with pytest.raises(TypeError, match="client"):
+            http_client("https://example.com", **{"client": injected_client})
 
 
 @pytest.mark.asyncio
@@ -205,7 +222,7 @@ async def test_request_json_raises_invalid_json_response_exception_for_deeply_ne
     async def handler(request: httpx.Request) -> httpx.Response:
         return _json_response(request, content=b'{"x": 1}')
 
-    def _raise_recursion(_value: object) -> bool:
+    def _raise_recursion(_value: object) -> NoReturn:
         raise RecursionError("max recursion depth exceeded")
 
     client = http_client("https://example.com", transport=TrackingTransport(handler))
@@ -214,9 +231,37 @@ async def test_request_json_raises_invalid_json_response_exception_for_deeply_ne
     with pytest.raises(
         invalid_json_exception,
         match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-1\]",
-    ):
+    ) as exc_info:
         await client.request_json(HttpMethod.GET, "/base/items")
 
+    assert isinstance(exc_info.value.__cause__, RecursionError)
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_request_json_raises_invalid_json_response_exception_for_decoder_recursion_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _http_client_module()
+    http_client = module.HttpClient
+    invalid_json_exception = _exception_type("InvalidJSONResponseException")
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, content=b'{"x": 1}')
+
+    def _raise_recursion(_content: bytes) -> NoReturn:
+        raise RecursionError("max recursion depth exceeded")
+
+    client = http_client("https://example.com", transport=TrackingTransport(handler))
+    monkeypatch.setattr(module, "json_loads", _raise_recursion)
+
+    with pytest.raises(
+        invalid_json_exception,
+        match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-1\]",
+    ) as exc_info:
+        await client.request_json(HttpMethod.GET, "/base/items")
+
+    assert isinstance(exc_info.value.__cause__, RecursionError)
     await client.aclose()
 
 
@@ -315,6 +360,44 @@ async def test_request_json_raises_invalid_json_response_exception_for_non_json_
     assert error.status_code == 200
     assert error.request_id == "req-invalid"
     assert "not-json" in error.body_snippet
+
+
+@pytest.mark.parametrize(
+    ("content", "request_id"),
+    [
+        (b"NaN", "req-nan"),
+        (b"Infinity", "req-pos-inf"),
+        (b"-Infinity", "req-neg-inf"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_request_json_rejects_non_finite_json_constants(
+    content: bytes,
+    request_id: str,
+) -> None:
+    http_client = _http_client_class()
+    invalid_json_exception = _exception_type("InvalidJSONResponseException")
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(
+            request,
+            status_code=200,
+            content=content,
+            headers={"Content-Type": "application/json", "X-Request-ID": request_id},
+        )
+
+    client = http_client("https://example.com", transport=TrackingTransport(handler))
+
+    with pytest.raises(
+        invalid_json_exception,
+        match=rf"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id={request_id}\]",
+    ) as exc_info:
+        await client.request_json(HttpMethod.GET, "/base/items")
+
+    error = exc_info.value
+    assert error.status_code == 200
+    assert error.request_id == request_id
+    assert error.body_snippet == content.decode("utf-8")
 
 
 @pytest.mark.asyncio

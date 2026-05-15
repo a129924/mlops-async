@@ -26,20 +26,24 @@ The blueprint currently names these future-facing public modules:
 
 They are design targets, not implemented files yet.
 
-## Internal client contract — `core/...` placement
+## Internal client contract — `core/...` + `transport/...` placement
 
-The first client contract is implemented under `src/mlops_async/core/`:
+The internal client contract remains split between protocol/value-object modules in
+`src/mlops_async/core/` and the concrete transport implementation in
+`src/mlops_async/transport/`:
 
 - `core/client.py` — internal-only `Client` `Protocol`
 - `core/request_options.py` — `RequestTimeouts` and `ClientRequestOptions` value objects
 - `core/types.py` — `JSONScalar`, `JSONValue`, `HttpMethod`, `ResponseHeaders`, `RawClientResponse`
-- `exceptions.py` — `HttpErrorContext` and `CustomException`
+- `transport/http_client.py` — internal-only concrete `HttpClient` backed by `httpx.AsyncClient`
+- `exceptions.py` — root `MlopsAsyncBaseException` only
+- `transport/exceptions.py` — `HttpErrorContext` and transport-local exception hierarchy
 
-This placement is **internal-only**: none of these `core/...` types are re-exported from the
-package root (`src/mlops_async/__init__.py`). The top-level `client.py` named in the blueprint
-remains a **future public design target**. If `Client` is promoted to a public stable API, that
-requires a separate topic that adds a public facade layer; the internal contract is not a drop-in
-substitute for it.
+This placement is **internal-only**: none of these `core/...` or `transport/...` types are
+re-exported from the package root (`src/mlops_async/__init__.py`), and this topic does not add a
+public facade. The top-level `client.py` named in the blueprint remains a **future public design
+target**. If `Client` is promoted to a public stable API, that requires a separate topic; the
+current internal contract is not a drop-in substitute for it.
 
 ## Skill map
 

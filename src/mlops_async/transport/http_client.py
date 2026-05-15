@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from json import JSONDecodeError, loads as json_loads
+from math import isfinite
 from types import TracebackType
-from typing import TypeGuard
+from typing import TypeGuard, cast
 
 import httpx
 
+from mlops_async.core.client import Client
 from mlops_async.core.request_options import ClientRequestOptions, RequestTimeouts
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse, ResponseHeaders
 from mlops_async.transport.exceptions import (
@@ -112,19 +114,26 @@ def _validate_default_headers(default_headers: Mapping[str, str] | None) -> dict
 
 
 def _is_json_value(value: object) -> TypeGuard[JSONValue]:
-    if value is None or isinstance(value, str | int | float | bool):
+    if value is None or isinstance(value, str | bool | int):
         return True
 
+    if isinstance(value, float):
+        return isfinite(value)
+
     if isinstance(value, list):
-        return all(_is_json_value(item) for item in value)
+        list_value = cast(list[object], value)
+        return all(_is_json_value(item) for item in list_value)
 
     if isinstance(value, dict):
-        return all(isinstance(key, str) and _is_json_value(item) for key, item in value.items())
+        dict_value = cast(dict[object, object], value)
+        return all(
+            isinstance(key, str) and _is_json_value(item) for key, item in dict_value.items()
+        )
 
     return False
 
 
-class HttpClient:
+class HttpClient(Client):
     """Internal concrete `Client` implementation backed by `httpx.AsyncClient`."""
 
     def __init__(
@@ -247,13 +256,13 @@ class HttpClient:
 
         try:
             decoded = json_loads(response.content)
-        except (JSONDecodeError, UnicodeDecodeError) as exc:
+        except (JSONDecodeError, UnicodeDecodeError, RecursionError) as exc:
             raise InvalidJSONResponseException(self._context_from_raw_response(response)) from exc
 
         try:
             valid = _is_json_value(decoded)
-        except RecursionError:
-            raise InvalidJSONResponseException(self._context_from_raw_response(response)) from None
+        except RecursionError as exc:
+            raise InvalidJSONResponseException(self._context_from_raw_response(response)) from exc
 
         if not valid:
             raise InvalidJSONResponseException(self._context_from_raw_response(response))
@@ -270,11 +279,12 @@ class HttpClient:
 
     async def __aexit__(
         self,
-        _exc_type: type[BaseException] | None,
-        _exc: BaseException | None,
-        _traceback: TracebackType | None,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         """Close the client when leaving an async context manager."""
+        del exc_type, exc, traceback
         await self.aclose()
 
     def _resolve_timeout(self, options: ClientRequestOptions | None) -> httpx.Timeout | None:

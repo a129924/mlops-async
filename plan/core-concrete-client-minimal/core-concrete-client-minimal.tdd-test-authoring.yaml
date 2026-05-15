@@ -1,0 +1,53 @@
+verdict: red-tests-ready
+d1_verdict:
+  verdict: non-trivial
+  reason: feature and error-handling contract changes for the internal concrete HttpClient
+test_mapping:
+  - requirement_id: R1
+    test_case_name: tests/unit/core/test_client_contract.py::test_concrete_http_client_satisfies_client_protocol_without_package_root_promotion
+    coverage_category: integration_points
+  - requirement_id: R2
+    test_case_name: tests/unit/core/test_http_client.py::test_request_returns_raw_response_and_applies_minimal_json_headers
+    coverage_category: happy_path
+  - requirement_id: R2
+    test_case_name: tests/unit/core/test_http_client.py::test_request_raises_http_status_exception_for_non_2xx_response
+    coverage_category: error_exception
+  - requirement_id: R3
+    test_case_name: tests/unit/core/test_http_client.py::test_request_json_returns_decoded_python_value
+    coverage_category: happy_path
+  - requirement_id: R3
+    test_case_name: tests/unit/core/test_http_client.py::test_request_json_raises_invalid_json_response_exception_for_non_json_success_body
+    coverage_category: error_exception
+  - requirement_id: R4
+    test_case_name: tests/unit/core/test_http_client.py::test_request_wraps_transport_failures_in_http_transport_exception
+    coverage_category: error_exception
+  - requirement_id: R5
+    test_case_name: tests/unit/test_exceptions.py::test_semantic_exception_hierarchy_replaces_custom_exception
+    coverage_category: boundary_edge
+  - requirement_id: R6
+    test_case_name: tests/unit/core/test_http_client.py::test_request_preserves_per_request_header_override_without_json_content_type
+    coverage_category: boundary_edge
+  - requirement_id: R7
+    test_case_name: tests/unit/core/test_http_client.py::test_constructor_surface_is_locked_to_minimal_transport_parameters
+    coverage_category: boundary_edge
+  - requirement_id: R8
+    test_case_name: tests/unit/core/test_http_client.py::test_constructor_rejects_async_client_injection
+    coverage_category: boundary_edge
+  - requirement_id: R8
+    test_case_name: tests/unit/core/test_http_client.py::test_aclose_does_not_close_injected_transport
+    coverage_category: state_side_effects
+validation_checks:
+  d1_decision: non-trivial
+  behavior_contract_source: plan/core-concrete-client-minimal/core-concrete-client-minimal.spec.md
+  requirements_mapped: true
+  public_contract_coverage: true
+  test_categories_present:
+    - happy_path
+    - error_exception
+    - boundary_edge
+    - state_side_effects
+    - integration_points
+  expected_initial_status: red
+  production_code_modified: false
+issues: []
+next_step: Proceed to implementation against the RED tests in tests/unit/core/test_http_client.py, tests/unit/core/test_client_contract.py, and tests/unit/test_exceptions.py.
