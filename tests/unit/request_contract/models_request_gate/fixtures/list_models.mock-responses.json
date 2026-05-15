@@ -1,0 +1,58 @@
+{
+  "cases": {
+    "bare_get": {
+      "capture_run_id": "list-models-bare-get",
+      "responses": [
+        {
+          "match": {
+            "method": "GET",
+            "path": "/modelRepository/models",
+            "query": {},
+            "body": null
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "json_body": {
+              "items": [],
+              "count": 0,
+              "start": 0,
+              "limit": 20,
+              "links": []
+            }
+          }
+        }
+      ]
+    },
+    "filter_project_id": {
+      "capture_run_id": "list-models-filter-project-id",
+      "responses": [
+        {
+          "match": {
+            "method": "GET",
+            "path": "/modelRepository/models",
+            "query": {
+              "filter": "in(projectId,\"proj-uuid\")"
+            },
+            "body": null
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "json_body": {
+              "items": [],
+              "count": 0,
+              "start": 0,
+              "limit": 20,
+              "links": []
+            }
+          }
+        }
+      ]
+    }
+  }
+}

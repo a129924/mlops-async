@@ -1,0 +1,29 @@
+{
+  "cases": {
+    "direct_identifier": {
+      "capture_run_id": "get-model-direct-identifier",
+      "responses": [
+        {
+          "match": {
+            "method": "GET",
+            "path": "/modelRepository/models/123e4567-e89b-12d3-a456-426614174000",
+            "query": {},
+            "body": null
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json",
+              "ETag": "dummy-etag"
+            },
+            "json_body": {
+              "id": "123e4567-e89b-12d3-a456-426614174000",
+              "name": "demo-model",
+              "links": []
+            }
+          }
+        }
+      ]
+    }
+  }
+}
