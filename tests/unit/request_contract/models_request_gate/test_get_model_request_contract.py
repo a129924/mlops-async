@@ -14,20 +14,8 @@ import pytest
 DIRECT_IDENTIFIER = "123e4567-e89b-12d3-a456-426614174000"
 
 
-def _expected_request(case: Mapping[str, object]) -> Mapping[str, object]:
-    flow = case.get("full_observed_flow")
-    if not isinstance(flow, list) or len(flow) != 1:
-        raise AssertionError("Each request-flow case must define exactly one observed step.")
-    step = flow[0]
-    if not isinstance(step, dict):
-        raise AssertionError("Observed flow step must be an object.")
-    request = step.get("request")
-    if not isinstance(request, dict):
-        raise AssertionError("Observed flow step must define a request object.")
-    return request
-
-
 def test_get_model_direct_identifier_matches_request_flow_fixture(
+    expected_request_from_case: Callable[[Mapping[str, object]], Mapping[str, object]],
     load_request_flow_case: Callable[[str, str], Mapping[str, object]],
     run_get_model_capture: Callable[[object, bool, str], list[dict[str, object]]],
     assert_semantic_request_matches_fixture: Callable[
@@ -38,7 +26,7 @@ def test_get_model_direct_identifier_matches_request_flow_fixture(
     captured = run_get_model_capture(DIRECT_IDENTIFIER, False, "direct_identifier")
 
     assert len(captured) == 1
-    assert_semantic_request_matches_fixture(captured[0], _expected_request(case))
+    assert_semantic_request_matches_fixture(captured[0], expected_request_from_case(case))
 
 
 def test_get_model_direct_identifier_emits_single_target_request(
@@ -64,10 +52,11 @@ def test_get_model_direct_identifier_emits_single_target_request(
     ],
 )
 def test_get_model_blocks_out_of_scope_variants(
+    blocked_topic_scope_error: type[RuntimeError],
     run_get_model_capture: Callable[[object, bool, str], list[dict[str, object]]],
     item: object,
     refresh: bool,
     pattern: str,
 ) -> None:
-    with pytest.raises(RuntimeError, match=pattern):
+    with pytest.raises(blocked_topic_scope_error, match=pattern):
         run_get_model_capture(item, refresh, "direct_identifier")

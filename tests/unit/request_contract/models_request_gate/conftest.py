@@ -46,6 +46,19 @@ def _load_case(filename: str, case_name: str) -> Mapping[str, object]:
     return case
 
 
+def _expected_request_from_case(case: Mapping[str, object]) -> Mapping[str, object]:
+    flow = case.get("full_observed_flow")
+    if not isinstance(flow, list) or len(flow) != 1:
+        raise AssertionError("Each request-flow case must define exactly one observed step.")
+    step = flow[0]
+    if not isinstance(step, dict):
+        raise AssertionError("Observed flow step must be an object.")
+    request = step.get("request")
+    if not isinstance(request, dict):
+        raise AssertionError("Observed flow step must define a request object.")
+    return request
+
+
 def _normalize_query(query: str) -> dict[str, object]:
     parsed = parse_qs(query, keep_blank_values=True)
     normalized: dict[str, object] = {}
@@ -186,6 +199,16 @@ def load_request_flow_case() -> Callable[[str, str], Mapping[str, object]]:
 @pytest.fixture
 def load_answer_set_case() -> Callable[[str, str], Mapping[str, object]]:
     return lambda filename, case_name: _load_case(filename, case_name)
+
+
+@pytest.fixture
+def expected_request_from_case() -> Callable[[Mapping[str, object]], Mapping[str, object]]:
+    return _expected_request_from_case
+
+
+@pytest.fixture
+def blocked_topic_scope_error() -> type[BlockedTopicScopeError]:
+    return BlockedTopicScopeError
 
 
 @pytest.fixture

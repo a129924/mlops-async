@@ -11,20 +11,8 @@ from collections.abc import Callable, Mapping
 import pytest
 
 
-def _expected_request(case: Mapping[str, object]) -> Mapping[str, object]:
-    flow = case.get("full_observed_flow")
-    if not isinstance(flow, list) or len(flow) != 1:
-        raise AssertionError("Each request-flow case must define exactly one observed step.")
-    step = flow[0]
-    if not isinstance(step, dict):
-        raise AssertionError("Observed flow step must be an object.")
-    request = step.get("request")
-    if not isinstance(request, dict):
-        raise AssertionError("Observed flow step must define a request object.")
-    return request
-
-
 def test_list_models_bare_get_matches_request_flow_fixture(
+    expected_request_from_case: Callable[[Mapping[str, object]], Mapping[str, object]],
     load_request_flow_case: Callable[[str, str], Mapping[str, object]],
     run_list_models_capture: Callable[[str | None, str], list[dict[str, object]]],
     assert_semantic_request_matches_fixture: Callable[
@@ -35,10 +23,11 @@ def test_list_models_bare_get_matches_request_flow_fixture(
     captured = run_list_models_capture(None, "bare_get")
 
     assert len(captured) == 1
-    assert_semantic_request_matches_fixture(captured[0], _expected_request(case))
+    assert_semantic_request_matches_fixture(captured[0], expected_request_from_case(case))
 
 
 def test_list_models_filter_semantics_match_request_flow_fixture(
+    expected_request_from_case: Callable[[Mapping[str, object]], Mapping[str, object]],
     load_request_flow_case: Callable[[str, str], Mapping[str, object]],
     run_list_models_capture: Callable[[str | None, str], list[dict[str, object]]],
     assert_semantic_request_matches_fixture: Callable[
@@ -49,7 +38,7 @@ def test_list_models_filter_semantics_match_request_flow_fixture(
     captured = run_list_models_capture('in(projectId,"proj-uuid")', "filter_project_id")
 
     assert len(captured) == 1
-    assert_semantic_request_matches_fixture(captured[0], _expected_request(case))
+    assert_semantic_request_matches_fixture(captured[0], expected_request_from_case(case))
 
 
 def test_list_models_emits_single_target_request(
@@ -63,10 +52,11 @@ def test_list_models_emits_single_target_request(
 
 
 def test_list_models_blocks_unsupported_filter_semantics(
+    blocked_topic_scope_error: type[RuntimeError],
     run_list_models_capture: Callable[[str | None, str], list[dict[str, object]]],
 ) -> None:
     with pytest.raises(
-        RuntimeError,
+        blocked_topic_scope_error,
         match=r'Only bare GET and filter=in\(projectId,"proj-uuid"\) are allowed',
     ):
         run_list_models_capture('eq(name,"m1")', "filter_project_id")
