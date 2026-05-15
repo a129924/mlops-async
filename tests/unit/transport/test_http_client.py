@@ -228,14 +228,16 @@ async def test_request_json_raises_invalid_json_response_exception_for_deeply_ne
     client = http_client("https://example.com", transport=TrackingTransport(handler))
     monkeypatch.setattr(module, "_is_json_value", _raise_recursion)
 
-    with pytest.raises(
-        invalid_json_exception,
-        match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-1\]",
-    ) as exc_info:
-        await client.request_json(HttpMethod.GET, "/base/items")
+    try:
+        with pytest.raises(
+            invalid_json_exception,
+            match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-1\]",
+        ) as exc_info:
+            await client.request_json(HttpMethod.GET, "/base/items")
 
-    assert isinstance(exc_info.value.__cause__, RecursionError)
-    await client.aclose()
+        assert isinstance(exc_info.value.__cause__, RecursionError)
+    finally:
+        await client.aclose()
 
 
 @pytest.mark.asyncio
@@ -255,14 +257,16 @@ async def test_request_json_raises_invalid_json_response_exception_for_decoder_r
     client = http_client("https://example.com", transport=TrackingTransport(handler))
     monkeypatch.setattr(module, "json_loads", _raise_recursion)
 
-    with pytest.raises(
-        invalid_json_exception,
-        match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-1\]",
-    ) as exc_info:
-        await client.request_json(HttpMethod.GET, "/base/items")
+    try:
+        with pytest.raises(
+            invalid_json_exception,
+            match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-1\]",
+        ) as exc_info:
+            await client.request_json(HttpMethod.GET, "/base/items")
 
-    assert isinstance(exc_info.value.__cause__, RecursionError)
-    await client.aclose()
+        assert isinstance(exc_info.value.__cause__, RecursionError)
+    finally:
+        await client.aclose()
 
 
 @pytest.mark.asyncio
@@ -280,17 +284,20 @@ async def test_request_raises_http_status_exception_for_non_2xx_response() -> No
 
     client = http_client("https://example.com", transport=TrackingTransport(handler))
 
-    with pytest.raises(
-        http_status_exception,
-        match=r"GET /base/items -> HTTP 404 \[request_id=req-404\]",
-    ) as exc_info:
-        await client.request(HttpMethod.GET, "/base/items")
+    try:
+        with pytest.raises(
+            http_status_exception,
+            match=r"GET /base/items -> HTTP 404 \[request_id=req-404\]",
+        ) as exc_info:
+            await client.request(HttpMethod.GET, "/base/items")
 
-    error = exc_info.value
-    assert error.status_code == 404
-    assert error.method == "GET"
-    assert error.url == "https://example.com/base/items"
-    assert error.request_id == "req-404"
+        error = exc_info.value
+        assert error.status_code == 404
+        assert error.method == "GET"
+        assert error.url == "https://example.com/base/items"
+        assert error.request_id == "req-404"
+    finally:
+        await client.aclose()
 
 
 @pytest.mark.asyncio
@@ -324,13 +331,14 @@ async def test_request_json_raises_invalid_json_response_exception_for_non_json_
     client = http_client("https://example.com", transport=TrackingTransport(handler))
     monkeypatch.setattr(module, "json_loads", lambda _content: object())
 
-    with pytest.raises(
-        invalid_json_exception,
-        match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-1\]",
-    ):
-        await client.request_json(HttpMethod.GET, "/base/items")
-
-    await client.aclose()
+    try:
+        with pytest.raises(
+            invalid_json_exception,
+            match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-1\]",
+        ):
+            await client.request_json(HttpMethod.GET, "/base/items")
+    finally:
+        await client.aclose()
 
 
 @pytest.mark.asyncio
@@ -350,16 +358,22 @@ async def test_request_json_raises_invalid_json_response_exception_for_non_json_
 
     client = http_client("https://example.com", transport=TrackingTransport(handler))
 
-    with pytest.raises(
-        invalid_json_exception,
-        match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-invalid\]",
-    ) as exc_info:
-        await client.request_json(HttpMethod.GET, "/base/items")
+    try:
+        with pytest.raises(
+            invalid_json_exception,
+            match=(
+                r"GET /base/items -> invalid JSON response \(HTTP 200\) "
+                r"\[request_id=req-invalid\]"
+            ),
+        ) as exc_info:
+            await client.request_json(HttpMethod.GET, "/base/items")
 
-    error = exc_info.value
-    assert error.status_code == 200
-    assert error.request_id == "req-invalid"
-    assert "not-json" in error.body_snippet
+        error = exc_info.value
+        assert error.status_code == 200
+        assert error.request_id == "req-invalid"
+        assert "not-json" in error.body_snippet
+    finally:
+        await client.aclose()
 
 
 @pytest.mark.parametrize(
@@ -388,16 +402,22 @@ async def test_request_json_rejects_non_finite_json_constants(
 
     client = http_client("https://example.com", transport=TrackingTransport(handler))
 
-    with pytest.raises(
-        invalid_json_exception,
-        match=rf"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id={request_id}\]",
-    ) as exc_info:
-        await client.request_json(HttpMethod.GET, "/base/items")
+    try:
+        with pytest.raises(
+            invalid_json_exception,
+            match=(
+                rf"GET /base/items -> invalid JSON response \(HTTP 200\) "
+                rf"\[request_id={request_id}\]"
+            ),
+        ) as exc_info:
+            await client.request_json(HttpMethod.GET, "/base/items")
 
-    error = exc_info.value
-    assert error.status_code == 200
-    assert error.request_id == request_id
-    assert error.body_snippet == content.decode("utf-8")
+        error = exc_info.value
+        assert error.status_code == 200
+        assert error.request_id == request_id
+        assert error.body_snippet == content.decode("utf-8")
+    finally:
+        await client.aclose()
 
 
 @pytest.mark.asyncio
@@ -415,16 +435,19 @@ async def test_request_json_raises_invalid_json_response_exception_for_empty_suc
 
     client = http_client("https://example.com", transport=TrackingTransport(handler))
 
-    with pytest.raises(
-        invalid_json_exception,
-        match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-empty\]",
-    ) as exc_info:
-        await client.request_json(HttpMethod.GET, "/base/items")
+    try:
+        with pytest.raises(
+            invalid_json_exception,
+            match=r"GET /base/items -> invalid JSON response \(HTTP 200\) \[request_id=req-empty\]",
+        ) as exc_info:
+            await client.request_json(HttpMethod.GET, "/base/items")
 
-    error = exc_info.value
-    assert error.status_code == 200
-    assert error.request_id == "req-empty"
-    assert error.body_snippet == ""
+        error = exc_info.value
+        assert error.status_code == 200
+        assert error.request_id == "req-empty"
+        assert error.body_snippet == ""
+    finally:
+        await client.aclose()
 
 
 @pytest.mark.parametrize(
@@ -451,13 +474,38 @@ async def test_request_wraps_transport_failures_in_http_transport_exception() ->
 
     client = http_client("https://example.com", transport=TrackingTransport(handler))
 
-    with pytest.raises(transport_exception) as exc_info:
-        await client.request(HttpMethod.GET, "/base/items")
+    try:
+        with pytest.raises(transport_exception) as exc_info:
+            await client.request(HttpMethod.GET, "/base/items")
 
-    error = exc_info.value
-    assert error.status_code is None
-    assert error.__cause__ is not None
-    assert isinstance(error.__cause__, httpx.ConnectError)
+        error = exc_info.value
+        assert error.status_code is None
+        assert error.__cause__ is not None
+        assert isinstance(error.__cause__, httpx.ConnectError)
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_request_wraps_invalid_absolute_url_without_request_in_http_transport_exception() -> (
+    None
+):
+    http_client = _http_client_class()
+    transport_exception = _exception_type("HttpTransportException")
+    client = http_client("https://example.com")
+
+    try:
+        with pytest.raises(transport_exception) as exc_info:
+            await client.request(HttpMethod.GET, "http://example.com:bad")
+
+        error = exc_info.value
+        assert error.status_code is None
+        assert error.url == "https://example.com/http://example.com:bad"
+        assert str(error) == "GET /http://example.com:bad -> request failure"
+        assert isinstance(error.__cause__, httpx.InvalidURL)
+        assert str(error.__cause__) == "Invalid port: 'bad'"
+    finally:
+        await client.aclose()
 
 
 @pytest.mark.asyncio

@@ -339,6 +339,11 @@ class HttpClient(Client):
         return HttpErrorContext(
             status_code=None,
             method=method.value,
-            url=str(self._client.base_url.join(path)),
+            url=self._safe_transport_failure_url(path),
             request_id=None,
         )
+
+    def _safe_transport_failure_url(self, path: str) -> str:
+        base_url = str(self._client.base_url).rstrip("/")
+        safe_path = path if path.startswith("/") else f"/{path}" if path else "/"
+        return f"{base_url}{safe_path}"
