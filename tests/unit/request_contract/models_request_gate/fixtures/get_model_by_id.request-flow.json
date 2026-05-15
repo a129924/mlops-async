@@ -1,0 +1,51 @@
+{
+  "source": {
+    "sdk": "sasctl",
+    "function": "ModelRepository.get_model",
+    "allowed_branch": "direct-identifier-only",
+    "evidence": [
+      "docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md",
+      "docs/api-endpoints/markdown-reference/SASCTL_MLOPS_OPERATIONS.md",
+      "docs/api-endpoints/swagger-spec/models-spec.yaml",
+      "docs/api-endpoints/swagger-spec/openapi-complete.yaml"
+    ]
+  },
+  "cases": {
+    "direct_identifier": {
+      "capture_run_id": "get-model-direct-identifier",
+      "comparison_scope": "target-api-only",
+      "full_observed_flow": [
+        {
+          "purpose": "target-api",
+          "request": {
+            "method": "GET",
+            "path": "/modelRepository/models/123e4567-e89b-12d3-a456-426614174000",
+            "required_header_subset": {
+              "Authorization": {
+                "scheme": "Bearer"
+              },
+              "Accept": {
+                "present": true
+              }
+            },
+            "query": {},
+            "body": null
+          }
+        }
+      ]
+    }
+  },
+  "assertion_layer": "layer1-source-observed-request-shape",
+  "reviewer_boundary": {
+    "claims": [
+      "source-observed prepared request semantics only"
+    ],
+    "does_not_prove": [
+      "auth proof",
+      "session or refresh proof",
+      "real transport proof",
+      "target runtime behavior proof"
+    ],
+    "accept_header_note": "Accept is asserted only at the source-observed layer represented by this harness. Any stricter target media-type policy belongs in divergence or intent metadata, not this fixture."
+  }
+}
