@@ -8,6 +8,21 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.9.0**, the repository includes the first internal concrete transport
+substrate for the repo-owned client contract: `transport/http_client.py` now
+implements the internal `Client` boundary with layered transport exceptions,
+success-only raw/JSON request paths, and focused tests that keep transport
+integration out of `core/`. 它也同步補上 nominal inheritance tightening 與
+object type-hint correction artifacts，讓 internal contract 的 reviewer
+evidence、typing boundary 與 correction history 一併固定下來。
+
+v0.9.0 新增 **core-concrete-client-minimal** 主題，建立 internal-only minimal
+`HttpClient` 的 concrete transport substrate：新增
+`src/mlops_async/transport/http_client.py`、`transport/exceptions.py`、對應的
+unit tests、以及 repo-visible analysis / plan / correction artifacts，正式把
+第三方 transport integration 與 `core/` contract 層切開，同時禁止 root
+exception re-export、alias / transition layer、以及 auth / retry scope creep。
+
 As of **v0.8.2**, the repository includes the workflow foundation for
 contract-first API porting, including migration-map integration, gated
 implementation, review, and evidence-ledger guidance, as well as the project
