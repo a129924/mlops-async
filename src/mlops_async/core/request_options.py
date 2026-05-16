@@ -4,7 +4,7 @@ import math
 from dataclasses import dataclass, field
 from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Literal, cast
+from typing import Literal
 
 __all__ = ["ClientRequestOptions", "RequestTimeouts"]
 
@@ -48,8 +48,5 @@ class ClientRequestOptions:
     request_context: Mapping[str, str] = field(default_factory=dict[str, str])
 
     def __post_init__(self) -> None:
-        immutable_context = cast(
-            Mapping[str, str],
-            MappingProxyType(dict(self.request_context)),
-        )
+        immutable_context = MappingProxyType(dict(self.request_context))
         object.__setattr__(self, "request_context", immutable_context)
