@@ -163,7 +163,7 @@ For detailed guidance, see:
 - **`docs/ARCHITECTURE.md`**: Human-facing design intent and skill map
 - **`docs/project-goal.md`**: mission, success criteria, non-goals, phase boundary
 - **`docs/project-guidelines.md`**: contract-first execution rules, stop conditions, and topic git workflow
-- **`.github/skills/`**: 28 installed Agent Skills with detailed rule references
+- **`.github/skills/`**: 35 installed Agent Skills with detailed rule references
 - **`.github/agents/`**: workflow orchestration agents for plan-to-review execution
 - **`analysis/api-client-porting-contract/`**: frozen requirements and technical spec for contract-first API porting
 - **`docs/migration-map.md`**: source API 到 target async API 的集中 migration 對照表

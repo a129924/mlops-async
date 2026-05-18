@@ -34,6 +34,7 @@
 ## Decisions
 <!-- Answer ALL of the following before drafting the rest of the plan.
      Leaving any item blank is a stop-and-ask condition. -->
+- Async-planning status: <!-- required in every plan. Use `triggered — cite trigger evidence: ...` when async-capable evidence is present, or `exempt — cite exemption evidence: ...` when the topic stays outside the async-planning gate. This is a repo-visible contract field, not proof that a skill was invoked. -->
 - Module/package placement: <!-- which module or package receives the new code -->
 - New public API: <!-- yes/no — if yes, name the function/class and its signature -->
 - Interface changes: <!-- yes/no — if yes, which interfaces and how -->
@@ -41,6 +42,37 @@
 - New dependencies: <!-- yes/no — if yes, name the package and version -->
 - Error handling strategy: <!-- which exceptions are raised and when; what is returned on failure -->
 - Typing strategy: <!-- fully typed, use of Any, use of TypeVar/Protocol, etc. -->
+
+<!-- Async-planning block — keep the Async-planning status line above in all cases.
+     When `Async-planning status` is `triggered`, keep the exact subsection headings below in this exact order. Delete the block for exempt topics. -->
+
+### Async boundary decision
+<!-- what stays sync, what becomes async, and why -->
+
+### Resource lifecycle decision
+<!-- who owns creation, sharing, cleanup, and closure of async clients / sessions / workers -->
+
+### Concurrency model
+<!-- direct await, bounded fan-out, batching, streaming, worker ownership, or explicit sequential execution -->
+
+### Failure model
+<!-- which failures propagate, which are translated, and how grouped failures surface -->
+
+### Cancellation / timeout policy
+<!-- cancellation owner, timeout boundary, retry boundary, cleanup behavior -->
+
+### Validation plan
+<!-- async-specific tests or validation coverage such as timeout, cancellation, cleanup, grouped failure -->
+
+### Handoff notes for the implementer
+<!-- short execution notes so implementation does not rediscover async assumptions from chat -->
+
+### Async contradiction log
+<!-- required when request, plan, review notes, or exemption-vs-trigger evidence conflict.
+     Use the table below or write "No async contradictions." after checking. -->
+| Contradiction | Source A | Source B | Risk impact | Decision owner / next action | Classification |
+| --- | --- | --- | --- | --- | --- |
+| ... | ... | ... | ... | ... | blocking / non-blocking |
 
 ## Public Contract / API Changes
 <!-- Describe new or changed public functions, classes, or methods.
@@ -80,7 +112,9 @@ Candidate files to inspect:
 
 ## Test Plan
 <!-- Name the test file and list test cases for all five required categories.
-     "Add tests" is not acceptable — be specific about what each test covers. -->
+     "Add tests" is not acceptable — be specific about what each test covers.
+     If async-planning is triggered, include the async-specific validation cases named
+     in `### Validation plan`. -->
 
 Test file: `tests/test_<name>.py`
 
