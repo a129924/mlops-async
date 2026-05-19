@@ -5,6 +5,7 @@
 - **Status**: frozen for technical translation
 - **Topic**: `core-concrete-client-minimal`
 - **Scope level**: internal transport substrate baseline
+- **Parent artifact role**: 本檔已回補 merged final contract；correction / delta artifacts 保留為歷史決策軌跡與 reviewer evidence，不取代本 parent baseline
 
 ## Problem Statement
 
@@ -59,6 +60,18 @@ subsystem-local concrete exceptions 分離，避免把所有 infra exceptions �
     transition layer
 - **Failure meaning**: 若這點不成立，`core/` 會開始承擔第三方 integration 責任，並留下雙重路徑 drift
 
+### R1a. Concrete client must nominally inherit the internal `Client` contract
+
+- **Actor**: package 維護者與 contract test 作者
+- **Condition**: 需要把第一個 concrete transport client 鎖定成 repo-visible internal contract
+- **Observable outcome**: `src/mlops_async/transport/http_client.py` 以
+  `class HttpClient(Client): ...` 定義 concrete client
+- **Decision rule**:
+  - `HttpClient` 不得只靠 structural compatibility 滿足 `mlops_async.core.client.Client`
+  - reviewer 與測試證據必須承認 nominal evidence，例如 `__bases__` / `__mro__`
+  - 此 tightening 只屬於 internal implementation contract，不得因此把 `HttpClient` 提升成 public API
+- **Failure meaning**: 若這點不成立，`Client` 會再次退回隱性的 structural 規則，未來 drift 難以及早被測試抓到
+
 ### R2. Success-only raw path
 
 - **Actor**: package 內部的 domain endpoint client
@@ -72,8 +85,12 @@ subsystem-local concrete exceptions 分離，避免把所有 infra exceptions �
 
 - **Actor**: package 內部的 domain endpoint client
 - **Condition**: 需要取得一般 JSON API 的成功結果
-- **Observable outcome**: `request_json()` 在 2xx 且 body 可解析為 JSON 時回傳 Python JSON value
-- **Decision rule**: 非 2xx 與 non-JSON success body 都不得被視為成功
+- **Observable outcome**: `request_json()` 只在 2xx 且 success body 可解碼成符合 `JSONValue`
+  contract 的 Python 值時回傳結果
+- **Decision rule**:
+  - 非 2xx 與 non-JSON success body 都不得被視為成功
+  - `NaN`、`Infinity`、`-Infinity` 對本 topic 的 `request_json()` contract 而言都屬於
+    invalid JSON success body，不得當成功值回傳
 - **Failure meaning**: 若這點不成立，family clients 仍會分散處理 JSON parse failure
 
 ### R4. Low-level failure ownership
@@ -160,18 +177,45 @@ subsystem-local concrete exceptions 分離，避免把所有 infra exceptions �
   - 若存在 injected transport，其生命週期由 caller 擁有，HttpClient 不主動關閉
 - **Failure meaning**: 若這點不成立，lifecycle ownership、testing seam 與 constructor surface 會混亂
 
+### R9a. Type-hint tightening must preserve justified unknown boundaries while removing contract-weakening ambiguity
+
+- **Actor**: package 維護者與測試作者
+- **Condition**: runtime JSON validation 與負向測試 helper 需要表達 unknown value boundary 或
+  always-raise 行為
+- **Observable outcome**:
+  - 合理 unknown boundary 可保留 `object`，例如 `_is_json_value(value: object) -> TypeGuard[JSONValue]`
+  - internal narrowing casts 與 test 中刻意產生 invalid runtime value 的 `object()` 可保留
+  - 永遠 raise 的 helper 以 `NoReturn` 等精確型別表達，不再用 `object` / `bool` 之類模糊回傳型別
+- **Decision rule**:
+  - 不是看到 `object` 就一律移除
+  - 只收斂會弱化 contract 的模糊型別，而不是把本 topic 擴張成全 repo type cleanup
+- **Failure meaning**: 若這點不成立，strict typing 不是變成教條式清除，就是繼續容忍會模糊 contract 的型別
+
+## Historical Decision Lifecycle
+
+- parent artifacts（analysis / technical-spec / plan / step）是 merged final contract 的 execution-facing
+  source of truth
+- correction / delta artifacts 保留 repo-visible，作為 needs-rework 脈絡、decision trail、未來流程範例、
+  與 reviewer acceptance evidence
+- 後續讀者若要理解「為什麼曾經 drift」應回看 correction / delta artifacts；若要理解
+  「現在 accepted contract 是什麼」應以 parent artifacts 為準
+
 ## Success Signals
 
 當此 baseline 被滿足時，至少應能觀察到：
 
-1. repo 內有第一個 internal-only minimal HttpClient baseline，且它位於 `transport/` 而不是 `core/`。
+1. repo 內有第一個 internal-only minimal HttpClient baseline，且它位於 `transport/` 而不是 `core/`，
+   並以 `class HttpClient(Client):` 明確宣告 internal contract。
 2. `request()` 的成功/失敗邊界對所有 family 一致：只有 2xx 才回傳 `RawClientResponse`。
-3. `request_json()` 的成功條件對所有 family 一致：只有可解析 JSON 的 2xx body 才回傳值。
+3. `request_json()` 的成功條件對所有 family 一致：只有符合 `JSONValue` contract 的 2xx body 才回傳值；
+   `NaN`、`Infinity`、`-Infinity` 不得被當成成功值。
 4. default headers、merge rules、constructor surface、transport injection ownership 都已固定，
    不再由每個 family 各自決定。
 5. package root exception 與 transport-specific concrete exceptions 的邊界已固定：root 只保留
    `MlopsAsyncBaseException`，transport-local file 承接全部 concrete exceptions，且沒有 root re-export /
    alias residual。
+6. runtime JSON guard 與相關測試 helper 採分類式 type tightening：保留合理 `object` 邊界，並把
+   always-raise helper 收斂成 `NoReturn` 等精確型別。
 
 ## Extreme-boundary Checks
 
@@ -189,6 +233,8 @@ subsystem-local concrete exceptions 分離，避免把所有 infra exceptions �
 ### Interrupted or partial completion
 
 - 若 response 是 non-2xx，或 success body 無法解析為 JSON，minimal HttpClient 不得交付半套成功結果。
+- 若 success body 為 `NaN`、`Infinity`、或 `-Infinity`，也必須視為 invalid JSON success body，
+  不得被當成成功結果。
 - injected transport 若由 caller 持有，其資源管理責任不得在 HttpClient 內被靜默接管。
 
 ### Lowest-volume and peak-volume conditions
@@ -268,7 +314,11 @@ None.
 
 - minimal HttpClient 仍是 internal-only
 - `request()` 只回傳成功可用的 `RawClientResponse`
-- `request_json()` 對 non-2xx 與 non-JSON success body 都必須失敗
+- `HttpClient` 必須顯式繼承 `Client`，且 nominal evidence 不可只靠 structural pass 取代
+- `request_json()` 對 non-2xx、non-JSON success body、以及 `NaN` / `Infinity` / `-Infinity`
+  都必須失敗
 - `MlopsAsyncBaseException` 留在 package root，transport-specific concrete exceptions 留在 `transport/`，且本 topic 不做 root re-export
 - transport exception hierarchy 採 `MlopsAsyncBaseException` -> `HttpTransportException` -> 更細 semantic exceptions
 - default headers 必須維持極薄，且禁止 client-level default params / options merge
+- type-hint tightening 採分類式規則：保留合理 `object` unknown boundary，收斂會弱化 contract 的
+  always-raise helper 型別
