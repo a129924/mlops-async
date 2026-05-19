@@ -65,7 +65,7 @@ Keep `AsyncSession` and `AsyncClient` out of domain objects. Do not introduce de
 - Async validation: timeout, cancellation cleanup, grouped failure, and request-scoped session closure cases are covered
 
 ## Validation Commands
-pytest -v tests/test_user_summary.py && ruff check src/app && mypy src/app
+pytest -v tests/test_user_summary.py && ruff check src/app && uv run pyright
 ```
 
 **Verdict:**

@@ -1,45 +1,45 @@
 ## Goal / Outcome
 
-- Create a repo-visible migration contract for bringing `python-naming` and `python-async-planning` into `mlops-async`, including the minimum supporting refreshes required to keep existing installed skills internally consistent.
-- Semantic warning: this topic is being authored without `analysis/python-naming-async-planning-migration/requirements.md` and `analysis/python-naming-async-planning-migration/technical-spec.md`; scope is based on explicit human direction plus completed review findings.
+- 建立一份 repo 可見的遷移契約，將 `python-naming` 與 `python-async-planning` 引入 `mlops-async`，包含保持既有已安裝 skills 內部一致性所需的最小輔助 refresh。
+- 語意警告：本 topic 在沒有 `analysis/python-naming-async-planning-migration/requirements.md` 與 `analysis/python-naming-async-planning-migration/technical-spec.md` 的情況下進行撰寫；範圍基於明確的人工指引與已完成的 review 發現。
 
 ## Scope
 
 - **In scope**:
-  - add `.github/skills/python-naming/` from `agent-skills` into `mlops-async`
-  - add `.github/skills/python-async-planning/` from `agent-skills` into `mlops-async`
-  - refresh `mlops-async/.github/skills/python-plan-authoring/` artifacts that must align with the async-planning contract
-  - refresh `mlops-async/.github/skills/python-plan-review/` artifacts that must align with the async-planning contract
-  - update `mlops-async/.github/copilot-instructions.md` so installed-skill inventory and direct references stay accurate after the new skills land
-  - verify that existing `python-code-review` and `python-docstrings` signposts to `python-naming` now resolve to an installed skill
+  - 將 `agent-skills` 中的 `.github/skills/python-naming/` 加入 `mlops-async`
+  - 將 `agent-skills` 中的 `.github/skills/python-async-planning/` 加入 `mlops-async`
+  - refresh `mlops-async/.github/skills/python-plan-authoring/` artifacts，使其與 async-planning 契約對齊
+  - refresh `mlops-async/.github/skills/python-plan-review/` artifacts，使其與 async-planning 契約對齊
+  - 更新 `mlops-async/.github/copilot-instructions.md`，使已安裝 skill 清單與直接引用在新 skills 落地後保持準確
+  - 確認既有 `python-code-review` 與 `python-docstrings` 中指向 `python-naming` 的 signpost 現在可解析至已安裝的 skill
 
 - **Out of scope**:
-  - migrating any other reviewed current-only skill
-  - changing `README.md`, `VERSION`, git tags, or release timing
-  - implementing unrelated shared-item refreshes already reviewed in earlier batches
-  - changing workflow agents unless the later implementation finds a direct contract dependency and the plan is amended first
+  - 遷移其他任何已 review 的 current-only skill
+  - 變更 `README.md`、`VERSION`、git tags 或發布時機
+  - 實作與本 topic 無關、已在先前批次 review 中處理的 shared-item refreshes
+  - 變更 workflow agents，除非後續實作發現直接的契約依賴且已先修正本計畫
 
 ## Locked Decisions
 
-- This topic is **review-ready-only with no stable-library surfaces**; no `README.md`, `VERSION`, or release action is part of this migration topic.
-- This topic remains a **single migration topic** covering both `python-naming` and `python-async-planning`; do not split into separate topic plans unless a later human decision says so.
-- `python-async-planning` is included in this migration topic by explicit human decision even though it was intentionally excluded from the earlier review track.
-- `python-naming` must be migrated as a full skill folder because `mlops-async` already contains repo-local signposts to `python-naming` in installed skills.
-- `python-async-planning` must not be migrated alone; the migration must also refresh `python-plan-authoring` and `python-plan-review` so the async-planning contract becomes enforceable inside `mlops-async`.
-- Implementation must happen in the managed topic worktree on branch `plan/andrew/python-naming-async-planning-migration`, based on `dev`.
+- 本 topic 為 **review-ready-only，無 stable-library surfaces**；`README.md`、`VERSION` 或任何 release action 均不屬於本遷移 topic。
+- 本 topic 維持為同時涵蓋 `python-naming` 與 `python-async-planning` 的**單一遷移 topic**；除非後續有明確的人工決策，否則不拆分為獨立 topic plans。
+- `python-async-planning` 因明確的人工決策而納入本遷移 topic，即使它在先前的 review 追蹤中被刻意排除。
+- `python-naming` 必須以完整的 skill folder 形式遷移，因為 `mlops-async` 中已有 repo-local signposts 指向 `python-naming`。
+- `python-async-planning` 不得單獨遷移；遷移時必須同時 refresh `python-plan-authoring` 與 `python-plan-review`，使 async-planning 契約在 `mlops-async` 內可被執行。
+- 實作必須在 branch `plan/andrew/python-naming-async-planning-migration` 的受管 topic worktree 中進行，基於 `dev`。
 
 ## Boundaries / Exclusions
 
-- Keep this topic limited to skill installation and internal contract alignment for the two chosen skills.
-- Do not reopen the broader candidate-review workflow inside this topic.
-- Do not edit files outside the listed artifact paths without first updating this plan.
-- Do not treat `.github/copilot-instructions.md` inventory updates as permission to change repo governance or contributor workflow wording beyond what the new installed skills require.
-- Do not infer that `python-async-planning` requires unrelated changes to `python-implementation-workflow.agent.md`; if that becomes necessary, stop and amend the plan rather than drifting scope.
+- 本 topic 僅限於兩個選定 skills 的 skill 安裝與內部契約對齊。
+- 不在本 topic 內重新啟動更廣泛的 candidate-review workflow。
+- 未先更新本計畫，不得編輯已列出 artifact paths 以外的檔案。
+- 不得將 `.github/copilot-instructions.md` 清單更新視為可變更 repo governance 或 contributor workflow 措辭的許可，超出新安裝 skills 的必要範圍。
+- 不得推斷 `python-async-planning` 需要對 `python-implementation-workflow.agent.md` 進行無關變更；若確有必要，應停止並修正計畫，而非擴散範圍。
 
 ## Status / Allowed Transitions
 
 - **Current**: `approved`
-- **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; this topic stops at merge and does not declare a release action
+- **Execution model**: 遵循 canonical creator -> reviewer -> publish -> merge 路徑；本 topic 在 merge 後停止，不宣告 release action
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -57,51 +57,51 @@
 
 Routing notes:
 
-- No release action is planned for this topic.
-- If implementation discovers additional dependency files outside the listed artifact paths, stop and repair this plan before continuing.
+- 本 topic 不規劃 release action。
+- 若實作過程發現已列出 artifact paths 以外的額外依賴檔案，應停止並修正本計畫後再繼續。
 
 ## Artifact Paths
 
 | Artifact | Path | Owner | Role |
 | --- | --- | --- | --- |
-| Topic plan | `plan/python-naming-async-planning-migration/python-naming-async-planning-migration.plan.md` | Planning actor | Repo-visible execution contract for this migration topic |
-| New skill | `.github/skills/python-naming/SKILL.md` | Creator | Install the naming-policy skill contract into `mlops-async` |
-| New skill | `.github/skills/python-naming/reference.md` | Creator | Install the naming examples and edge-case reference used by `python-naming` |
-| New skill | `.github/skills/python-async-planning/SKILL.md` | Creator | Install the async-planning skill contract into `mlops-async` |
-| New skill | `.github/skills/python-async-planning/reference.md` | Creator | Install the async-planning reference guidance |
-| New skill | `.github/skills/python-async-planning/examples.md` | Creator | Install the async-planning examples required by the skill folder |
-| Supporting refresh | `.github/skills/python-plan-authoring/SKILL.md` | Creator | Reintroduce async-planning trigger/exemption contract into plan authoring |
-| Supporting refresh | `.github/skills/python-plan-authoring/examples.md` | Creator | Keep plan-authoring examples aligned with async-planning expectations |
-| Supporting refresh | `.github/skills/python-plan-authoring/templates/python-plan-template.md` | Creator | Add the repo-visible async-planning scaffold used by authored plans |
-| Supporting refresh | `.github/skills/python-plan-review/SKILL.md` | Creator | Reintroduce async-planning review gates into plan review |
-| Supporting refresh | `.github/skills/python-plan-review/checklist.md` | Creator | Keep plan-review checklist aligned with async-planning review checks |
-| Supporting refresh | `.github/skills/python-plan-review/examples.md` | Creator | Keep plan-review examples aligned with async-planning review outcomes |
-| Inventory update | `.github/copilot-instructions.md` | Creator | Update installed-skill inventory count and any direct references needed after migration |
+| Topic plan | `plan/python-naming-async-planning-migration/python-naming-async-planning-migration.plan.md` | Planning actor | 本遷移 topic 的 repo 可見執行契約 |
+| New skill | `.github/skills/python-naming/SKILL.md` | Creator | 將命名策略 skill 契約安裝至 `mlops-async` |
+| New skill | `.github/skills/python-naming/reference.md` | Creator | 安裝 `python-naming` 使用的命名範例與邊緣案例參考 |
+| New skill | `.github/skills/python-async-planning/SKILL.md` | Creator | 將 async-planning skill 契約安裝至 `mlops-async` |
+| New skill | `.github/skills/python-async-planning/reference.md` | Creator | 安裝 async-planning 參考指引 |
+| New skill | `.github/skills/python-async-planning/examples.md` | Creator | 安裝 skill folder 所需的 async-planning 範例 |
+| Supporting refresh | `.github/skills/python-plan-authoring/SKILL.md` | Creator | 將 async-planning trigger/exemption 契約重新引入 plan authoring |
+| Supporting refresh | `.github/skills/python-plan-authoring/examples.md` | Creator | 使 plan-authoring 範例與 async-planning 期望對齊 |
+| Supporting refresh | `.github/skills/python-plan-authoring/templates/python-plan-template.md` | Creator | 加入 authored plans 使用的 repo 可見 async-planning scaffold |
+| Supporting refresh | `.github/skills/python-plan-review/SKILL.md` | Creator | 將 async-planning review gates 重新引入 plan review |
+| Supporting refresh | `.github/skills/python-plan-review/checklist.md` | Creator | 使 plan-review checklist 與 async-planning review checks 對齊 |
+| Supporting refresh | `.github/skills/python-plan-review/examples.md` | Creator | 使 plan-review 範例與 async-planning review outcomes 對齊 |
+| Inventory update | `.github/copilot-instructions.md` | Creator | 更新已安裝 skill 清單計數及遷移後所需的直接引用 |
 
 Artifact path notes:
 
-- This topic does **not** modify `README.md` or `VERSION`.
-- Treat the listed paths as the executable contract for implementation and review.
-- If later work needs to touch `docs/ARCHITECTURE.md` or another file not listed here, stop and amend the plan before editing.
+- 本 topic **不**修改 `README.md` 或 `VERSION`。
+- 將已列出的路徑視為實作與 review 的可執行契約。
+- 若後續工作需要觸及 `docs/ARCHITECTURE.md` 或其他未列出的檔案，應停止並修正計畫後再進行編輯。
 
 ## Implementation Steps
 
-1. Inspect the source folders `../agent-skills/.github/skills/python-naming/` and `../agent-skills/.github/skills/python-async-planning/`, then copy the listed skill artifacts into the matching target paths under `mlops-async/.github/skills/`.
-2. Refresh `mlops-async/.github/skills/python-plan-authoring/SKILL.md`, `examples.md`, and `templates/python-plan-template.md` from `agent-skills` so authored plans inside `mlops-async` can express `Async-planning status` and the required async-planning subsections.
-3. Refresh `mlops-async/.github/skills/python-plan-review/SKILL.md`, `checklist.md`, and `examples.md` from `agent-skills` so review-time async trigger, exemption, and retrofit checks match the newly installed async-planning contract.
-4. Update `mlops-async/.github/copilot-instructions.md` to reflect the new installed skill count and any direct references that should mention the newly installed skills.
-5. Verify that existing `mlops-async/.github/skills/python-code-review/` and `mlops-async/.github/skills/python-docstrings/` references to `python-naming` now resolve to a real installed skill path without requiring further text changes.
-6. Review the changed artifact set against this plan and stop for plan repair if any additional file path appears necessary.
+1. 檢視來源資料夾 `../agent-skills/.github/skills/python-naming/` 與 `../agent-skills/.github/skills/python-async-planning/`，然後將已列出的 skill artifacts 複製至 `mlops-async/.github/skills/` 下對應的目標路徑。
+2. 從 `agent-skills` refresh `mlops-async/.github/skills/python-plan-authoring/SKILL.md`、`examples.md` 與 `templates/python-plan-template.md`，使 `mlops-async` 內 authored plans 能表達 `Async-planning status` 及所需的 async-planning subsections。
+3. 從 `agent-skills` refresh `mlops-async/.github/skills/python-plan-review/SKILL.md`、`checklist.md` 與 `examples.md`，使 review 時的 async trigger、exemption 與 retrofit 檢查與新安裝的 async-planning 契約一致。
+4. 更新 `mlops-async/.github/copilot-instructions.md`，反映新的已安裝 skill 計數及應提及新安裝 skills 的直接引用。
+5. 確認既有 `mlops-async/.github/skills/python-code-review/` 與 `mlops-async/.github/skills/python-docstrings/` 中對 `python-naming` 的引用，現在可解析至真實已安裝的 skill 路徑，無需進一步文字變更。
+6. 對照本計畫審查已變更的 artifact 集合，若有任何額外檔案路徑出現，則停止並修正計畫。
 
 ## Validation / Acceptance Checks
 
-- `mlops-async/.github/skills/python-naming/` exists and contains `SKILL.md` plus `reference.md`
-- `mlops-async/.github/skills/python-async-planning/` exists and contains `SKILL.md`, `reference.md`, and `examples.md`
-- `mlops-async/.github/skills/python-plan-authoring/SKILL.md` explicitly includes the async-planning contract language, and the plan template contains the async-planning scaffold
-- `mlops-async/.github/skills/python-plan-review/SKILL.md` and `checklist.md` explicitly include async-planning trigger/exemption coverage and retrofit-required behavior
-- `.github/copilot-instructions.md` no longer contains the stale `28 installed Agent Skills` count after the new skills are added
-- existing installed skill references to `python-naming` resolve to an installed folder that now exists
-- no unplanned file path outside `Artifact Paths` is modified
+- `mlops-async/.github/skills/python-naming/` 存在且包含 `SKILL.md` 與 `reference.md`
+- `mlops-async/.github/skills/python-async-planning/` 存在且包含 `SKILL.md`、`reference.md` 與 `examples.md`
+- `mlops-async/.github/skills/python-plan-authoring/SKILL.md` 明確包含 async-planning 契約語言，且 plan template 包含 async-planning scaffold
+- `mlops-async/.github/skills/python-plan-review/SKILL.md` 與 `checklist.md` 明確包含 async-planning trigger/exemption 覆蓋及 retrofit-required 行為
+- `.github/copilot-instructions.md` 在新 skills 加入後不再包含過時的 `28 installed Agent Skills` 計數
+- 既有已安裝 skill 中對 `python-naming` 的引用可解析至現在存在的已安裝資料夾
+- 未修改 `Artifact Paths` 以外的任何未規劃檔案路徑
 
 ## Reviewer Handoff
 
@@ -119,9 +119,9 @@ Artifact path notes:
 
 ## Post-merge / release actions
 
-- No repository release action is required for this topic.
-- After merge, normal local sync or worktree cleanup may happen under separate workflow routing, but no `VERSION` or tag action belongs to this migration topic.
+- 本 topic 不需要任何 repository release action。
+- 合併後，一般的 local sync 或 worktree cleanup 可在獨立的 workflow routing 下進行，但任何 `VERSION` 或 tag action 均不屬於本遷移 topic。
 
 ## Open Questions / Unresolved Items
 
-- None.
+- 無。

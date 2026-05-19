@@ -78,8 +78,8 @@ Do not use this skill when:
 
 6. Validate the **Decisions** section.
    - It must begin with a designated async-routing line in repo-visible plan text:
-     - `Async-planning status: triggered — cite trigger evidence: ...`
-     - or `Async-planning status: exempt — cite exemption evidence: ...`
+     - `- Async-planning status: triggered — cite trigger evidence: ...`
+     - or `- Async-planning status: exempt — cite exemption evidence: ...`
    - Missing `Async-planning status` → `needs-rework`; this is a contract failure, not a preference.
    - `Async-planning status: exempt` without an explicit exemption citation → `needs-rework`; reviewer must not infer the reason.
    - It must explicitly address all 7 of the following required decision topics:
@@ -121,7 +121,7 @@ Do not use this skill when:
     - `"Add tests for this feature"` alone → fails.
     - If async-planning is triggered and `### Validation plan` names timeout, cancellation, resource cleanup, grouped failure, or concurrency-specific checks, those checks must also appear consistently in `## Test Plan`.
 11. Validate **Validation Commands**.
-    - Must either name specific runnable commands (e.g., `pytest -v`, `ruff check .`, `mypy src/`)
+    - Must either name specific runnable commands (e.g., `pytest -v`, `ruff check .`, `uv run pyright`)
       OR explicitly reference a project config file (`pyproject.toml`, `Makefile`, `README`).
     - Empty section, or a phrase such as `"run the tests"` → fails.
 12. Validate **Risks** and **Rollback Plan**.
@@ -150,7 +150,7 @@ verdict: needs-rework
 blocking_issues:
   - section: Decisions
     issue: Async-capable evidence is present but `Async-planning status` and the required async-planning subsections are missing. retrofit required.
-    fix: Add `Async-planning status: triggered — cite trigger evidence: ...` plus all seven required async-planning subsections under `## Decisions` before implementation continues.
+    fix: Add `- Async-planning status: triggered — cite trigger evidence: ...` plus all seven required async-planning subsections under `## Decisions` before implementation continues.
 ```
 
 **Insufficient-context:** `feature.plan.md` is truncated mid-document; multiple sections cannot be assessed.

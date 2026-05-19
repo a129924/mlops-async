@@ -89,7 +89,7 @@ If any section above is absent → stop and return `needs-rework` naming every m
 
 ## Validation Commands quality
 
-- [ ] Names specific runnable commands (e.g., `pytest -v`, `ruff check .`, `mypy src/`, `make test`) OR explicitly references a project config file (`pyproject.toml`, `Makefile`, `README`) with a named section or target
+- [ ] Names specific runnable commands (e.g., `pytest -v`, `ruff check .`, `uv run pyright`, `make test`) OR explicitly references a project config file (`pyproject.toml`, `Makefile`, `README`) with a named section or target
 - [ ] Not empty
 - [ ] Not a vague phrase such as `run the tests` or `CI will handle it`
 
