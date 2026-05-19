@@ -14,6 +14,18 @@ All step metadata (topic, phase, created) must remain in the header and be updat
 
 ---
 
+## Implementation Steps
+
+1. [ ] Create test-side contract data classes in `tests/unit/request_contract/contract_case.py`
+2. [ ] Inspect existing models_request_gate conftest and tests
+3. [ ] Design `sasctl_contract` fixture in `tests/unit/request_contract/models_request_gate/conftest.py`
+4. [ ] Rewrite `test_list_models_request_contract.py` with inline `EndpointContractCase`
+5. [ ] Rewrite `test_get_model_request_contract.py` with inline `EndpointContractCase`
+6. [ ] Add fixture evidence reference and verify paths
+7. [ ] Run validation tests and confirm all pass
+
+---
+
 ## Workflow Stages
 
 ### Stage 1: Pre-flight Checks
