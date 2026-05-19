@@ -2,7 +2,7 @@
 
 **Topic**: request-contract-review-readability
 
-**Phase**: plan-authoring
+**Phase**: code-review
 
 **Created**: 2026-05-19
 
@@ -16,13 +16,13 @@ All step metadata (topic, phase, created) must remain in the header and be updat
 
 ## Implementation Steps
 
-1. [ ] Create test-side contract data classes in `tests/unit/request_contract/contract_case.py`
-2. [ ] Inspect existing models_request_gate conftest and tests
-3. [ ] Design `sasctl_contract` fixture in `tests/unit/request_contract/models_request_gate/conftest.py`
-4. [ ] Rewrite `test_list_models_request_contract.py` with inline `EndpointContractCase`
-5. [ ] Rewrite `test_get_model_request_contract.py` with inline `EndpointContractCase`
-6. [ ] Add fixture evidence reference and verify paths
-7. [ ] Run validation tests and confirm all pass
+1. [X] Create test-side contract data classes in `tests/unit/request_contract/contract_case.py`
+2. [X] Inspect existing models_request_gate conftest and tests
+3. [X] Design `sasctl_contract` fixture in `tests/unit/request_contract/models_request_gate/conftest.py`
+4. [X] Rewrite `test_list_models_request_contract.py` with inline `EndpointContractCase`
+5. [X] Rewrite `test_get_model_request_contract.py` with inline `EndpointContractCase`
+6. [X] Add fixture evidence reference and verify paths
+7. [X] Run validation tests and confirm all pass
 
 ---
 
@@ -30,72 +30,72 @@ All step metadata (topic, phase, created) must remain in the header and be updat
 
 ### Stage 1: Pre-flight Checks
 
-- [ ] Confirm worktree branch is `docs/andrew/test-contract-rewrite` (base: dev)
-- [ ] Confirm git status is clean or changes are intentional
-- [ ] Inspect `tests/unit/request_contract/models_request_gate/conftest.py` for existing fixture patterns
-- [ ] Inspect `tests/unit/core/test_client_contract.py` and `tests/unit/transport/test_http_transport.py` for inline test style reference
-- [ ] Verify no global conftest imports or dependencies on `models_request_gate/conftest.py` from outside its directory
+- [X] Confirm worktree branch is `docs/andrew/test-contract-rewrite` (base: dev)
+- [X] Confirm git status is clean or changes are intentional
+- [X] Inspect `tests/unit/request_contract/models_request_gate/conftest.py` for existing fixture patterns
+- [X] Inspect `tests/unit/core/test_client_contract.py` and `tests/unit/transport/test_http_client.py` for inline test style reference
+- [X] Verify no global conftest imports or dependencies on `models_request_gate/conftest.py` from outside its directory
 
 ### Stage 2: Implementation
 
-- [ ] **Step 1: Create test-side contract data classes**
-  - [ ] Create file `tests/unit/request_contract/contract_case.py`
-  - [ ] Define `RequestShape` dataclass with `method`, `path`, `query`, `body`, `required_headers`
-  - [ ] Define `FakeResponse` dataclass with `status_code`, `json_body`, `text_body`, `headers`, and `ok_json()` classmethod
-  - [ ] Define `SessionSpec` dataclass with `base_url`, `token`, `verify_ssl`, and `default()` classmethod
-  - [ ] Define `SourceObservedFixture` dataclass with `request_path` and `response_path`
-  - [ ] Define `EndpointContractCase` dataclass with `name`, `invoke`, `expected`, `response`, `session`, `source_observed`
-  - [ ] All dataclasses: frozen=True, slots=True, full type hints, `from __future__ import annotations`
-  - [ ] Add docstrings to each class
+- [X] **Step 1: Create test-side contract data classes**
+  - [X] Create file `tests/unit/request_contract/contract_case.py`
+  - [X] Define `RequestShape` dataclass with `method`, `path`, `query`, `body`, `required_headers`
+  - [X] Define `FakeResponse` dataclass with `status_code`, `json_body`, `text_body`, `headers`, and `ok_json()` classmethod
+  - [X] Define `SessionSpec` dataclass with `base_url`, `token`, `verify_ssl`, and `default()` classmethod
+  - [X] Define `SourceObservedFixture` dataclass with `request_path` and `response_path`
+  - [X] Define `EndpointContractCase` dataclass with `name`, `invoke`, `expected`, `response`, `session`, `source_observed`
+  - [X] All dataclasses: frozen=True, slots=True, full type hints, `from __future__ import annotations`
+  - [X] Add docstrings to each class
 
-- [ ] **Step 2: Inspect existing models_request_gate conftest and tests**
-  - [ ] Review `tests/unit/request_contract/models_request_gate/conftest.py` current implementation
-  - [ ] Document existing `requests.Session.send` interception and fixture loading logic
-  - [ ] Review `test_list_models_request_contract.py` structure and JSON fixture references
-  - [ ] Review `test_get_model_request_contract.py` structure and JSON fixture references
+- [X] **Step 2: Inspect existing models_request_gate conftest and tests**
+  - [X] Review `tests/unit/request_contract/models_request_gate/conftest.py` current implementation
+  - [X] Document existing `requests.Session.send` interception and fixture loading logic
+  - [X] Review `test_list_models_request_contract.py` structure and JSON fixture references
+  - [X] Review `test_get_model_request_contract.py` structure and JSON fixture references
 
-- [ ] **Step 3: Design `sasctl_contract` fixture**
-  - [ ] Add `sasctl_contract` fixture to `tests/unit/request_contract/models_request_gate/conftest.py`
-  - [ ] Implement `.run(case: EndpointContractCase)` method on harness object
-  - [ ] Harness must intercept requests via existing `requests.Session.send` mechanism
-  - [ ] Harness must validate request matches `case.expected` (method/path/query/body/headers)
-  - [ ] Harness must return mocked response from `case.response`
-  - [ ] Harness must preserve 1:1 linkage to `case.source_observed` (if present)
-  - [ ] Harness must raise clear AssertionError on mismatch
+- [X] **Step 3: Design `sasctl_contract` fixture**
+  - [X] Add `sasctl_contract` fixture to `tests/unit/request_contract/models_request_gate/conftest.py`
+  - [X] Implement `.run(case: EndpointContractCase)` method on harness object
+  - [X] Harness must intercept requests via existing `requests.Session.send` mechanism
+  - [X] Harness must validate request matches `case.expected` (method/path/query/body/headers)
+  - [X] Harness must return mocked response from `case.response`
+  - [X] Harness must preserve 1:1 linkage to `case.source_observed` (if present)
+  - [X] Harness must raise clear AssertionError on mismatch
 
-- [ ] **Step 4: Rewrite test_list_models_request_contract.py**
-  - [ ] Replace fixture-driven JSON loading with inline `EndpointContractCase` instantiation
-  - [ ] Define case instance(s) for `ModelRepository.list_models()`
-  - [ ] Use `sasctl_contract.run(case)` pattern
-  - [ ] Add `SourceObservedFixture` reference to existing JSON fixtures
-  - [ ] Preserve existing source JSON files in `fixtures/model_repository/list_models.*`
-  - [ ] Verify test function bodies are shorter and contract is visible in test code
+- [X] **Step 4: Rewrite test_list_models_request_contract.py**
+  - [X] Replace fixture-driven JSON loading with inline `EndpointContractCase` instantiation
+  - [X] Define case instance(s) for `ModelRepository.list_models()`
+  - [X] Use `sasctl_contract.run(case)` pattern
+  - [X] Add `SourceObservedFixture` reference to existing JSON fixtures
+  - [X] Preserve existing source JSON files in `fixtures/model_repository/list_models.*`
+  - [X] Verify test function bodies are shorter and contract is visible in test code
 
-- [ ] **Step 5: Rewrite test_get_model_request_contract.py**
-  - [ ] Replace fixture-driven JSON loading with inline `EndpointContractCase` instantiation
-  - [ ] Define case instance(s) for `ModelRepository.get_model(model_id=...)`
-  - [ ] Use `sasctl_contract.run(case)` pattern
-  - [ ] Add `SourceObservedFixture` reference to existing JSON fixtures
-  - [ ] Preserve existing source JSON files in `fixtures/model_repository/get_model.*`
-  - [ ] Verify test function bodies are shorter and contract is visible in test code
+- [X] **Step 5: Rewrite test_get_model_request_contract.py**
+  - [X] Replace fixture-driven JSON loading with inline `EndpointContractCase` instantiation
+  - [X] Define case instance(s) for `ModelRepository.get_model(model_id=...)`
+  - [X] Use `sasctl_contract.run(case)` pattern
+  - [X] Add `SourceObservedFixture` reference to existing JSON fixtures
+  - [X] Preserve existing source JSON files in `fixtures/model_repository/get_model.*`
+  - [X] Verify test function bodies are shorter and contract is visible in test code
 
-- [ ] **Step 6: Add fixture evidence reference**
-  - [ ] Confirm JSON fixtures in `tests/unit/request_contract/models_request_gate/fixtures/model_repository/` are accessible
-  - [ ] Update `SourceObservedFixture` paths in test cases to reference correct fixture locations
-  - [ ] Verify no file moves needed in this phase
+- [X] **Step 6: Add fixture evidence reference**
+  - [X] Confirm JSON fixtures in `tests/unit/request_contract/models_request_gate/fixtures/model_repository/` are accessible
+  - [X] Update `SourceObservedFixture` paths in test cases to reference correct fixture locations
+  - [X] Verify no file moves needed in this phase
 
-- [ ] **Step 7: Run validation tests**
-  - [ ] Execute `uv run pytest tests/unit/request_contract/models_request_gate/ -v`
-  - [ ] Confirm all tests pass
-  - [ ] Confirm no import errors or missing dependencies
-  - [ ] (Optional) Execute `uv run ruff check tests/unit/request_contract/`
-  - [ ] (Optional) Expand pyright include to check `tests/unit/request_contract/` if needed
+- [X] **Step 7: Run validation tests**
+  - [X] Execute `uv run pytest tests/unit/request_contract/models_request_gate/ -v`
+  - [X] Confirm all tests pass
+  - [X] Confirm no import errors or missing dependencies
+  - [X] (Optional) Execute `uv run ruff check tests/unit/request_contract/`
+  - [X] (Optional) Expand pyright include to check `tests/unit/request_contract/` if needed
 
 ### Stage 3: Verification
 
-- [ ] All 7 Implementation Steps complete and passing
-- [ ] No unexpected test failures or import errors
-- [ ] Code review checklist passed (if applicable in workflow)
+- [X] All 7 Implementation Steps complete and passing
+- [X] No unexpected test failures or import errors
+- [X] Code review checklist passed (if applicable in workflow)
 
 ### Stage 4: Merge Readiness
 
