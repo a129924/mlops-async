@@ -8,6 +8,18 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.9.1**, the repository installs project-local `python-naming` and
+`python-async-planning` skills, and refreshes `python-plan-authoring` plus
+`python-plan-review` so async-triggered topics can carry explicit async-planning
+status, planner inputs, review checks, and examples inside the repo. 它也同步校正
+`.github/copilot-instructions.md` 的 installed skill inventory，讓 `python-naming`
+signpost 不再落到未安裝 skill。
+
+v0.9.1 新增 **python-naming-async-planning-migration** 主題，將
+`python-naming`、`python-async-planning` 及其必要的 supporting refresh
+（`python-plan-authoring` / `python-plan-review`）落地到專案工作流表面，讓後續
+async topic 可以直接在 repo 內走 planning / review gate，而不需要依賴外部技能狀態。
+
 As of **v0.9.0**, the repository includes the first internal concrete transport
 substrate for the repo-owned client contract: `transport/http_client.py` now
 implements the internal `Client` boundary with layered transport exceptions,
