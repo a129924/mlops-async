@@ -8,6 +8,18 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.9.2**, the repository backfills the merged
+`core-concrete-client-minimal` parent artifacts so the parent requirements,
+technical spec, plan, and step tracker all reflect the final accepted #10
+contract. 它也保留 `core-concrete-client-delta-backfill` topic artifacts 作為
+repo-visible decision trail 與 creator/reviewer workflow sample，避免 correction /
+delta artifacts 成為唯一的 final contract 載體。
+
+v0.9.2 新增 **core-concrete-client-delta-backfill** 主題，將 nominal inheritance、
+object type-hint keep/tighten 規則、`request_json()` 對 `NaN` / `Infinity` /
+`-Infinity` 的 invalid-body 邊界、以及 correction artifact lifecycle 回補到
+parent artifacts，讓 execution-facing source of truth 與已合併實作一致。
+
 As of **v0.9.1**, the repository installs project-local `python-naming` and
 `python-async-planning` skills, and refreshes `python-plan-authoring` plus
 `python-plan-review` so async-triggered topics can carry explicit async-planning
