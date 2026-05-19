@@ -47,7 +47,7 @@ current internal contract is not a drop-in substitute for it.
 
 ## Skill map
 
-This repository includes 28 project skills. They guide implementation rather
+This repository includes 35 project skills. They guide implementation rather
 than replace normal source files.
 
 ### Async and API design
@@ -68,6 +68,7 @@ than replace normal source files.
 - `python-model-selection`
 - `python-context-management`
 - `python-docstrings`
+- `python-naming`
 
 ### Testing and environment
 
@@ -85,6 +86,7 @@ than replace normal source files.
 - `plan-step-tracker`
 - `python-implementation-review`
 - `python-code-review`
+- `python-async-planning`
 
 ### Git and release workflow
 
