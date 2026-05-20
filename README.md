@@ -8,6 +8,25 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.10.0**, the repository includes the first internal auth / request
+composition baseline above the pure transport layer: `HttpClient` remains a
+transport-only substrate, `Requester` owns managed request-header composition,
+and the new auth collaborators (`TokenManager`, `AuthProvider`,
+`TokenFetcher`, `TokenStorage`) establish the token lifecycle boundary that
+future `MlopsAsyncClient` and domain clients can depend on. 它也把 token
+fetch-vs-refresh decision、Authorization conflict policy、以及 in-process
+refresh coordination 一起固定到程式碼、測試與架構文件，避免後續 facade /
+domain topics 重新定義這條邊界。
+
+v0.10.0 新增 **http-client-auth-boundary** 主題，建立 internal auth / request
+composition baseline：新增 `src/mlops_async/core/auth.py`、
+`core/requester.py`、`core/token_storage.py` 與 `core/headers.py`，讓
+`Requester` 成為唯一的 request composition layer，並讓 `TokenManager` 負責
+token expiry、fetch / refresh decision、`asyncio.Lock` 與 double-check
+locking。這次也同步補上對應 unit tests、`docs/ARCHITECTURE.md`，以及
+repo-visible analysis / plan / spec / step artifacts，作為後續 public facade
+與 domain client topic 的共同依賴基線。
+
 As of **v0.9.4**, the repository aligns its local workflow and planning surfaces
 with the released `agent-skills` `0.58.0` correction / delta lifecycle
 contract. 它把 correction lifecycle / routing 規則正式落到
