@@ -1,59 +1,108 @@
-"""Layer 1 source-observed request-shape tests for sasctl ModelRepository.list_models.
-
-These assertions document the current harness-observed request shape only.
-They do not prove target runtime behavior or stricter target header intent.
-"""
+"""sasctl ModelRepository.list_models 的可讀式請求合約測試。"""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 
 import pytest
+from sasctl._services.model_repository import ModelRepository  # pyright: ignore[reportMissingTypeStubs]  # sasctl 未提供 type stubs
+
+from tests.unit.request_contract.contract_case import (
+    EndpointContractCase,
+    FakeResponse,
+    RequestShape,
+    SourceObservedFixture,
+)
+from tests.unit.request_contract.models_request_gate.conftest import SasctlContractHarness
+
+FIXTURE_ROOT = "tests/unit/request_contract/models_request_gate/fixtures"
+PROJECT_FILTER = 'in(projectId,"proj-uuid")'
+ListModelsCaptureRunner = Callable[[str | None, str], list[dict[str, object]]]
+EMPTY_LIST_RESPONSE = {
+    "items": [],
+    "count": 0,
+    "start": 0,
+    "limit": 20,
+    "links": [],
+}
+
+case_list_models_default = EndpointContractCase(
+    name="model_repository.list_models.default_request_shape",
+    invoke=lambda: ModelRepository.list_models(),
+    expected=RequestShape(
+        method="GET",
+        path="/modelRepository/models",
+        query={},
+        body=None,
+        required_headers={"Authorization": "Bearer ", "Accept": ""},
+    ),
+    response=FakeResponse(
+        status_code=200,
+        json_body=EMPTY_LIST_RESPONSE,
+        headers={"Content-Type": "application/json"},
+    ),
+    source_observed=SourceObservedFixture(
+        request_path=f"{FIXTURE_ROOT}/list_models.request-flow.json#bare_get",
+        response_path=f"{FIXTURE_ROOT}/list_models.mock-responses.json#bare_get",
+    ),
+)
+
+case_list_models_filter_project_id = EndpointContractCase(
+    name="model_repository.list_models.filter_project_id",
+    invoke=lambda: ModelRepository.list_models(filter=PROJECT_FILTER),
+    expected=RequestShape(
+        method="GET",
+        path="/modelRepository/models",
+        query={"filter": PROJECT_FILTER},
+        body=None,
+        required_headers={"Authorization": "Bearer ", "Accept": ""},
+    ),
+    response=FakeResponse(
+        status_code=200,
+        json_body=EMPTY_LIST_RESPONSE,
+        headers={"Content-Type": "application/json"},
+    ),
+    source_observed=SourceObservedFixture(
+        request_path=f"{FIXTURE_ROOT}/list_models.request-flow.json#filter_project_id",
+        response_path=f"{FIXTURE_ROOT}/list_models.mock-responses.json#filter_project_id",
+    ),
+)
 
 
-def test_list_models_bare_get_matches_request_flow_fixture(
-    expected_request_from_case: Callable[[Mapping[str, object]], Mapping[str, object]],
-    load_request_flow_case: Callable[[str, str], Mapping[str, object]],
-    run_list_models_capture: Callable[[str | None, str], list[dict[str, object]]],
-    assert_semantic_request_matches_fixture: Callable[
-        [Mapping[str, object], Mapping[str, object]], None
-    ],
+def test_list_models_default_request_shape(sasctl_contract: SasctlContractHarness) -> None:
+    result = sasctl_contract.run(case_list_models_default)
+
+    assert result == []
+    assert sasctl_contract.last_request is not None
+    assert sasctl_contract.last_request["path"] == "/modelRepository/models"
+    assert sasctl_contract.last_request["query"] == {}
+    headers = sasctl_contract.last_request["headers"]
+    assert isinstance(headers, dict)
+    assert str(headers["Authorization"]).startswith("Bearer ")
+    assert "Accept" in headers
+
+
+def test_list_models_empty_response(sasctl_contract: SasctlContractHarness) -> None:
+    result = sasctl_contract.run(case_list_models_default)
+
+    assert result == []
+    assert case_list_models_default.response.json_body == EMPTY_LIST_RESPONSE
+    assert EMPTY_LIST_RESPONSE["items"] == []
+
+
+def test_list_models_filter_project_id_request_shape(
+    sasctl_contract: SasctlContractHarness,
 ) -> None:
-    case = load_request_flow_case("list_models.request-flow.json", "bare_get")
-    captured = run_list_models_capture(None, "bare_get")
+    result = sasctl_contract.run(case_list_models_filter_project_id)
 
-    assert len(captured) == 1
-    assert_semantic_request_matches_fixture(captured[0], expected_request_from_case(case))
-
-
-def test_list_models_filter_semantics_match_request_flow_fixture(
-    expected_request_from_case: Callable[[Mapping[str, object]], Mapping[str, object]],
-    load_request_flow_case: Callable[[str, str], Mapping[str, object]],
-    run_list_models_capture: Callable[[str | None, str], list[dict[str, object]]],
-    assert_semantic_request_matches_fixture: Callable[
-        [Mapping[str, object], Mapping[str, object]], None
-    ],
-) -> None:
-    case = load_request_flow_case("list_models.request-flow.json", "filter_project_id")
-    captured = run_list_models_capture('in(projectId,"proj-uuid")', "filter_project_id")
-
-    assert len(captured) == 1
-    assert_semantic_request_matches_fixture(captured[0], expected_request_from_case(case))
-
-
-def test_list_models_emits_single_target_request(
-    run_list_models_capture: Callable[[str | None, str], list[dict[str, object]]],
-) -> None:
-    captured = run_list_models_capture(None, "bare_get")
-
-    assert [entry["path"] for entry in captured] == ["/modelRepository/models"]
-    assert captured[0]["query"] == {}
-    assert captured[0]["body"] is None
+    assert result == []
+    assert sasctl_contract.last_request is not None
+    assert sasctl_contract.last_request["query"] == {"filter": PROJECT_FILTER}
 
 
 def test_list_models_blocks_unsupported_filter_semantics(
     blocked_topic_scope_error: type[RuntimeError],
-    run_list_models_capture: Callable[[str | None, str], list[dict[str, object]]],
+    run_list_models_capture: ListModelsCaptureRunner,
 ) -> None:
     with pytest.raises(
         blocked_topic_scope_error,
@@ -63,7 +112,15 @@ def test_list_models_blocks_unsupported_filter_semantics(
 
 
 def test_list_models_interceptor_fails_fast_on_unregistered_request(
-    run_list_models_capture: Callable[[str | None, str], list[dict[str, object]]],
+    sasctl_contract: SasctlContractHarness,
 ) -> None:
+    mismatched_case = EndpointContractCase(
+        name="model_repository.list_models.unregistered_request",
+        invoke=lambda: ModelRepository.list_models(filter=PROJECT_FILTER),
+        expected=case_list_models_default.expected,
+        response=case_list_models_default.response,
+        source_observed=case_list_models_default.source_observed,
+    )
+
     with pytest.raises(AssertionError, match="Unexpected outbound request"):
-        run_list_models_capture('in(projectId,"proj-uuid")', "bare_get")
+        sasctl_contract.run(mismatched_case)
