@@ -9,6 +9,7 @@ from typing import TypeGuard, cast
 import httpx
 
 from mlops_async.core.client import Client
+from mlops_async.core.headers import merge_headers
 from mlops_async.core.request_options import ClientRequestOptions, RequestTimeouts
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse, ResponseHeaders
 from mlops_async.transport.exceptions import (
@@ -73,18 +74,6 @@ def _timeouts_to_httpx(timeouts: RequestTimeouts) -> httpx.Timeout | None:
         write=timeouts.write,
         pool=None,
     )
-
-
-def _merge_headers(*mappings: Mapping[str, str] | None) -> dict[str, str]:
-    merged: dict[str, tuple[str, str]] = {}
-    for mapping in mappings:
-        if mapping is None:
-            continue
-
-        for name, value in mapping.items():
-            merged[name.lower()] = (name, value)
-
-    return dict(merged.values())
 
 
 def _is_forbidden_default_header_name(header_name: str) -> bool:
@@ -184,7 +173,7 @@ class HttpClient(Client):
         options: ClientRequestOptions | None = None,
     ) -> RawClientResponse:
         """Execute an HTTP request and return a raw response only for 2xx outcomes."""
-        request_headers = _merge_headers(
+        request_headers = merge_headers(
             {"Accept": "application/json"},
             self._default_headers,
             headers,

@@ -26,18 +26,37 @@ The blueprint currently names these future-facing public modules:
 
 They are design targets, not implemented files yet.
 
-## Internal client contract — `core/...` + `transport/...` placement
+## Internal client contract — request composition + transport placement
 
 The internal client contract remains split between protocol/value-object modules in
 `src/mlops_async/core/` and the concrete transport implementation in
-`src/mlops_async/transport/`:
+`src/mlops_async/transport/`.
+
+Dependency direction for domain calls is:
+
+`Domain client -> Requester -> HttpClient`
+
+Optional auth collaborators hang off the request-composition layer rather than the transport:
+
+`Requester -> AuthProvider -> TokenManager -> {TokenStorage, TokenFetcher -> HttpClient}`
+
+Responsibilities are intentionally narrow:
 
 - `core/client.py` — internal-only `Client` `Protocol`
 - `core/request_options.py` — `RequestTimeouts` and `ClientRequestOptions` value objects
 - `core/types.py` — `JSONScalar`, `JSONValue`, `HttpMethod`, `ResponseHeaders`, `RawClientResponse`
+- `core/requester.py` — internal-only `Requester`, the single request composition layer for domain calls
+- `core/auth.py` — internal-only `AuthProvider`, `TokenManager`, `TokenFetcher`, and auth-layer exceptions
+- `core/token_storage.py` — internal-only `AccessToken`, `TokenStorage`, and minimal in-memory state storage
 - `transport/http_client.py` — internal-only concrete `HttpClient` backed by `httpx.AsyncClient`
 - `exceptions.py` — root `MlopsAsyncBaseException` only
 - `transport/exceptions.py` — `HttpErrorContext` and transport-local exception hierarchy
+
+`HttpClient` stays transport-only: it receives final request data, performs HTTP I/O, and raises
+transport exceptions. It does not generate, validate, refresh, override, or persist auth state.
+`Requester` is the only domain request composition layer: it may apply safe request defaults,
+obtain auth headers, reject conflicting caller `Authorization`, merge final headers, and then
+delegate to `HttpClient`.
 
 This placement is **internal-only**: none of these `core/...` or `transport/...` types are
 re-exported from the package root (`src/mlops_async/__init__.py`), and this topic does not add a
