@@ -8,6 +8,20 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.9.4**, the repository aligns its local workflow and planning surfaces
+with the released `agent-skills` `0.58.0` correction / delta lifecycle
+contract. 它把 correction lifecycle / routing 規則正式落到
+`plan/agent-handoff-workflow.md`、本地 `plan-creator` / `plan-reviewer` surfaces，
+以及 `.github/agents/python-implementation-workflow.agent.md`，讓 parent
+artifacts / correction artifacts / conditional review-log / topic-scoped round
+cap / role separation 不再只靠 `v0.9.2` sample topic 隱含推斷。
+
+v0.9.4 新增 **correction-delta-lifecycle-contract-alignment** 主題，將本地
+workflow body 保持為精簡的 lifecycle / routing contract，並把 detailed
+correction artifact guidance 下放到 reference / examples。這次變更不觸碰
+`src/**`、`tests/**` 或 sample payload 本體，而是補齊 planner / creator /
+reviewer / Main Agent 在 correction / delta workflow 上的共同治理契約。
+
 As of **v0.9.3**, the repository improves the readability of request-contract
 tests for the `models_request_gate` topic.
 
