@@ -31,6 +31,27 @@ Treat these as blocking issues:
 Do not raise blocking issues for tone, phrasing, or layout preferences that do
 not change contract meaning.
 
+## Correction / delta lifecycle blocking conditions
+
+When reviewing a topic that uses correction or delta artifacts, treat these as
+blocking issues:
+
+- Correction artifact paths use vague evidence labels such as "merged
+  implementation", "backfilled baseline", or broad folder references instead of
+  exact repo-visible paths.
+- Parent artifact paths are not labeled as current truth after accepted backfill,
+  or correction closure is not conditioned on backfill being complete.
+- A `review-log` or equivalent handoff is declared as universally required rather
+  than conditional on routing control or multi-round rework.
+- A round cap is expressed as a repository-wide invariant rather than explicit
+  topic policy.
+- Creator `Implementation Steps` contain reviewer-owned work such as writing
+  review-log entries, populating verdict fields, or logging acceptance decisions.
+- The workflow body embeds detailed correction artifact schema or long correction
+  examples that belong in reference / example surfaces.
+- The plan implies that a standalone correction / delta skill is being created as
+  a side effect of this topic, without a separate justification topic.
+
 ## Workflow position
 
 `plan-reviewer` runs after a repo-visible topic plan exists and before later

@@ -32,3 +32,11 @@ execution begins.
 - [ ] Planning actor, creator, reviewer, and Main Agent responsibilities are not mixed.
 - [ ] No unsafe placeholders such as `TBD`, `later`, or `follow normal process` remain where the workflow needs an explicit contract.
 - [ ] The final output is exactly one JSON verdict object with no trailing prose.
+- [ ] If the topic uses correction or delta artifacts:
+  - [ ] Parent artifact paths are labeled as current truth after accepted backfill and are exact repo-visible paths.
+  - [ ] Correction artifact paths are labeled as historical truth and are exact repo-visible paths.
+  - [ ] Correction closure is explicitly conditioned on parent sync / backfill being complete.
+  - [ ] A `review-log` artifact path is present only if reviewer feedback controls routing or multi-round rework is declared; its absence is stated when relevant.
+  - [ ] Any round cap wording is scoped to this topic only and does not imply a repository-wide rule.
+  - [ ] Creator `Implementation Steps` contain no reviewer-owned work (no review-log authoring, no verdict logging, no acceptance evaluation).
+  - [ ] The workflow body does not embed detailed correction artifact schema or long correction examples.
