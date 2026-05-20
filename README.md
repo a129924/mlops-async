@@ -8,6 +8,18 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.9.3**, the repository improves the readability of request-contract
+tests for the `models_request_gate` topic.
+
+v0.9.3 新增 **request-contract-review-readability** 主題，把
+`tests/unit/request_contract/models_request_gate/` 的測試改寫成以
+`EndpointContractCase` 為核心的 inline readable contract 形式：reviewer
+不需進入 fixture 即可一眼讀出 method、path、query、headers 與
+source-observed evidence linkage。新增 `contract_case.py` 的 5 個
+frozen dataclasses（`EndpointContractCase`、`RequestShape`、`FakeResponse`、
+`SessionSpec`、`SourceObservedFixture`）與 `SasctlContractHarness` harness，
+並保留既有 JSON fixture linkage 與舊 harness 向後相容性。
+
 As of **v0.9.2**, the repository backfills the merged
 `core-concrete-client-minimal` parent artifacts so the parent requirements,
 technical spec, plan, and step tracker all reflect the final accepted #10
