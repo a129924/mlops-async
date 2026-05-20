@@ -16,6 +16,27 @@ def _token_storage_module():
         )
 
 
+def test_access_token_rejects_naive_expires_at() -> None:
+    module = _token_storage_module()
+
+    with pytest.raises(ValueError, match="expires_at must be timezone-aware"):
+        module.AccessToken(
+            value="managed-token",
+            expires_at=datetime(2026, 5, 20, 12, 0, 0),
+        )
+
+
+def test_access_token_rejects_naive_now_argument() -> None:
+    module = _token_storage_module()
+    access_token = module.AccessToken(
+        value="managed-token",
+        expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
+    )
+
+    with pytest.raises(ValueError, match="now must be timezone-aware"):
+        access_token.is_expired(now=datetime(2026, 5, 20, 12, 0, 0))
+
+
 def test_access_token_is_expired_with_default_60_second_skew() -> None:
     module = _token_storage_module()
     access_token = module.AccessToken(

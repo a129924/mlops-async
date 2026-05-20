@@ -4,6 +4,7 @@ from collections.abc import Mapping
 
 from mlops_async.core.auth import AuthException, AuthProvider
 from mlops_async.core.client import Client
+from mlops_async.core.headers import merge_headers
 from mlops_async.core.request_options import ClientRequestOptions
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse
 
@@ -12,18 +13,6 @@ __all__ = ["AuthorizationConflictException", "Requester"]
 
 class AuthorizationConflictException(AuthException):
     """Caller supplied an Authorization header while auth is managed."""
-
-
-def _merge_headers(*mappings: Mapping[str, str] | None) -> dict[str, str]:
-    merged: dict[str, tuple[str, str]] = {}
-    for mapping in mappings:
-        if mapping is None:
-            continue
-
-        for name, value in mapping.items():
-            merged[name.lower()] = (name, value)
-
-    return dict(merged.values())
 
 
 class Requester:
@@ -65,7 +54,7 @@ class Requester:
         auth_headers = None
         if self._auth_provider is not None:
             auth_headers = await self._auth_provider.get_auth_headers()
-        request_headers = _merge_headers(
+        request_headers = merge_headers(
             {"Accept": "application/json"},
             self._default_headers,
             auth_headers,

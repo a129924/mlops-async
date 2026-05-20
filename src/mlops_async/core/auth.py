@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from datetime import timedelta
 from typing import Protocol, runtime_checkable
 
-from mlops_async.core.token_storage import AccessToken, TokenStorage
+from mlops_async.core.token_storage import AccessToken, DEFAULT_EXPIRY_SKEW, TokenStorage
 from mlops_async.exceptions import MlopsAsyncBaseException
 
 __all__ = [
@@ -15,8 +15,6 @@ __all__ = [
     "TokenFetcher",
     "TokenManager",
 ]
-
-_DEFAULT_EXPIRY_SKEW = timedelta(seconds=60)
 
 
 class AuthException(MlopsAsyncBaseException):
@@ -36,6 +34,13 @@ class TokenFetcher(Protocol):
     async def refresh_access_token(self, token: AccessToken) -> AccessToken: ...
 
 
+def _token_fetch_exception_message(exc: Exception) -> str:
+    details = str(exc)
+    if details:
+        return f"{type(exc).__name__}: {details}"
+    return f"{type(exc).__name__} during token fetch/refresh"
+
+
 class TokenManager:
     """Own token lifecycle decisions and in-process refresh coordination."""
 
@@ -43,7 +48,7 @@ class TokenManager:
         self,
         storage: TokenStorage,
         fetcher: TokenFetcher,
-        expiry_skew: timedelta = _DEFAULT_EXPIRY_SKEW,
+        expiry_skew: timedelta = DEFAULT_EXPIRY_SKEW,
     ) -> None:
         """Store collaborators and the shared refresh policy."""
         self._storage = storage
@@ -75,7 +80,7 @@ class TokenManager:
         except AuthException:
             raise
         except Exception as exc:
-            raise TokenFetchException(str(exc)) from exc
+            raise TokenFetchException(_token_fetch_exception_message(exc)) from exc
 
         self._storage.set_token(resolved_token)
         return resolved_token

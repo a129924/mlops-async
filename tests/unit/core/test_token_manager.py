@@ -202,18 +202,41 @@ async def test_token_manager_translates_refresh_failure_preserving_previous_toke
         value="previous-token",
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
     )
+    original_error = RuntimeError("token endpoint unavailable")
     storage = token_storage_module.InMemoryTokenStorage()
     storage.set_token(previous_token)
-    fetcher = _FailingTokenFetcher(RuntimeError("token endpoint unavailable"))
+    fetcher = _FailingTokenFetcher(original_error)
     manager = auth_module.TokenManager(storage, fetcher)
 
-    with pytest.raises(auth_module.TokenFetchException, match="token endpoint unavailable"):
+    with pytest.raises(
+        auth_module.TokenFetchException,
+        match="RuntimeError: token endpoint unavailable",
+    ) as exc_info:
         await manager.get_access_token()
 
+    assert exc_info.value.__cause__ is original_error
     assert storage.get_token() == previous_token
     assert fetcher.fetch_calls == 0
     assert fetcher.refresh_calls == 1
     assert fetcher.refresh_inputs == [previous_token]
+
+
+@pytest.mark.asyncio
+async def test_token_manager_uses_fallback_message_for_empty_generic_fetch_failure() -> None:
+    auth_module = _auth_module()
+    token_storage_module = _token_storage_module()
+    original_error = RuntimeError()
+    storage = token_storage_module.InMemoryTokenStorage()
+    fetcher = _FailingTokenFetcher(original_error)
+    manager = auth_module.TokenManager(storage, fetcher)
+
+    with pytest.raises(auth_module.TokenFetchException, match="RuntimeError") as exc_info:
+        await manager.get_access_token()
+
+    assert str(exc_info.value) == "RuntimeError during token fetch/refresh"
+    assert exc_info.value.__cause__ is original_error
+    assert fetcher.fetch_calls == 1
+    assert fetcher.refresh_calls == 0
 
 
 @pytest.mark.asyncio
