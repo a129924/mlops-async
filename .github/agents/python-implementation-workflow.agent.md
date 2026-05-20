@@ -106,3 +106,4 @@ user-invocable: true
 - 不在 gate 失敗時繼續向下 phase。
 - 不把 `needs-rework` 升級成人工 STOP POINT；全部內部迴圈處理。
 - 不推論或代替人類做 git 流程決策（commit / push / PR）。
+- 本 agent 為 `plan/agent-handoff-workflow.md` 所定義 repo-level 生命週期合約的消費者，不擁有、不覆蓋、不自行衍生生命週期路由規則（包含修正 / delta 觸發判斷與 correction closure 確認）。

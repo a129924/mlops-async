@@ -15,3 +15,10 @@ it to reviewer or main-agent execution.
 - [ ] `Post-merge / release actions` match the actual topic scope and timing.
 - [ ] Planning actor, creator, reviewer, and main-agent roles are not mixed.
 - [ ] No placeholder wording remains where workflow needs a real contract.
+- [ ] If the topic uses correction or delta artifacts:
+  - [ ] Parent artifact paths are labeled as current truth after accepted backfill and are repo-visible exact paths.
+  - [ ] Correction artifact paths are labeled as historical truth and are repo-visible exact paths.
+  - [ ] Correction closure is conditioned on parent sync / backfill being complete.
+  - [ ] A `review-log` artifact path appears only if reviewer feedback controls routing or the topic uses multi-round rework.
+  - [ ] Any round cap wording is scoped to this topic only and does not imply a repository-wide rule.
+  - [ ] The workflow body does not embed detailed correction artifact schema; field-level detail is in reference / examples surfaces.

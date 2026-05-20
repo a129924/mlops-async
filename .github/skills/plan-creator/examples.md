@@ -126,3 +126,92 @@ Artifact path notes:
 ```
 
 - Bad because reviewer and creator are separate roles.
+
+## Correction / delta lifecycle
+
+### Correction topic with correct path labeling and conditional handoff
+```md
+## Locked Decisions
+- This topic is non-stable-library (no README, VERSION, or release action).
+- Parent artifacts become current truth after accepted backfill; correction closure
+  requires that backfill is complete before this topic is declared done.
+- Correction artifacts are retained as historical truth only.
+- No topic-specific round cap is declared for this topic.
+
+## Artifact Paths
+| Artifact | Path | Owner | Role |
+| --- | --- | --- | --- |
+| Topic plan | `plan/foo-correction/foo-correction.plan.md` | Planning actor | Repo-visible execution contract |
+| Parent plan (backfilled) | `plan/foo/foo.plan.md` | Creator | Current truth after accepted backfill |
+| Correction delta | `plan/foo-correction/foo-correction.delta.md` | Creator | Historical truth — decision trail only; not active contract |
+
+Routing notes:
+- No `review-log` is required; routing does not depend on multi-round rework.
+```
+
+- Good because parent / correction truth separation is explicit, backfill closure
+  is declared, `review-log` absence is stated with reason, and round cap is absent
+  (not borrowed from a sample topic).
+
+### Correction topic with conditional review-log and topic-scoped round cap
+```md
+## Locked Decisions
+- Round cap for this topic: maximum 2 creator / reviewer rounds.
+- A repo-visible `review-log` is required because reviewer feedback controls
+  routing between round 1 and round 2.
+
+## Artifact Paths
+| Artifact | Path | Owner | Role |
+| --- | --- | --- | --- |
+| Topic plan | `plan/bar-correction/bar-correction.plan.md` | Planning actor | Repo-visible execution contract |
+| Parent spec (backfilled) | `plan/bar/bar.spec.md` | Creator | Current truth after accepted backfill |
+| Correction delta | `plan/bar-correction/bar-correction.delta.md` | Creator | Historical truth — decision trail only |
+| Review log | `plan/bar-correction/bar-correction.review-log.md` | Reviewer | Round-routing handoff; required because feedback controls routing |
+```
+
+- Good because the round cap is topic policy only, the `review-log` is conditional
+  with reason stated, and all paths are exact and role-labeled.
+
+### Anti-patterns for correction lifecycle
+
+#### Round cap copied from sample as universal rule
+```md
+## Locked Decisions
+- Round cap: maximum 3 creator / reviewer rounds (same as the
+  core-concrete-client-delta-backfill sample).
+```
+
+- Bad because the round cap is justified by reference to a sample topic, not by
+  this topic's own policy need; this implies a repository-wide rule.
+
+#### Unconditional review-log requirement
+```md
+## Locked Decisions
+- A `review-log` must be created after every review pass.
+```
+
+- Bad because `review-log` is conditional on routing control or multi-round
+  rework; universal `review-log` requirements are not permitted.
+
+#### Vague correction evidence labels
+```md
+## Artifact Paths
+- merged implementation
+- correction backfill folder
+- review artifacts
+```
+
+- Bad because no one can validate drift against vague path labels; correction
+  artifact paths must be exact, bounded, repo-visible, and role-labeled.
+
+#### Workflow body embedding correction schema
+```md
+## Correction artifact schema
+| Field | Type | Description |
+| --- | --- | --- |
+| delta_id | string | unique correction ID |
+| base_sha | string | parent commit SHA |
+```
+
+- Bad because detailed correction artifact schema belongs in reference / examples
+  surfaces, not in the workflow body.

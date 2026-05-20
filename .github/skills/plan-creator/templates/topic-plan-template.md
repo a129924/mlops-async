@@ -22,6 +22,13 @@ Delete prompt text after replacing it with real topic-specific content.
 - Say whether this topic is:
   - review-ready-only with no stable-library surfaces, or
   - a stable-library-affecting topic with declared timing
+- If this topic uses correction or delta artifacts, declare:
+  - parent artifacts become current truth after accepted backfill; correction
+    closure requires backfill to be complete first
+  - correction artifacts are retained as historical truth only
+  - whether a round cap applies (topic policy only, not repository-wide)
+  - whether a `review-log` is required (conditional: only when reviewer feedback
+    controls routing or multi-round rework applies)
 
 ## Boundaries / Exclusions
 
@@ -56,6 +63,8 @@ Routing notes:
 
 - Keep any topic-specific routing details here.
 - If the topic uses the standard Phase 4.5 rule, say so explicitly.
+- If this topic declares a round cap, state it here as topic policy only; do not
+  imply it is a repository-wide rule.
 
 ## Artifact Paths
 
@@ -69,6 +78,11 @@ Artifact path notes:
 - Say explicitly whether this topic modifies `README.md`, `VERSION`, or `.github/copilot-instructions.md`.
 - Treat listed paths as an executable contract.
 - Say what should happen if later work drifts outside these paths.
+- If correction or delta artifacts are used:
+  - label parent artifact paths as "current truth after accepted backfill"
+  - label correction artifact paths as "historical truth"
+  - include a `review-log` path only if reviewer feedback controls routing or
+    multi-round rework is required; otherwise state why it is absent
 
 ## Stable library metadata
 
