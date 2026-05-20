@@ -1,1 +1,1 @@
-"""Models request gate test package."""
+"""模型請求 gate 測試套件。"""

@@ -1,1 +1,1 @@
-"""Request-contract test package."""
+"""請求合約測試套件。"""

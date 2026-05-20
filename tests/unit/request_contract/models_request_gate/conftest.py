@@ -10,15 +10,14 @@ import json
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 from uuid import UUID
 
 import pytest
 import requests
-from sasctl import Session  # pyright: ignore[reportMissingTypeStubs]
-from sasctl._services.model_repository import ModelRepository  # pyright: ignore[reportMissingTypeStubs]
+from sasctl import Session  # pyright: ignore[reportMissingTypeStubs]  # sasctl 未提供 type stubs
+from sasctl._services.model_repository import ModelRepository  # pyright: ignore[reportMissingTypeStubs]  # sasctl 未提供 type stubs
 from tests.unit.request_contract.contract_case import (
     EndpointContractCase,
     FakeResponse,
@@ -337,7 +336,7 @@ class SasctlContractHarness:
     def __init__(self) -> None:
         self.last_request: dict[str, object] | None = None
 
-    def run(self, case: EndpointContractCase) -> Any:
+    def run(self, case: EndpointContractCase) -> object:
         self.last_request = None
         if case.source_observed is not None:
             _assert_request_shape_matches_source_observed(

@@ -1,10 +1,11 @@
-"""Readable request-contract case models for sasctl source tests."""
+"""供 sasctl source 測試使用、較易讀的請求合約案例模型。"""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+
+from mlops_async.core.types import JSONValue
 
 
 @dataclass(frozen=True, slots=True)
@@ -13,8 +14,8 @@ class RequestShape:
 
     method: str
     path: str
-    query: Mapping[str, Any] = field(default_factory=dict)
-    body: Any | None = None
+    query: Mapping[str, JSONValue] = field(default_factory=dict)
+    body: JSONValue = None
     required_headers: Mapping[str, str] = field(default_factory=dict)
 
 
@@ -23,12 +24,12 @@ class FakeResponse:
     """Mock response configuration consumed by the interception harness."""
 
     status_code: int = 200
-    json_body: Any | None = None
+    json_body: JSONValue = None
     text_body: str | None = None
     headers: Mapping[str, str] = field(default_factory=dict)
 
     @classmethod
-    def ok_json(cls, body: Any) -> FakeResponse:
+    def ok_json(cls, body: JSONValue) -> FakeResponse:
         """Return a 200 JSON response spec."""
 
         return cls(status_code=200, json_body=body)
@@ -62,7 +63,7 @@ class EndpointContractCase:
     """Represent a single readable request-contract test case."""
 
     name: str
-    invoke: Callable[[], Any]
+    invoke: Callable[[], object]
     expected: RequestShape
     response: FakeResponse
     session: SessionSpec = field(default_factory=SessionSpec.default)

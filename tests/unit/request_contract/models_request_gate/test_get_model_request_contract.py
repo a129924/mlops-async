@@ -1,11 +1,11 @@
-"""Readable request-contract tests for sasctl ModelRepository.get_model."""
+"""sasctl ModelRepository.get_model 的可讀式請求合約測試。"""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 
 import pytest
-from sasctl._services.model_repository import ModelRepository  # pyright: ignore[reportMissingTypeStubs]
+from sasctl._services.model_repository import ModelRepository  # pyright: ignore[reportMissingTypeStubs]  # sasctl 未提供 type stubs
 
 from tests.unit.request_contract.contract_case import (
     EndpointContractCase,

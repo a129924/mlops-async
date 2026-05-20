@@ -44,7 +44,7 @@ review-friendly style 收斂，同時不破壞 source-evidence contract。
 - `analysis/request-contract-review-readability/requirements.md`
 - `analysis/request-contract-review-readability/technical-spec.md`
 
-### Not yet allowed in this phase
+### Not yet allowed by this technical-spec phase alone
 
 - `tests/**`
 - `src/**`
@@ -53,7 +53,7 @@ review-friendly style 收斂，同時不破壞 source-evidence contract。
 - `pyproject.toml`
 - `uv.lock`
 
-理由：本階段只凍結 requirements 與 technical translation，尚未進入 implementation planning。
+理由：本階段只凍結 requirements 與 technical translation；若後續實作或 planning 另有核准，仍須以後續 artifact 為準。
 
 ## Requirement traceability
 
