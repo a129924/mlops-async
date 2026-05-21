@@ -34,6 +34,12 @@ repos:
         stages: [manual]  # 手動執行：pre-commit run --hook-stage manual --all-files
         pass_filenames: false
         always_run: true
+      - id: coverage-check
+        name: coverage check (≥80%)
+        language: system
+        entry: uv run pytest tests/unit/ --cov=src/mlops_async --cov-fail-under=80 --cov-report=json:.coverage-reports/coverage.json --cov-report=term-missing -q --no-header
+        pass_filenames: false
+        always_run: true
 
   # Pyright - 嚴格模式類型檢查
   - repo: local

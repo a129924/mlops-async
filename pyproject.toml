@@ -75,3 +75,15 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+addopts = "--cov=src/mlops_async --cov-report=json:.coverage-reports/coverage.json --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["src/mlops_async"]
+omit = ["**/tests/**", "**/__pycache__/**"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
+[tool.coverage.json]
+output = ".coverage-reports/coverage.json"
