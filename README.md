@@ -8,6 +8,18 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.10.3**, the repository now includes a reusable request-contract session
+context for sasctl / legacy source work: `docs/standards/request-contract-testing.md`
+now acts as the explicit source of truth for request-contract gate semantics, and
+`.github/prompts/request-contract-testing-context.prompt.md` provides a directly
+injectable new-session entry point that routes Agents back to that standard and
+requires stop-on-drift behavior.
+
+v0.10.3 新增 **request-contract-session-context** 主題，固定「新 session 如何恢復
+request-contract gate 上下文」的雙工件模式：standards doc 保留完整標準，prompt
+只作為注入入口。這次變更不觸碰 `src/**` 或 `tests/**`，而是把既有 request-contract
+testing 基線變成更容易重用的 session entry contract。
+
 As of **v0.10.2**, the repository now includes a minimal `tach` guardrail for the
 auth / request boundary: `mlops_async.transport` may depend on
 `mlops_async.core`, while `mlops_async.core` remains forbidden from depending on
