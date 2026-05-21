@@ -8,6 +8,22 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.10.1**, the repository now includes a repo-visible auth / request
+boundary context document for future planning and review work.
+`docs/standards/http-client-auth-boundary.md` is the first-read source of truth
+for the dependency diagrams, component responsibilities, Authorization
+collision policy, refresh / expiry / lock contract, and mismatch-stop rule,
+while `docs/ARCHITECTURE.md` now links to it as the overview entry point. 這讓
+後續 auth-boundary 相關 topic 不必再重複口頭對齊同一套設計。
+
+v0.10.1 新增 **http-client-auth-boundary-context-doc** 主題，將
+`HttpClient` / `Requester` / auth collaborators / future `MlopsAsyncClient`
+facade 的邊界固定到 `docs/standards/http-client-auth-boundary.md`，並在
+`docs/ARCHITECTURE.md` 補上 discoverability 入口。這次變更不觸碰
+`src/**`、`tests/**` 或 `tach.toml`，而是把依賴圖、職責與非職責、以及
+doc/code/guardrail 衝突時必須停下交人工的規則固定成後續 Agent 可優先引用的
+文件基線。
+
 As of **v0.10.0**, the repository includes the first internal auth / request
 composition baseline above the pure transport layer: `HttpClient` remains a
 transport-only substrate, `Requester` owns managed request-header composition,
