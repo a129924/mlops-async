@@ -54,7 +54,7 @@ Topic 完成時，repo 應同時具備：
 
 ## Status / Allowed Transitions
 
-- **Current**: `planned`
+- **Current**: `pr-open`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; this topic does not declare a repository release action.
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
