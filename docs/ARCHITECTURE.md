@@ -28,6 +28,12 @@ They are design targets, not implemented files yet.
 
 ## Internal client contract — request composition + transport placement
 
+For auth/request boundary topics, read
+[`docs/standards/http-client-auth-boundary.md`](standards/http-client-auth-boundary.md)
+first. This section stays as the overview entry point; the detailed dependency
+diagrams, responsibilities, collision policy, refresh/expiry/lock contract, and
+conflict-stop rule live in that document.
+
 The internal client contract remains split between protocol/value-object modules in
 `src/mlops_async/core/` and the concrete transport implementation in
 `src/mlops_async/transport/`.
