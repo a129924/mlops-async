@@ -26,6 +26,7 @@ Topic 完成時，repo 內應有一份可被後續 Agent 穩定引用的 auth-bo
 ## Locked Decisions
 
 - This topic is **review-ready-only with no stable-library surfaces**.
+- This topic is a **docs / diagram topic**, not a Python implementation topic; it does **not** use `python-implementation-workflow`, and it does not require `*.spec.md` / `*.step.md` to proceed.
 - 細部 context doc 的固定路徑為 `docs/standards/http-client-auth-boundary.md`；`docs/ARCHITECTURE.md` 只做總覽與導向，不承載全部細節。
 - 細部 context doc 必須包含：依賴圖、元件職責與非職責、邊界與禁止事項、`Authorization` collision policy、refresh / expiry / lock contract、以及 future `MlopsAsyncClient` facade 定位。
 - 細部 context doc 檔頭必須帶有 **Agent first-read marker**，明確說明處理 auth/request boundary 相關 topic 前先讀此文件。
@@ -43,6 +44,7 @@ Topic 完成時，repo 內應有一份可被後續 Agent 穩定引用的 auth-bo
 - Planning actor 只建立 repo-visible requirements 與 topic plan；不進入文件實作或 guardrail 實作。
 - Creator 後續若執行此 topic，不得把文件 topic 擴張成 auth implementation 變更、public facade 設計、或與 auth/request boundary 無關的 tach 重構。
 - Reviewer 只能依據這份 plan、requirements baseline、與 exact artifact paths 審查，不得在 review 時把 scope 擴張到 `src/**`、`tests/**`、README、VERSION 或 release workflow。
+- Executor scope ends at local file changes plus validation summary; `git commit / push / PR` remain Main Agent operations under the canonical repo lifecycle and are not part of creator execution for this topic.
 - 若未來需要 `technical-spec.md`、step tracker、或 broader module-boundary governance，必須另行對齊，不可假設它們已被此 plan 隱含涵蓋。
 
 ## Status / Allowed Transitions
@@ -68,6 +70,7 @@ Routing notes:
 
 - Analysis-layer incomplete mode applies for this topic because `technical-spec.md` is absent.
 - Shared-file coordination warning: `docs/ARCHITECTURE.md` is a shared governance/boundary surface; if parallel worktrees touch it, treat any drift as a human-coordination issue before implementation continues.
+- Executor handoff boundary for this topic: implementation stops at review-ready local changes; publish routing starts only when Main Agent later resumes canonical `publish-in-progress`.
 
 ## Artifact Paths
 

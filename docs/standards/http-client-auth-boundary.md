@@ -1,4 +1,4 @@
-# HTTP client / auth boundary
+# HTTP client / auth 邊界
 
 > [!IMPORTANT]
 > **Agent first-read**
@@ -17,8 +17,8 @@
 - `docs/ARCHITECTURE.md` 是總覽入口；本文件是 auth / request boundary 的細節基線。
 - 若本文件、`docs/ARCHITECTURE.md`、程式碼、或未來的 `tach.toml` guardrail 彼此衝突，
   **不要自行和解**，必須停下並交給人工決策。
-- 本 topic 不修改 `tach.toml`。若未來另開 guardrail topic，範圍只能限於 auth /
-  request boundary 的單向依賴，不得擴張成全面模組重整。
+- 若未來新增 `tach.toml` guardrail，範圍只能限於 auth / request boundary 的單向依賴，
+  不得擴張成全面模組重整。
 - 若未來 `tach.toml` 補上最小 guardrail，允許表達的只有：
   - `mlops_async.transport` 可依賴 `mlops_async.core`
   - `mlops_async.core` 不可反向依賴 `mlops_async.transport`
