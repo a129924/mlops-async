@@ -8,6 +8,18 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.10.2**, the repository now includes a minimal `tach` guardrail for the
+auth / request boundary: `mlops_async.transport` may depend on
+`mlops_async.core`, while `mlops_async.core` remains forbidden from depending on
+`mlops_async.transport`. `README.md` and `.github/CONTRIBUTING.md` now reflect
+that narrower, machine-checkable governance boundary without widening `tach`
+into a repo-wide module reorganization.
+
+v0.10.2 新增 **http-client-auth-boundary-tach-guard** 主題，將 auth/request
+boundary 的最小結構護欄正式寫入 `tach.toml`，並同步校正 current-state 文件。
+這次變更不觸碰 `src/**` 或 `tests/**`，而是把既有文件基線進一步變成可由
+`uv run tach check` 驗證的結構規則。
+
 As of **v0.10.1**, the repository now includes a repo-visible auth / request
 boundary context document for future planning and review work.
 `docs/standards/http-client-auth-boundary.md` is the first-read source of truth
