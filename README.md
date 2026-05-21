@@ -193,8 +193,9 @@ uv run tach check
 - 可執行 `uv run tach check` 在本機驗證模組邊界
 - `pre-commit` 也會在 commit 前執行 `tach check`
 
-目前的設定刻意維持最小範圍：只約束既有的 `mlops_async` 套件與內部
-`_repo_hooks` 子模組，讓未來套件成長時可以逐步收緊規則，而不是過早鎖死架構。
+目前的設定刻意維持最小範圍：先治理 `mlops_async._repo_hooks`，以及
+auth/request boundary 相關的 `mlops_async.core` / `mlops_async.transport` 單向依賴；
+其他子模組仍保留給未來 topic 逐步收緊，而不是過早鎖死整體架構。
 
 ## Repository layout
 

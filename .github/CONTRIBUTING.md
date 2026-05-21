@@ -20,9 +20,9 @@
 ## Tach 結構治理
 
 - `tach.toml` 是本 repo 的 Python 結構邊界設定來源
-- 目前採 **incremental** 方式，只治理現有的 `mlops_async` 與
-  `mlops_async._repo_hooks`
-- 若未來新增新的 package/module，應先更新 `tach.toml`，再導入新的跨模組 import
+- 目前採 **incremental** 方式，先治理 `mlops_async._repo_hooks`，以及
+  auth/request boundary 相關的 `mlops_async.core` / `mlops_async.transport` 單向依賴
+- 若未來新增新的 package/module，或要擴張治理面，應先更新 `tach.toml`，再導入新的跨模組 import
 
 ## Quality expectations
 
