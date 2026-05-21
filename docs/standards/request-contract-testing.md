@@ -4,6 +4,24 @@
 
 定義 `mlops-async` 在 source 可執行時的 `Request Contract Gate` 標準流程，確保 request evidence 先被捕捉與固化，再進入 target request-contract tests。
 
+本文件是 `sasctl` / legacy source 的 request-contract testing / request gate 類 topic 的
+**source of truth**。`.github/prompts/request-contract-testing-context.prompt.md` 只是一份可供
+新 session 注入的 prompt 入口，不得獨立重寫或覆蓋本文件的 contract。
+
+若 prompt 與本文件漂移，Agent 必須立即停止並回報 `blocked` / `needs-human-review`，不得自行
+和解。
+
+## Agent first-read / session reuse
+
+當新 session 要處理 request-contract testing topic 時：
+
+1. 可先注入 `.github/prompts/request-contract-testing-context.prompt.md`
+2. Agent 隨後必須回到本文件，並以本文件作為唯一正式標準
+3. 若當前 topic 不是 request-contract testing / request gate 類工作，不得套用這份 baseline
+
+這個 first-read 路徑的目的，是讓 Main Agent 或 human operator 不必回溯舊 session history，
+也能恢復最小可執行語意。
+
 ## 範圍
 
 適用於：
@@ -15,13 +33,41 @@
 
 - 無法執行的 source（第一版直接 stop/escalate）
 
+## 新 session 必須能恢復的四個核心測試語意
+
+1. **request shape / contract**
+   - 核心是比對 request contract，而不是只看 endpoint 名稱
+   - 至少涵蓋 method、endpoint path、required header subset、query parameter semantics、
+     request body shape
+2. **auth steps 與 mock-response handling**
+   - observed auth steps 屬於 capture evidence，不得因 target 設計不同而從 flow 移除
+   - `mock-response answer set` 必須保存為完成該次 capture 所提供的 mock responses
+3. **preflight**
+   - 若 source 在 target-api 前先做 preflight，必須在 observed flow 中顯式保留
+   - 不可把獨立的 preflight request 靜默折疊進 target-api
+4. **target-api / intercepted flow capture**
+   - target-api 是 observed flow 的一部分，不是唯一部分
+   - capture 必須完整攔截 outbound HTTP requests，才能作為後續 target request-contract test
+     的基礎
+
+## Request-contract gate 核心三件事
+
+每個新 session 在進入實作或測試設計前，都必須先能明確重述下列 gate 核心：
+
+1. **fully intercepted capture**
+2. **request-flow fixture**
+3. **mock-response answer set**
+
+缺少任何一項，都不能宣告 request-contract gate 通過。
+
 ## Gate 通過定義
 
 當 source 可執行時，`Request Contract Gate` 只有在下列條件都成立時才通過：
 
 1. fully intercepted capture 成功完成
 2. request-flow fixture 已持久化
-3. 可由 fixture 反推出 target request-contract test
+3. mock-response answer set 已持久化
+4. 可由 fixture 反推出 target request-contract test
 
 缺任一項即不得通過 gate。
 
