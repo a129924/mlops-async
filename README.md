@@ -8,6 +8,16 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.10.5**, post-merge docs/contracts are aligned for the
+`coverage-agent-simplification` correction: step-tracker validation now uses the
+canonical command form
+`check_impl_steps_succeeded coverage-agent-simplification`, avoiding false failures
+from file-path invocation examples in planning specs.
+
+v0.10.5 補齊 `coverage-agent-simplification` 合併後的文件一致性：步驟追蹤驗證
+指令統一為 `check_impl_steps_succeeded coverage-agent-simplification`，不再使用
+錯誤的檔案路徑呼叫範例。
+
 As of **v0.10.4**, the repository enforces a **90% test-coverage gate** via
 `pyproject.toml` (`fail_under = 90`) and the dedicated `coverage-check` pre-commit
 hook. pytest-cov writes `.coverage-reports/coverage.json` plus `term-missing` output;
