@@ -35,9 +35,9 @@ repos:
         pass_filenames: false
         always_run: true
       - id: coverage-check
-        name: coverage check (≥80%)
+        name: coverage check (≥90%)
         language: system
-        entry: uv run pytest tests/unit/ --cov=src/mlops_async --cov-fail-under=80 --cov-report=json:.coverage-reports/coverage.json --cov-report=term-missing -q --no-header
+        entry: uv run pytest tests/unit/ --cov=src/mlops_async --cov-fail-under=90 --cov-report=json:.coverage-reports/coverage.json --cov-report=term-missing -q --no-header
         pass_filenames: false
         always_run: true
 

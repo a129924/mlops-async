@@ -10,12 +10,12 @@
 - [X] managed-worktree-created
 - [X] correction-analysis-authoring
 - [X] correction-plan-authoring
-- [ ] human-plan-review
-- [ ] parent-backfill
-- [ ] implementation
-- [ ] validation
-- [ ] implementation-review
-- [ ] code-review
+- [X] human-plan-review
+- [X] parent-backfill
+- [X] implementation
+- [X] validation
+- [X] implementation-review
+- [X] code-review
 
 ## Implementation Steps
 
@@ -25,13 +25,13 @@
 - [X] 3. Create `plan/coverage-agent-simplification/coverage-agent-simplification.plan.md`.
 - [X] 4. Create `plan/coverage-agent-simplification/coverage-agent-simplification.spec.md`.
 - [X] 5. Create `plan/coverage-agent-simplification/coverage-agent-simplification.step.md`.
-- [ ] 6. Stop for human review before parent backfill or implementation edits.
-- [ ] 7. Backfill `analysis/coverage-agent/requirements.md` and `analysis/coverage-agent/technical-spec.md`.
-- [ ] 8. Backfill `plan/coverage-agent/coverage-agent.plan.md`, `.spec.md`, and `.step.md`.
-- [ ] 9. Update `pyproject.toml` coverage fail-under to 90.
-- [ ] 10. Update `.pre-commit-config.yaml` coverage-check hook name and `--cov-fail-under=90`.
-- [ ] 11. Update `README.md` v0.10.4 coverage-agent wording without changing `VERSION` or `uv.lock`.
-- [ ] 12. Delete `scripts/coverage_agent.py`.
-- [ ] 13. Delete `tests/unit/test_coverage_agent.py`.
-- [ ] 14. Search and remove stale current-truth references to `coverage_agent`, stub generation, and `assert False` helper behavior.
-- [ ] 15. Run validation commands from the topic plan and confirm generated coverage JSON remains untracked.
+- [X] 6. Stop for human review before parent backfill or implementation edits.
+- [X] 7. Backfill `analysis/coverage-agent/requirements.md` and `analysis/coverage-agent/technical-spec.md`.
+- [X] 8. Backfill `plan/coverage-agent/coverage-agent.plan.md`, `.spec.md`, and `.step.md`.
+- [X] 9. Update `pyproject.toml` coverage fail-under to 90.
+- [X] 10. Update `.pre-commit-config.yaml` coverage-check hook name and `--cov-fail-under=90`.
+- [X] 11. Update `README.md` v0.10.4 coverage-agent wording without changing `VERSION` or `uv.lock`.
+- [X] 12. Delete `scripts/coverage_agent.py`.
+- [X] 13. Delete `tests/unit/test_coverage_agent.py`.
+- [X] 14. Search and remove stale current-truth references to `coverage_agent`, stub generation, and `assert False` helper behavior.
+- [X] 15. Run validation commands from the topic plan and confirm generated coverage JSON remains untracked.

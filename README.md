@@ -8,17 +8,17 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
-As of **v0.10.4**, the repository now enforces an **80% test-coverage gate** via
-`pyproject.toml` (`fail_under = 80`) and ships `scripts/coverage_agent.py` — a static
-analysis script that reads `coverage.json`, identifies uncovered modules, and either
-generates test stubs in `tests/unit/` or emits `[COVERAGE GAP - HUMAN REVIEW REQUIRED]`
-feedback when stop conditions are triggered (e.g., upload, streaming, external I/O).
-A dedicated `coverage-check` pre-commit hook runs the gate on every commit.
+As of **v0.10.4**, the repository enforces a **90% test-coverage gate** via
+`pyproject.toml` (`fail_under = 90`) and the dedicated `coverage-check` pre-commit
+hook. pytest-cov writes `.coverage-reports/coverage.json` plus `term-missing` output;
+Agents use that JSON evidence to identify uncovered files, functions, and lines, then
+triage gaps against the current topic Test Plan or escalate human feedback when scope
+or stop-condition evidence is insufficient.
 
-v0.10.4 新增 **coverage-agent** 主題，強制 80% 覆蓋率門檻，並新增靜態分析腳本
-`scripts/coverage_agent.py`：讀取 `coverage.json`、辨識未覆蓋模組，自動補寫
-test stub 或在觸發 stop condition 時輸出人工審查提示。覆蓋率門檻由
-`pyproject.toml` 的 `fail_under = 80` 及 `coverage-check` pre-commit hook 共同執行。
+v0.10.4 的 **coverage-agent** current truth 已校正為 90% 覆蓋率門檻與
+pytest-cov JSON evidence workflow。`.coverage-reports/coverage.json` 提供檔案、函式
+與行號層級的 missing-line 資訊；Agent / human 依目前 topic 的 Test Plan 判斷是否補
+語義正確的測試，若超出 scope 或觸發 stop condition，則回報人工審查而不自動寫入測試。
 
 As of **v0.10.3**, the repository now includes a reusable request-contract session
 context for sasctl / legacy source work: `docs/standards/request-contract-testing.md`
