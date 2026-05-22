@@ -21,15 +21,33 @@
 
 ## Technical tasks and artifacts
 
-1. 建立 `TestCase inventory`（case 名稱、檔案路徑、涵蓋面向）。
-2. 建立 `rigor matrix`（判準、證據路徑、狀態、風險等級）。
-3. 產出 `verdict` 與 `gap list`（含 High/Medium/Low 原因）。
+1. 建立 `TestCase inventory` 輸出檔，固定欄位如下：
+   - `case_id`
+   - `file_path`
+   - `test_name`
+   - `covers_area`
+2. 建立 `rigor matrix` 輸出檔，固定欄位如下：
+   - `criterion_id`
+   - `status` (`covered|partial|missing`)
+   - `evidence_path`
+   - `risk_level` (`High|Medium|Low`)
+   - `notes`
+3. 建立 `verdict` 輸出檔，固定欄位如下：
+   - `high_gap_count`
+   - `medium_gap_count`
+   - `low_gap_count`
+   - `decision_rule`（固定文字：`high_gap_count > 0 => verdict=不夠嚴謹`）
+   - `verdict`
+   - `gap_list`
 4. 回寫 topic plan 的分析層對映狀態（已具備 requirements/technical-spec）。
 
 ### Artifact paths
 
 - `analysis/token-manager-test-rigor-review/requirements.md`
 - `analysis/token-manager-test-rigor-review/technical-spec.md`
+- `analysis/token-manager-test-rigor-review/testcase-inventory.md`
+- `analysis/token-manager-test-rigor-review/rigor-matrix.md`
+- `analysis/token-manager-test-rigor-review/verdict.md`
 - `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.plan.md`
 
 ## Feasibility / cost-of-realization

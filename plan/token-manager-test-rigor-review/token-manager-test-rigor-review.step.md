@@ -21,7 +21,7 @@ created: 2026-05-22
 
 ## Implementation Steps
 
-- [ ] 1. Open `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.plan.md`, replace current structure with python-plan-authoring 13-section contract and fill all required decision fields.
-- [ ] 2. Create `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.step.md` using step template metadata (`topic`, `phase: plan-authoring`, `created`) and mirror every numbered implementation step as pending `- [ ]`.
-- [ ] 3. Declare D1 verdict as `non-trivial` in planning notes and create `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.spec.md` with required three sections and TokenManager rigor scenarios.
-- [ ] 4. Re-open the three artifacts and cross-check section order, async-planning status citation, mirrored step entries, and spec completeness before handing off for human review.
+- [X] 1. 建立 `analysis/token-manager-test-rigor-review/testcase-inventory.md`：列出每個既有 Token/Auth 測試 case（`case_id`、`file_path`、`test_name`、`covers_area`）。
+- [X] 2. 建立 `analysis/token-manager-test-rigor-review/rigor-matrix.md`：以判準為列，填入 `criterion_id`、`status`（covered/partial/missing）、`evidence_path`、`risk_level`、`notes`。
+- [X] 3. 建立 `analysis/token-manager-test-rigor-review/verdict.md`：彙總 `high_gap_count`、`medium_gap_count`、`low_gap_count` 與最終 `verdict`，並套用 `high_gap_count > 0 => verdict=不夠嚴謹`。
+- [X] 4. 回讀 `requirements.md`、`technical-spec.md`、`plan.md`、`step.md` 與三個主體輸出檔，檢查 BR-1~BR-5 對齊後再交付 human review。

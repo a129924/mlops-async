@@ -25,11 +25,11 @@
 
 ## Requirements
 
-1. 計畫文件必須完整具備 python-plan-authoring 要求的 13 個章節，且順序正確。
-2. `Decisions` 必須包含 `Async-planning status` 與 7 項標準決策欄位，不得留空。
-3. 必須產出 `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.step.md`，且 `## Implementation Steps` 與本 plan 一致、皆為 `- [ ]` 初始狀態。
-4. D1 判定為 `non-trivial` 時，必須產出 `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.spec.md`，含三段：`Acceptance Criteria`、`Behavioral Scenarios`、`Error / Edge Cases`。
-5. 本 topic 的計畫工件不得引入 `src/**` 或 `tests/**` 的內容變更。
+1. 必須產出 `analysis/token-manager-test-rigor-review/testcase-inventory.md`，涵蓋既有 Token/Auth 相關 unit tests，遺漏數為 0。
+2. 必須產出 `analysis/token-manager-test-rigor-review/rigor-matrix.md`，每個判準都要有 `covered|partial|missing` 與證據路徑。
+3. 必須產出 `analysis/token-manager-test-rigor-review/verdict.md`，且強制包含規則：`High` 缺口數 > 0 時 verdict 必為「不夠嚴謹」。
+4. `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.step.md` 的步驟必須與本 plan 的 `## Implementation Steps` 一致，且初始為 `- [ ]`。
+5. 本 topic 的計畫/分析工件不得引入 `src/**` 或 `tests/**` 內容變更。
 
 ## Decisions
 
@@ -52,37 +52,46 @@ Likely affected files:
 - plan/token-manager-test-rigor-review/token-manager-test-rigor-review.plan.md
 - plan/token-manager-test-rigor-review/token-manager-test-rigor-review.step.md
 - plan/token-manager-test-rigor-review/token-manager-test-rigor-review.spec.md
+- analysis/token-manager-test-rigor-review/technical-spec.md
+- analysis/token-manager-test-rigor-review/testcase-inventory.md
+- analysis/token-manager-test-rigor-review/rigor-matrix.md
+- analysis/token-manager-test-rigor-review/verdict.md
 
 Candidate files to inspect:
 - analysis/token-manager-test-rigor-review/requirements.md
 - analysis/token-manager-test-rigor-review/technical-spec.md
-- .github/skills/python-plan-authoring/templates/python-plan-template.md
+- tests/unit/core/test_token_manager.py
+- tests/unit/core/test_token_storage.py
+- tests/unit/core/test_auth_provider.py
+- tests/unit/core/test_auth_contract.py
 
 ## Implementation Steps
 
-1. Open `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.plan.md`, replace current structure with python-plan-authoring 13-section contract and fill all required decision fields.
-2. Create `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.step.md` using step template metadata (`topic`, `phase: plan-authoring`, `created`) and mirror every numbered implementation step as pending `- [ ]`.
-3. Declare D1 verdict as `non-trivial` in planning notes and create `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.spec.md` with required three sections and TokenManager rigor scenarios.
-4. Re-open the three artifacts and cross-check section order, async-planning status citation, mirrored step entries, and spec completeness before handing off for human review.
+1. 建立 `analysis/token-manager-test-rigor-review/testcase-inventory.md`：列出每個既有 Token/Auth 測試 case（`case_id`、`file_path`、`test_name`、`covers_area`）。
+2. 建立 `analysis/token-manager-test-rigor-review/rigor-matrix.md`：以判準為列，填入 `criterion_id`、`status`（covered/partial/missing）、`evidence_path`、`risk_level`、`notes`。
+3. 建立 `analysis/token-manager-test-rigor-review/verdict.md`：彙總 `high_gap_count`、`medium_gap_count`、`low_gap_count` 與最終 `verdict`，並套用 `high_gap_count > 0 => verdict=不夠嚴謹`。
+4. 回讀 `requirements.md`、`technical-spec.md`、`plan.md`、`step.md` 與三個主體輸出檔，檢查 BR-1~BR-5 對齊後再交付 human review。
 
 ## Test Plan
 
-Test file: `tests/unit/core/test_token_manager.py` (reference-only verification target; 本 topic 不改測試程式碼)
+Test file: `analysis/token-manager-test-rigor-review/rigor-matrix.md`（文件驗證為主；本 topic 不改測試程式碼）
 
 Test cases:
-- Happy path: 驗證 plan/step/spec 三份工件都存在，且 plan 13-section 完整。
-- Invalid input: 若 `Decisions` 任一欄位缺失或留空，標示 plan 為 INCOMPLETE。
-- Edge case: `Async-planning status` 為 exempt 時，必須包含可審查的 exemption 證據句，不可只寫 `exempt`。
-- Regression: 確認既有 analysis 路徑 (`requirements.md`, `technical-spec.md`) 仍被正確引用，未回退成 missing-analysis 警告。
-- Backward compatibility: 確認 `src/**` 與 `tests/**` 無變更，維持現有 API/測試行為不受影響。
+- Happy path: 三個主體輸出檔（inventory/matrix/verdict）都存在，且欄位完整。
+- Invalid input: matrix 任一列缺 `status` 或 `evidence_path` 時，標示為 INCOMPLETE。
+- Edge case: `high_gap_count > 0` 時 verdict 必須是「不夠嚴謹」。
+- Regression: 確認 `requirements.md` BR-1~BR-5 可在輸出檔找到對應證據。
+- Backward compatibility: 確認 `src/**` 與 `tests/**` 無內容變更。
 
 ## Validation Commands
 
 ```
-cd <repo-root>
 git --no-pager status --short
-uv run pytest tests/unit/core/test_token_manager.py -q -o addopts=''
-Use existing project validation commands from pyproject.toml.
+test -f analysis/token-manager-test-rigor-review/testcase-inventory.md
+test -f analysis/token-manager-test-rigor-review/rigor-matrix.md
+test -f analysis/token-manager-test-rigor-review/verdict.md
+rg -n "high_gap_count|verdict|decision_rule" analysis/token-manager-test-rigor-review/verdict.md
+rg -n "criterion_id|status|evidence_path|risk_level" analysis/token-manager-test-rigor-review/rigor-matrix.md
 ```
 
 ## Risks
