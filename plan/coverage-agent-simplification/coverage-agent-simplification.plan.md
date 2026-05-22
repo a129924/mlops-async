@@ -166,7 +166,7 @@ Artifact path notes:
 - `uv run pre-commit run coverage-check --all-files` passes.
 - `uv run ruff check` passes.
 - `uv run pyright` passes.
-- `uv run python .github/skills/plan-step-tracker/scripts/step_tracker.py plan/coverage-agent-simplification/coverage-agent-simplification.step.md` passes when implementation steps are complete.
+- `uv run python .github/skills/plan-step-tracker/scripts/step_tracker.py check_impl_steps_succeeded coverage-agent-simplification` passes when implementation steps are complete.
 - `git status --short` does not include `.coverage-reports/coverage.json`, `VERSION`, or `uv.lock`.
 
 ## Reviewer Handoff

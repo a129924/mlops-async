@@ -106,7 +106,7 @@ uv run pytest tests/unit/ --cov=src/mlops_async --cov-report=json:.coverage-repo
 uv run pre-commit run coverage-check --all-files
 uv run ruff check
 uv run pyright
-uv run python .github/skills/plan-step-tracker/scripts/step_tracker.py plan/coverage-agent-simplification/coverage-agent-simplification.step.md
+uv run python .github/skills/plan-step-tracker/scripts/step_tracker.py check_impl_steps_succeeded coverage-agent-simplification
 ```
 
 ---
