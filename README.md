@@ -8,6 +8,18 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.10.4**, the repository now enforces an **80% test-coverage gate** via
+`pyproject.toml` (`fail_under = 80`) and ships `scripts/coverage_agent.py` — a static
+analysis script that reads `coverage.json`, identifies uncovered modules, and either
+generates test stubs in `tests/unit/` or emits `[COVERAGE GAP - HUMAN REVIEW REQUIRED]`
+feedback when stop conditions are triggered (e.g., upload, streaming, external I/O).
+A dedicated `coverage-check` pre-commit hook runs the gate on every commit.
+
+v0.10.4 新增 **coverage-agent** 主題，強制 80% 覆蓋率門檻，並新增靜態分析腳本
+`scripts/coverage_agent.py`：讀取 `coverage.json`、辨識未覆蓋模組，自動補寫
+test stub 或在觸發 stop condition 時輸出人工審查提示。覆蓋率門檻由
+`pyproject.toml` 的 `fail_under = 80` 及 `coverage-check` pre-commit hook 共同執行。
+
 As of **v0.10.3**, the repository now includes a reusable request-contract session
 context for sasctl / legacy source work: `docs/standards/request-contract-testing.md`
 now acts as the explicit source of truth for request-contract gate semantics, and
