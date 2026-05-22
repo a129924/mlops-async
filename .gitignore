@@ -11,3 +11,7 @@ wheels/
 .DS_Store
 .vscode/
 docs/other/測試方式改寫推薦方案.md
+
+# Coverage reports
+.coverage
+.coverage-reports/
