@@ -245,7 +245,11 @@ class TestBoundaryAndEdge:
         ):
             _process_module(str(source_upload), [1, 2, 3])
         assert not (tmp_path / "test_uploader.py").exists()
-        assert "[COVERAGE GAP - HUMAN REVIEW REQUIRED]" in capsys.readouterr().out
+        out = capsys.readouterr().out
+        assert "[COVERAGE GAP - HUMAN REVIEW REQUIRED]" in out
+        assert "函式：" in out  # noqa: RUF001
+        assert "upload_file" in out
+        assert "建議人工操作：" in out  # noqa: RUF001
 
     def test_no_docstring_no_docs_triggers_human_review(
         self,
@@ -260,7 +264,25 @@ class TestBoundaryAndEdge:
         ):
             _process_module(str(source_no_docstring), [1, 2])
         assert not (tmp_path / "test_util.py").exists()
-        assert "[COVERAGE GAP - HUMAN REVIEW REQUIRED]" in capsys.readouterr().out
+        out = capsys.readouterr().out
+        assert "[COVERAGE GAP - HUMAN REVIEW REQUIRED]" in out
+        assert "函式：" in out  # noqa: RUF001
+        assert "mystery_fn" in out
+        assert "建議人工操作：" in out  # noqa: RUF001
+        assert "docstring" in out
+
+    def test_process_module_unparseable_source_emits_human_review(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Process module with unparseable source emits HUMAN REVIEW with <unknown>."""
+        bad_file = tmp_path / "bad.py"
+        bad_file.write_text("def foo(:\n    pass\n")  # syntax error
+        with patch("coverage_agent._TESTS_UNIT_DIR", tmp_path):
+            _process_module(str(bad_file), [1, 2])
+        out = capsys.readouterr().out
+        assert "[COVERAGE GAP - HUMAN REVIEW REQUIRED]" in out
+        assert "函式：<unknown>" in out  # noqa: RUF001
+        assert "建議人工操作：" in out  # noqa: RUF001
 
     def test_write_stubs_prevents_duplicate_function(self, tmp_path: Path) -> None:
         """_write_stubs does not append a stub whose function already exists in the file."""
@@ -349,7 +371,9 @@ class TestIntegrationPoints:
         test_file = tmp_path / "test_mixed.py"
         assert test_file.exists()
         assert "def test_clean_fn" in test_file.read_text()
-        assert "[COVERAGE GAP - HUMAN REVIEW REQUIRED]" in capsys.readouterr().out
+        out = capsys.readouterr().out
+        assert "[COVERAGE GAP - HUMAN REVIEW REQUIRED]" in out
+        assert "建議人工操作：" in out  # noqa: RUF001 - 全形冒號為繁中 UI 規格
 
 
 # ---------------------------------------------------------------------------

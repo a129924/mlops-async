@@ -170,15 +170,19 @@ def _write_stubs(test_file: Path, stubs: list[str], module_import: str) -> None:
 
 def _human_review_feedback(
     file_path: str,
+    func_name: str,
     reason: str,
     missing_lines: list[int],
+    suggestion: str,
 ) -> None:
     """Print a [COVERAGE GAP - HUMAN REVIEW REQUIRED] block to stdout."""
     print(
         f"\n[COVERAGE GAP - HUMAN REVIEW REQUIRED]\n"
-        f"  file: {file_path}\n"
-        f"  reason: {reason}\n"
-        f"  missing_lines: {missing_lines}\n"
+        f"  模組：{file_path}\n"  # noqa: RUF001 - 全形冒號為繁中 UI 規格
+        f"  未覆蓋行：{missing_lines}\n"  # noqa: RUF001 - 全形冒號為繁中 UI 規格
+        f"  函式：{func_name}\n"  # noqa: RUF001 - 全形冒號為繁中 UI 規格
+        f"  停止原因：{reason}\n"  # noqa: RUF001 - 全形冒號為繁中 UI 規格
+        f"  建議人工操作：{suggestion}\n"  # noqa: RUF001 - 全形冒號為繁中 UI 規格
     )
 
 
@@ -189,7 +193,13 @@ def _process_module(file_path: str, missing_lines: list[int]) -> None:
     functions = _extract_functions(source_path, missing_lines)
     if not functions:
         _human_review_feedback(
-            file_path, "無法解析 source (SyntaxError 或檔案不存在)", missing_lines
+            file_path,
+            func_name="<unknown>",
+            reason="無法解析 source (SyntaxError 或檔案不存在)",
+            missing_lines=missing_lines,
+            suggestion=(
+                f"手動補充 tests/unit/test_{stem}.py 的測試案例，並確認 source 檔案語法正確。"  # noqa: RUF001 - 全形逗號為繁中 UI 規格
+            ),
         )
         return
 
@@ -203,14 +213,27 @@ def _process_module(file_path: str, missing_lines: list[int]) -> None:
         if _has_stop_condition(combined_text):
             _human_review_feedback(
                 file_path,
-                f"stop condition detected in {func.name!r}: {func.docstring!r}",
-                func.missing_lines,
+                func_name=func.name,
+                reason=(
+                    f"stop condition keyword detected for {func.name!r} "
+                    f"(docstring={func.docstring!r}, docs={docs_explanation[:80]!r})"
+                ),
+                missing_lines=func.missing_lines,
+                suggestion=(
+                    f"函式 {func.name!r} 觸發 stop condition，"  # noqa: RUF001
+                    "需手動判斷外部 I/O、狀態流程或複雜互動，並撰寫含 mock 的 unit test。"  # noqa: RUF001
+                ),
             )
         elif not func.docstring and not docs_explanation:
             _human_review_feedback(
                 file_path,
-                f"no docstring and no docs explanation for {func.name!r}",
-                func.missing_lines,
+                func_name=func.name,
+                reason=f"no docstring and no docs explanation for {func.name!r}",
+                missing_lines=func.missing_lines,
+                suggestion=(
+                    f"為函式 {func.name!r} 補充 docstring"
+                    " 或在 docs/ 新增說明，再重跑 coverage agent。"  # noqa: RUF001 - 全形逗號為繁中 UI 規格
+                ),
             )
         else:
             stubs.append(_generate_stub(func, module_import))
