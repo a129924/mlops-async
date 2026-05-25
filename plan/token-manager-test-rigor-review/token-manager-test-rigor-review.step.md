@@ -1,7 +1,7 @@
 ---
 topic: token-manager-test-rigor-review
-phase: plan-authoring
-created: 2026-05-22
+phase: implementation
+created: 2026-05-23
 ---
 
 # token-manager-test-rigor-review — Step Tracking
@@ -13,15 +13,15 @@ created: 2026-05-22
 ## Workflow Stages
 
 - [X] plan-authoring
-- [ ] plan-review
-- [ ] tdd-test-authoring
-- [ ] implementation
-- [ ] implementation-review
-- [ ] code-review
+- [X] plan-review
+- [X] tdd-test-authoring
+- [X] implementation
+- [X] implementation-review
+- [X] code-review
 
 ## Implementation Steps
 
-- [X] 1. 建立 `analysis/token-manager-test-rigor-review/testcase-inventory.md`：列出每個既有 Token/Auth 測試 case（`case_id`、`file_path`、`test_name`、`covers_area`）。
-- [X] 2. 建立 `analysis/token-manager-test-rigor-review/rigor-matrix.md`：以判準為列，填入 `criterion_id`、`status`（covered/partial/missing）、`evidence_path`、`risk_level`、`notes`。
-- [X] 3. 建立 `analysis/token-manager-test-rigor-review/verdict.md`：彙總 `high_gap_count`、`medium_gap_count`、`low_gap_count` 與最終 `verdict`，並套用 `high_gap_count > 0 => verdict=不夠嚴謹`。
-- [X] 4. 回讀 `requirements.md`、`technical-spec.md`、`plan.md`、`step.md` 與三個主體輸出檔，檢查 BR-1~BR-5 對齊後再交付 human review。
+- [X] 1. 更新 `requirements.md`、`technical-spec.md`、`plan.md`、`step.md`、`spec.md`，把 topic 鎖定為 `C-004`~`C-006` 的 implementation contract。
+- [X] 2. 在 `tests/unit/core/test_token_manager.py` 新增 `AuthException` pass-through、manager-level custom skew、empty-storage concurrency fetch dedup 測試。
+- [X] 3. 執行 pytest 驗證新測試；若揭露 production bug，僅在 `src/mlops_async/core/auth.py` 做最小修補並重跑驗證。
+- [X] 4. 更新 `testcase-inventory.md`、`rigor-matrix.md`、`verdict.md`，保留 baseline audit trail 並標記 gaps 已由具體測試關閉。

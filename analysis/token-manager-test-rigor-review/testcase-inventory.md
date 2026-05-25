@@ -9,6 +9,10 @@
 | TM-005 | tests/unit/core/test_token_manager.py | test_token_manager_translates_refresh_failure_preserving_previous_token | refresh failure translation + state preservation |
 | TM-006 | tests/unit/core/test_token_manager.py | test_token_manager_uses_fallback_message_for_empty_generic_fetch_failure | generic exception fallback message |
 | TM-007 | tests/unit/core/test_token_manager.py | test_token_manager_preserves_previous_token_state_on_refresh_cancellation | cancellation state preservation |
+| TM-008 | tests/unit/core/test_token_manager.py | test_token_manager_re_raises_auth_exception_without_wrapping | auth exception pass-through identity |
+| TM-009 | tests/unit/core/test_token_manager.py | test_token_manager_reuses_near_expiry_token_when_custom_manager_skew_is_zero | manager-level zero-skew reuse path |
+| TM-010 | tests/unit/core/test_token_manager.py | test_token_manager_refreshes_near_expiry_token_when_custom_manager_skew_is_large | manager-level large-skew refresh path |
+| TM-011 | tests/unit/core/test_token_manager.py | test_token_manager_fetches_once_for_ten_concurrent_waiters_when_storage_is_empty | empty storage fetch concurrency de-dup |
 | TS-001 | tests/unit/core/test_token_storage.py | test_access_token_rejects_naive_expires_at | timezone-aware expires_at validation |
 | TS-002 | tests/unit/core/test_token_storage.py | test_access_token_rejects_naive_now_argument | timezone-aware now validation |
 | TS-003 | tests/unit/core/test_token_storage.py | test_access_token_is_expired_with_default_60_second_skew | default skew expiry rule |

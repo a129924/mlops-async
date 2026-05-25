@@ -1,45 +1,42 @@
-# TokenManager 測試嚴謹度盤點技術規格
+# TokenManager 測試嚴謹度補強技術規格
 
 ## Status
 
-- **INCOMPLETE**（可執行盤點，但尚未進入任何實作修補）
+- **READY-FOR-IMPLEMENTATION**（以 tests-first 關閉三個已識別 rigor gaps；production 修補僅為 contingency）
 
 ## Source baseline
 
 - Business baseline: `analysis/token-manager-test-rigor-review/requirements.md`
-- Translation scope: 分析現有 `TokenManager` 相關實作與測試證據，不修改 `src/` 與 `tests/`。
+- Translation scope: 補強 `TokenManager` 測試證據並同步 analysis artifacts；預期只改 `tests/unit/core/test_token_manager.py`，必要時最小修補 `src/mlops_async/core/auth.py`
 
 ## Requirement traceability
 
 | Requirement | Technical realization | Dependencies | Cost / burden | Status |
 | --- | --- | --- | --- | --- |
-| BR-1 完整 TestCase inventory | 從 `tests/unit/core/test_token_manager.py`, `test_token_storage.py`, `test_auth_provider.py`, `test_auth_contract.py` 抽取 case 清單，建立一致命名清單 | 測試檔可讀 | 低：單次盤點 | feasible |
-| BR-2 coverage matrix | 建立「判準 × 證據」對照表（功能、並發、取消、錯誤、契約）並標 `covered/partial/missing` | 需對應 `src/mlops_async/core/auth.py` 與測試證據 | 中：需人工比對與分類 | feasible |
-| BR-3 高風險門檻 | 定義風險規則：High 缺口 >0 則 verdict=不夠嚴謹；輸出風險分級與理由 | BR-2 完整矩陣 | 中：需一致分級標準 | feasible |
-| BR-4 只收集資訊 | 僅產出 analysis/plan artifacts，不變更 `src/`、`tests/` | topic 邊界約束 | 低：流程控管 | feasible |
-| BR-5 reviewer 可重現 | 輸出 artifact paths + 證據路徑 + verdict rule，供 reviewer 重跑判讀 | 人工 review gate | 中：文檔精確度要求 | feasible |
+| IR-1 AuthException pass-through | 在 `tests/unit/core/test_token_manager.py` 新增 identity-based 直接透傳測試，驗證 `is original_error` 與 `__cause__ is None` | `mlops_async.core.auth.AuthException` 可被 subclass；`TokenManager` refresh path 可注入失敗 fetcher | 低 | feasible |
+| IR-2 manager-level custom expiry_skew | 對同一 near-expiry token 撰寫兩個 path tests：`expiry_skew=0` reuse、`expiry_skew=5 minutes` refresh | `TokenManager.__init__(expiry_skew=...)` 與 `AccessToken.is_expired` | 低 | feasible |
+| IR-3 empty-storage concurrency fetch dedup | 以 10 concurrent waiters 驗證 empty-storage fetch path 僅單次 fetch | 既有 `_BlockingTokenFetcher` helper 與 `asyncio.Event` 協調模式 | 低到中 | feasible |
+| IR-4 scope control | 把 production 變更限制在 `src/mlops_async/core/auth.py` contingency only，其餘 related files 維持 inspect-only | plan/spec/step 邊界一致 | 低 | feasible |
+| IR-5 analysis sync | 更新 inventory/matrix/verdict，保留 baseline gap 記錄並補上 closed-by evidence | 三個 analysis artifact 路徑已固定 | 低 | feasible |
 
 ## Technical tasks and artifacts
 
-1. 建立 `TestCase inventory` 輸出檔，固定欄位如下：
-   - `case_id`
-   - `file_path`
-   - `test_name`
-   - `covers_area`
-2. 建立 `rigor matrix` 輸出檔，固定欄位如下：
-   - `criterion_id`
-   - `status` (`covered|partial|missing`)
-   - `evidence_path`
-   - `risk_level` (`High|Medium|Low`)
-   - `notes`
-3. 建立 `verdict` 輸出檔，固定欄位如下：
-   - `high_gap_count`
-   - `medium_gap_count`
-   - `low_gap_count`
-   - `decision_rule`（固定文字：`high_gap_count > 0 => verdict=不夠嚴謹`）
-   - `verdict`
-   - `gap_list`
-4. 回寫 topic plan 的分析層對映狀態（已具備 requirements/technical-spec）。
+1. 更新 implementation contract 工件，使其從 analysis-only 改為 implementation topic：
+   - `analysis/token-manager-test-rigor-review/requirements.md`
+   - `analysis/token-manager-test-rigor-review/technical-spec.md`
+   - `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.plan.md`
+   - `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.step.md`
+   - `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.spec.md`
+2. 在 `tests/unit/core/test_token_manager.py` 新增以下測試：
+   - `test_token_manager_re_raises_auth_exception_without_wrapping`
+   - `test_token_manager_reuses_near_expiry_token_when_custom_manager_skew_is_zero`
+   - `test_token_manager_refreshes_near_expiry_token_when_custom_manager_skew_is_large`
+   - `test_token_manager_fetches_once_for_ten_concurrent_waiters_when_storage_is_empty`
+3. 若新測試揭露 bug，只允許在 `src/mlops_async/core/auth.py` 做最小修補，且不得更動 public contract。
+4. 同步更新 analysis outputs：
+   - `analysis/token-manager-test-rigor-review/testcase-inventory.md`
+   - `analysis/token-manager-test-rigor-review/rigor-matrix.md`
+   - `analysis/token-manager-test-rigor-review/verdict.md`
 
 ### Artifact paths
 
@@ -49,43 +46,49 @@
 - `analysis/token-manager-test-rigor-review/rigor-matrix.md`
 - `analysis/token-manager-test-rigor-review/verdict.md`
 - `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.plan.md`
+- `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.step.md`
+- `plan/token-manager-test-rigor-review/token-manager-test-rigor-review.spec.md`
+- `tests/unit/core/test_token_manager.py`
+- `src/mlops_async/core/auth.py`（contingency only）
 
 ## Feasibility / cost-of-realization
 
-- **Implementation complexity**: 低到中（以分析與比對為主）。
-- **Sequencing pressure**: 需先鎖定判準，再做矩陣與風險判讀；否則結論不可重現。
-- **Integration burden**: 低（僅讀現有程式與測試）。
-- **Operational overhead**: 低（僅 human check 維護判準一致性）。
+- **Implementation complexity**: 低（以單檔 unit tests 為主）。
+- **Sequencing pressure**: 先凍結 implementation contract，再補測試，最後同步 analysis verdict。
+- **Integration burden**: 低；不新增依賴，沿用既有 test helpers。
+- **Operational overhead**: 低到中；需跑 pytest / pyright / ruff 驗證 workflow gate。
 
 ## Architecture-compliance self-check
 
 | Dimension | Result | Note |
 | --- | --- | --- |
-| Async-first boundary | fits existing architecture | 只讀既有 async 實作，不改邊界 |
-| Dependency direction boundary | fits existing architecture | 不新增依賴，只做證據映射 |
-| Security/compliance | fits existing architecture | 無新增執行面，僅分析 |
-| Observability/rollback support | fits with prerequisites | 需維持 artifact 可追溯路徑供 reviewer 重現 |
+| Async-first boundary | fits existing architecture | 測試補強不新增 async boundary；若 contingency patch 也只在既有 `TokenManager` 邏輯內 |
+| Dependency direction boundary | fits existing architecture | 不新增依賴，仍由 `TokenManager -> TokenFetcher/TokenStorage` |
+| Security/compliance | fits existing architecture | 純 unit-test 與 doc artifact 更新 |
+| Observability/rollback support | fits existing architecture | analysis artifacts 保留 baseline 與 closure evidence |
 
 ## Conflicts and rollback triggers
 
 ### Material conflicts
 
-1. 若 inventory 與 matrix 結果互相矛盾（例如清單宣稱有案例但矩陣無證據）：
-   - 視為 technical translation 不成立，回退到 requirements 對齊。
-2. 若出現必須改碼才能判定的需求（超出「只收集資訊」）：
-   - 回退到 alignment，請人類決定是否開新 implementation topic。
+1. 若 `AuthException` pass-through 測試只能以 `TokenFetchException` 綠燈，代表測試無法區分「直接透傳」與「重新包裝」：
+   - 必須回退並改成 identity-based assertion。
+2. 若 manager-level skew 只測單一方向，無法證明 `TokenManager` 使用自訂 skew：
+   - 必須回退並補齊雙向決策測試。
+3. 若 empty-storage concurrency 測試與 refresh path concurrency 測試沒有實質差異：
+   - 視為 gap 未關閉，需明確覆蓋 `cached_token is None` 分支。
 
 ### Rollback-to-alignment triggers
 
-1. failing business assumption: 「不改碼也可判定嚴謹度」
-   technical contradiction: 關鍵判準無任何現有證據可觀察
-   renegotiation needed: 是否允許新開 implementation topic 補測
-2. failing business assumption: reviewer 可重現 verdict
-   technical contradiction: artifact 不足以重建判斷
-   renegotiation needed: 補足 matrix 欄位或調整判準精度
+1. failing business assumption: 「三個 gap 只靠 `test_token_manager.py` 即可關閉」
+   technical contradiction: 任一 gap 需要改動 unrelated test file 才能驗證
+   renegotiation needed: 是否拆出新 topic
+2. failing business assumption: 「production 理應已支援三個 gap」
+   technical contradiction: 新測試要求超出 `src/mlops_async/core/auth.py` 的修補
+   renegotiation needed: 是否擴 scope 或停止
 
 ## Non-goal enforcement
 
-- 不做 runtime coding / scaffolding。
-- 不執行 `src/` 或 `tests/` 內容修改。
-- 不進入 commit/push/PR 動作。
+- 不修改 `tests/unit/core/test_token_storage.py`、`tests/unit/core/test_auth_provider.py`、`tests/unit/core/test_auth_contract.py`。
+- 不新增 public API 或變更 package exports。
+- 不執行 commit/push/PR。
