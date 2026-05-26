@@ -302,9 +302,14 @@ async def test_token_manager_fetches_once_for_ten_concurrent_waiters_when_storag
     manager = auth_module.TokenManager(storage, fetcher)
 
     tasks = [asyncio.create_task(manager.get_access_token()) for _ in range(10)]
-    await fetcher.started.wait()
-    fetcher.release.set()
-    results = await asyncio.gather(*tasks)
+    try:
+        await asyncio.wait_for(fetcher.started.wait(), timeout=1)
+        fetcher.release.set()
+        results = await asyncio.gather(*tasks)
+    except BaseException:
+        for task in tasks:
+            task.cancel()
+        raise
 
     assert results == [fetched_token] * 10
     assert storage.get_token() == fetched_token
