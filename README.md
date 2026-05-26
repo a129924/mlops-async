@@ -8,6 +8,13 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.10.6**, the repository closes the `token-manager-test-rigor-review`
+post-merge follow-up: the TokenManager rigor-review gaps are now covered by unit
+tests, and the audit trail stays aligned with the current analysis artifacts.
+
+v0.10.6 補齊 `token-manager-test-rigor-review` 合併後的後續整理：
+TokenManager 嚴謹度缺口已由單元測試關閉，且分析工件仍與當前狀態對齊。
+
 As of **v0.10.5**, post-merge docs/contracts are aligned for the
 `coverage-agent-simplification` correction: step-tracker validation now uses the
 canonical command form
