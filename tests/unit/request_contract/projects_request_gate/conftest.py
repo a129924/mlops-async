@@ -393,11 +393,6 @@ class SasctlContractHarness:
 
 
 @pytest.fixture
-def load_request_flow_case() -> Callable[[str, str], Mapping[str, object]]:
-    return lambda filename, case_name: _load_case(filename, case_name)
-
-
-@pytest.fixture
 def load_answer_set_case() -> Callable[[str, str], Mapping[str, object]]:
     return lambda filename, case_name: _load_case(filename, case_name)
 

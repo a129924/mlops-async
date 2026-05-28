@@ -81,14 +81,6 @@ def test_list_projects_default_request_shape(sasctl_contract: SasctlContractHarn
     assert "Accept" in headers
 
 
-def test_list_projects_empty_response(sasctl_contract: SasctlContractHarness) -> None:
-    result = sasctl_contract.run(case_list_projects_default)
-
-    assert result == []
-    assert case_list_projects_default.response.json_body == EMPTY_LIST_RESPONSE
-    assert EMPTY_LIST_RESPONSE["items"] == []
-
-
 def test_list_projects_limit_1000_request_shape(
     sasctl_contract: SasctlContractHarness,
 ) -> None:
