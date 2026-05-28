@@ -8,6 +8,16 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.10.7**, the repository closes the `request-gate-projects-tables`
+post-merge follow-up: the projects request gate plan, step tracker, and
+request-contract tests are merged, while `model-repository/tables` remains
+BLOCKED by HATEOAS conditional endpoint selection for a future topic.
+
+v0.10.7 補齊 `request-gate-projects-tables` 合併後的後續整理：
+projects request gate 的 plan / step / tests 已併入主線，
+而 `model-repository/tables` 仍因 HATEOAS conditional endpoint selection
+保留 BLOCKED，留待後續獨立 topic。
+
 As of **v0.10.6**, the repository closes the `token-manager-test-rigor-review`
 post-merge follow-up: the TokenManager rigor-review gaps are now covered by unit
 tests, and the audit trail stays aligned with the current analysis artifacts.
