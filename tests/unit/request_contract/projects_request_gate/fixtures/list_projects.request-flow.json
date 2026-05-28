@@ -1,0 +1,73 @@
+{
+  "source": {
+    "sdk": "sasctl",
+    "function": "ModelRepository.list_projects",
+    "evidence": [
+      "docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md",
+      "docs/api-endpoints/swagger-spec/projects-spec.yaml"
+    ]
+  },
+  "cases": {
+    "bare_get": {
+      "capture_run_id": "list-projects-bare-get",
+      "comparison_scope": "target-api-only",
+      "full_observed_flow": [
+        {
+          "purpose": "target-api",
+          "request": {
+            "method": "GET",
+            "path": "/modelRepository/projects",
+            "required_header_subset": {
+              "Authorization": {
+                "scheme": "Bearer"
+              },
+              "Accept": {
+                "present": true
+              }
+            },
+            "query": {},
+            "body": null
+          }
+        }
+      ]
+    },
+    "limit_1000": {
+      "capture_run_id": "list-projects-limit-1000",
+      "comparison_scope": "target-api-only",
+      "full_observed_flow": [
+        {
+          "purpose": "target-api",
+          "request": {
+            "method": "GET",
+            "path": "/modelRepository/projects",
+            "required_header_subset": {
+              "Authorization": {
+                "scheme": "Bearer"
+              },
+              "Accept": {
+                "present": true
+              }
+            },
+            "query": {
+              "limit": "1000"
+            },
+            "body": null
+          }
+        }
+      ]
+    }
+  },
+  "assertion_layer": "layer1-source-observed-request-shape",
+  "reviewer_boundary": {
+    "claims": [
+      "source-observed prepared request semantics only"
+    ],
+    "does_not_prove": [
+      "auth proof",
+      "session or refresh proof",
+      "real transport proof",
+      "target runtime behavior proof"
+    ],
+    "accept_header_note": "Accept is asserted only at the source-observed layer represented by this harness. Any stricter target media-type policy belongs in divergence or intent metadata, not this fixture."
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "cases": {
+    "direct_identifier": {
+      "capture_run_id": "get-project-direct-identifier",
+      "responses": [
+        {
+          "match": {
+            "method": "GET",
+            "path": "/modelRepository/projects/123e4567-e89b-12d3-a456-426614174001",
+            "query": {},
+            "body": null
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json",
+              "ETag": "dummy-etag"
+            },
+            "json_body": {
+              "id": "123e4567-e89b-12d3-a456-426614174001",
+              "name": "demo-project",
+              "status": "development",
+              "links": []
+            }
+          }
+        }
+      ]
+    }
+  }
+}
