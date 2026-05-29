@@ -8,6 +8,16 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.10.8**, the repository closes the `tests-importlib-plan-review`
+post-merge follow-up: tests now remove non-essential `importlib` module-loading
+helpers in favor of absolute imports, while preserving importability assertions
+that explicitly validate module discovery behavior.
+
+v0.10.8 補齊 `tests-importlib-plan-review` 合併後的後續整理：
+`tests/` 中非必要 `importlib` 載入輔助已改為絕對引入；
+僅保留真正用於 importability 驗證的 `importlib` 斷言路徑，
+以維持測試語意與契約一致。
+
 As of **v0.10.7**, the repository closes the `request-gate-projects-tables`
 post-merge follow-up: the projects request gate plan, step tracker, and
 request-contract tests are merged, while `model-repository/tables` remains
