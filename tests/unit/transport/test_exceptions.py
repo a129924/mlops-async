@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 from dataclasses import FrozenInstanceError
 from types import ModuleType
 
@@ -8,17 +7,20 @@ import pytest
 
 
 def _import_root_exceptions_module() -> ModuleType:
-    return importlib.import_module("mlops_async.exceptions")
+    import mlops_async.exceptions as root_exceptions_module
+
+    return root_exceptions_module
 
 
 def _import_transport_exceptions_module() -> ModuleType:
     try:
-        return importlib.import_module("mlops_async.transport.exceptions")
+        import mlops_async.transport.exceptions as transport_exceptions_module
     except ModuleNotFoundError as exc:
         pytest.fail(
             "Transport exceptions must live at mlops_async.transport.exceptions; "
             f"import failed: {exc}"
         )
+    return transport_exceptions_module
 
 
 def _exception_type(module: ModuleType, name: str) -> type[BaseException]:

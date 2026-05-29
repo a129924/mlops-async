@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -8,12 +7,13 @@ import pytest
 
 def _token_storage_module():
     try:
-        return importlib.import_module("mlops_async.core.token_storage")
+        import mlops_async.core.token_storage as token_storage_module
     except ModuleNotFoundError as exc:
         pytest.fail(
             "Token storage module must live at mlops_async.core.token_storage; "
             f"import failed: {exc}"
         )
+    return token_storage_module
 
 
 def test_access_token_rejects_naive_expires_at() -> None:
