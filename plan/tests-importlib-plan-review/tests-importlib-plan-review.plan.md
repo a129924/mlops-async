@@ -51,9 +51,9 @@
 
 ## Status / Allowed Transitions
 
-- **Current**: `reviewer-in-progress`
-- **Execution model**: 本輪 creator 已完成 reviewer 指出的 plan contract rework，並已依 canonical 路由由 `creator-in-progress` -> `review-ready` 進入 `reviewer-in-progress` 取得 plan verdict。若 reviewer `approved`，後續才會依 canonical `approved` -> `creator-in-progress` 啟動真正的 `tests/` import rewrite execution，之後沿 canonical reviewer / publish / merge 路由前進。本 topic 不宣告 release action，`merged` 為終點。
-- **Step-tracker alignment**: `plan/tests-importlib-plan-review/tests-importlib-plan-review.step.md` 直接追蹤本輪 creator pass 已完成的 planning artifacts / plan contract 工作，而不是 post-approval downstream execution。`.step.md` 的 `## Implementation Steps` 全部完成，正是本 topic 能從 `creator-in-progress` 移到 `review-ready` 並交由 reviewer 進入 `reviewer-in-progress` 的 completion gate；若 reviewer 回傳 `needs-rework`，則下一輪再回到 `creator-in-progress` 重新開啟新的 creator pass。
+- **Current**: `approved`
+- **Execution model**: 本 topic 的 plan artifacts 已完成 review 並取得可執行 verdict；目前 managed worktree 內承載的是後續 `tests/` import rewrite execution 結果，用於 `python-implementation-workflow` 依 `0 -> 5` phase 重新驗證 implementation / review gates。git commit / PR / merge 仍由 repo-level lifecycle 處理，不在本 workflow scope。
+- **Step-tracker alignment**: `plan/tests-importlib-plan-review/tests-importlib-plan-review.step.md` 的 canonical `## Workflow Stages` 與 `## Implementation Steps` 皆以本 topic 的 implementation workflow 為準：前者提供 Phase 0 resume source，後者提供 Phase 3 completion gate。`.step.md` 所記錄的是 `tests/` import rewrite 的盤點、分類、改寫、驗證與 reviewer evidence，而不是早期 planning-artifact-only gate。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`

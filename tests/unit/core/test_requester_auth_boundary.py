@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -12,28 +11,31 @@ from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeader
 
 def _auth_module():
     try:
-        return importlib.import_module("mlops_async.core.auth")
+        import mlops_async.core.auth as auth_module
     except ModuleNotFoundError as exc:
         pytest.fail(
             f"Internal auth contracts must live at mlops_async.core.auth; import failed: {exc}"
         )
+    return auth_module
 
 
 def _requester_module():
     try:
-        return importlib.import_module("mlops_async.core.requester")
+        import mlops_async.core.requester as requester_module
     except ModuleNotFoundError as exc:
         pytest.fail(f"Requester must live at mlops_async.core.requester; import failed: {exc}")
+    return requester_module
 
 
 def _token_storage_module():
     try:
-        return importlib.import_module("mlops_async.core.token_storage")
+        import mlops_async.core.token_storage as token_storage_module
     except ModuleNotFoundError as exc:
         pytest.fail(
             "Token storage contracts must live at mlops_async.core.token_storage; "
             f"import failed: {exc}"
         )
+    return token_storage_module
 
 
 @dataclass

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import inspect
 from collections.abc import Awaitable, Callable, Mapping
 from types import ModuleType
@@ -17,30 +16,33 @@ from mlops_async.core.types import HttpMethod, RawClientResponse
 
 def _http_client_class() -> type[Client]:
     try:
-        module = importlib.import_module("mlops_async.transport.http_client")
+        import mlops_async.transport.http_client as http_client_module
     except ModuleNotFoundError as exc:
         pytest.fail(
             "Concrete HttpClient must live at mlops_async.transport.http_client; "
             f"import failed: {exc}"
         )
 
-    http_client = getattr(module, "HttpClient", None)
+    http_client = getattr(http_client_module, "HttpClient", None)
     assert inspect.isclass(http_client)
     return http_client
 
 
 def _transport_exceptions_module() -> ModuleType:
     try:
-        return importlib.import_module("mlops_async.transport.exceptions")
+        import mlops_async.transport.exceptions as transport_exceptions_module
     except ModuleNotFoundError as exc:
         pytest.fail(
             "Transport exceptions must live at mlops_async.transport.exceptions; "
             f"import failed: {exc}"
         )
+    return transport_exceptions_module
 
 
 def _http_client_module() -> ModuleType:
-    return importlib.import_module("mlops_async.transport.http_client")
+    import mlops_async.transport.http_client as http_client_module
+
+    return http_client_module
 
 
 def _exception_type(name: str) -> type[BaseException]:

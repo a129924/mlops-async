@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import importlib
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -9,21 +8,23 @@ import pytest
 
 def _auth_module():
     try:
-        return importlib.import_module("mlops_async.core.auth")
+        import mlops_async.core.auth as auth_module
     except ModuleNotFoundError as exc:
         pytest.fail(
             f"Internal auth contracts must live at mlops_async.core.auth; import failed: {exc}"
         )
+    return auth_module
 
 
 def _token_storage_module():
     try:
-        return importlib.import_module("mlops_async.core.token_storage")
+        import mlops_async.core.token_storage as token_storage_module
     except ModuleNotFoundError as exc:
         pytest.fail(
             "Token storage contracts must live at mlops_async.core.token_storage; "
             f"import failed: {exc}"
         )
+    return token_storage_module
 
 
 class _RecordingTokenFetcher:

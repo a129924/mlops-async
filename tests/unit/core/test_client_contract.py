@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import importlib.util
 import inspect
 from pathlib import Path
@@ -17,13 +16,13 @@ from mlops_async.core.types import JSONValue, RawClientResponse
 
 def _http_client_class() -> type[Client]:
     try:
-        module = importlib.import_module("mlops_async.transport.http_client")
+        import mlops_async.transport.http_client as http_client_module
     except ModuleNotFoundError as exc:
         pytest.fail(
             "Concrete HttpClient must live at mlops_async.transport.http_client; "
             f"import failed: {exc}"
         )
-    http_client: type[Client] = module.HttpClient
+    http_client: type[Client] = http_client_module.HttpClient
     assert inspect.isclass(http_client)
     return http_client
 

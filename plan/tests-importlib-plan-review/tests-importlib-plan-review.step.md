@@ -1,82 +1,52 @@
 ---
 topic: tests-importlib-plan-review
-phase: reviewer-in-progress
+phase: done
 created: 2026-05-28
 ---
 
 # tests-importlib-plan-review — Step Tracker
 
-> **Current gate purpose**：本檔的 canonical `## Implementation Steps` 只追蹤本輪 creator pass 是否已把 `tests/` import rewrite topic 的 planning artifacts 對齊到 reviewer gate。
-> **Completion source**：依 `plan/agent-handoff-workflow.md`，只有 `## Implementation Steps` 的核取方塊會被當成目前 gate 的 completion source。
-> **Downstream note**：未來真正的 `tests/` import rewrite 實作、review、PR-open、merge 與 release 對照，另見本文後段的獨立 future section；該段不是本輪 gate 的完成來源。
+> **Resume source**：`python-implementation-workflow` 的 Phase 0 會從本檔 `## Workflow Stages` 的 `[X]/[ ]` 重建目前 phase；第一個未完成項目就是目前 resume phase。
+> **Gate source**：Phase 3 只會用 `python .github/skills/plan-step-tracker/scripts/step_tracker.py check_impl_steps_succeeded tests-importlib-plan-review` 掃描 canonical `## Implementation Steps`。
+> **Current state**：`tests/` 內非必要 `importlib` 用法已改寫為絕對引入；唯一保留案例是 `tests/unit/core/test_client_contract.py` 的 `importlib.util.find_spec(...)` importability assertion。
 
 ## Workflow Stages
 
-- [X] workflow-alignment
-- [X] topic-freeze
-- [X] step-gate-complete
-- [X] review-ready
-- [X] reviewer-in-progress
+- [X] 0 Pre-flight
+- [X] 1 Plan Review
+- [X] 2 TDD Assessment
+- [X] 3 Implementation Gate
+- [X] 4 Implementation Review
+- [X] 5 Code Review
 
 ## Implementation Steps
 
-- [X] 1. 將本 tracker 的當前 gate 明確限定為 creator pass：只追蹤讓 `tests/` import rewrite topic 進入 reviewer gate 所需的 planning-artifact 對齊工作。
-- [X] 2. 凍結本 topic 的執行主語與邊界：`tests/` 內移除非必要 `importlib`、保留真正 importability tests、並以語意一致為不可退讓條件。
-- [X] 3. 保留 canonical `## Implementation Steps` 作為唯一 gate completion source，避免把未來 Implement / Reviewer / PR-open / merge / release 的工作混入目前 creator pass。
-- [X] 4. 在本檔新增獨立的 future section，供後續 Implement / Reviewer / PR-open / merge / release 核對 topic 是否真的做到，但不把它作為目前 gate 的完成依據。
-- [X] 5. 確認本輪 creator pass 已完成，故本 topic 可由 `creator-in-progress` 經 `review-ready` 進入 `reviewer-in-progress`，等待 reviewer 對最新版 planning artifacts 給出 verdict。
+- [X] 1. 盤點 `tests/` 內所有 `importlib` 用法，記錄檔案位置、scope、載入形式、被測對象，以及候選絕對引入路徑。
+- [X] 2. 逐案分類每個使用情境是「一般引入替代」、「真正 importability test」，還是「需要人工 review 的載入機制敏感案例」，並留下判定理由。
+- [X] 3. 將所有非例外案例改寫為絕對引入；必要時保留 module namespace、延後引入時機與 fixture / helper scope，以維持原本測試語意。
+- [X] 4. 驗證改寫前後的 module identity、fixture behavior、monkeypatch / mock 綁定點、assertion intent 與 test outcome 一致，並執行受影響測試的必要驗證。
+- [X] 5. 彙整保留案例、人工 review blockers 與驗證結果，讓 `Implementation Review` / `Code Review` 能直接追溯每個改寫決策。
 
-## Completion Signals
+## Current Resume Notes
 
-- [X] `## Implementation Steps` 現在只服務目前 creator pass / reviewer gate。
-- [X] 當前 gate 不再混入未來 execution、PR 或 release 工作。
-- [X] 本 topic 的主語仍是 `tests/` import rewrite，而非 planning-package meta 說明。
-- [X] 後續實作與驗收核對需求已被移到獨立 future section。
-- [X] reviewer 可直接用目前 artifacts 審查本輪 plan contract。
+- workflow 已完成 `0 → 5` 全部 phase；若後續再有 delta，必須由新的 workflow run 重新進入相應 phase。
+- 本次 rewrite 保留 helper scope 內的絕對 import，以維持原本 module namespace、延後引入時機與 `pytest.fail(...)` 訊息語意。
+- `plan.md` 與 `spec.md` 無衝突；唯一保留的 importlib 使用是 `test_client_contract.py` 中的 `importlib.util.find_spec(...)` importability assertion。
 
-## Future Execution / Review Checklist
+## Future Implement / PR / Release Checklist
 
-> 這一節提供未來 Implement / Reviewer / PR-open / merge / release 對照使用。
-> 它是下游核對依據，不是當前 `review-ready` / `reviewer-in-progress` gate 的 completion source。
+> 本節是附加提醒，不是 Phase 0 resume source，也不是 Phase 3 `check_impl_steps_succeeded` 的 gate source。
+> 後續 Implement / PR / Release 如需核對，應讀這一節的敘述，但不得把這裡的項目當成 canonical `## Implementation Steps`。
 
-### Topic delivery target
+### Implement / review evidence
 
-- `tests/` 內非必要 `importlib` 用法應被移除或改寫為絕對引入。
-- 真正以 import 成功／失敗、warning 或 import-time 可觀測結果為主題的測試，才可保留動態引入。
-- 改寫後必須維持 module identity、fixture behavior、monkeypatch / mock 綁定點、assertion intent 與 pass / fail 意義一致。
+- 已改寫 8 個測試檔的 `importlib.import_module(...)` helper；全部改為 helper scope 內的絕對 `import ... as ...`，避免改變 monkeypatch 綁定點與錯誤訊息語意。
+- 保留案例：`tests/unit/core/test_client_contract.py::test_transport_http_client_is_only_supported_concrete_client_module_path` 仍使用 `importlib.util.find_spec(...)`，因為它直接驗證 importability/module-path contract。
+- 無人工 review blocker；`plan.md` 與 `spec.md` 一致，且本 topic 未修改 `src/`。
+- 驗證 evidence：`uv run ruff check ...` ✅、`uv run pyright --pythonpath . ...` ✅、`uv run pytest` ✅（103 passed, coverage 95.36%）。
 
-### Removal / retention checklist
+### PR / merge expectations
 
-- [ ] 列出 `tests/` 內所有 `importlib` 使用點並完成分類。
-- [ ] 移除所有只是在一般功能測試中替代普通 import 的 `importlib` 用法。
-- [ ] 保留真正 importability tests 所需的動態引入，且每個保留案例都有明確理由。
-- [ ] 對無法穩定證明等價的 loader-sensitive / reload-sensitive / `sys.modules` / `sys.path` 敏感案例停止並交人工 review。
-
-### Implement Step
-
-- [ ] 盤點每個使用點的檔案、scope、載入形式、被測對象與候選絕對引入路徑。
-- [ ] 逐案改寫非例外案例，保留必要的 module namespace、引入時機與 fixture / helper scope。
-- [ ] 移除因動態載入而存在、但在絕對引入後已非必要的輔助寫法，前提是不改變測試語意。
-
-### Validation / Reviewer Step
-
-- [ ] 驗證改寫前後的 module identity、fixture behavior、patch 綁定點與 assertion intent 一致。
-- [ ] 執行受影響測試或等價驗證，確認 pass / fail 意義未漂移。
-- [ ] reviewer 可追溯每個保留案例、改寫案例與 blocker 的理由。
-- [ ] reviewer 確認沒有 scope 漂移到 `src/`、公開 API 或無關測試重構。
-
-### PR-open Step
-
-- [ ] PR 說明清楚列出：哪些 `importlib` 被移除、哪些 importability tests 被保留、哪些案例被標記人工 review。
-- [ ] PR diff 保持在 `tests/` 與必要的 repo-visible planning artifacts 範圍內。
-- [ ] PR 驗證摘要能支持「已維持語意一致」這個結論。
-
-### Merge Step
-
-- [ ] merge 前已解決所有 blocker，或已把 blocker 明確切分到後續 topic。
-- [ ] merge 的內容只宣告本 topic 實際做到的範圍，不把未處理案例包裝成已完成。
-- [ ] merge 後 repository 狀態仍符合「非必要 `importlib` 已移除、真正 importability tests 保留」的主語。
-
-### Release Step
-
-- [ ] 本 topic 不需要 release action；若未來有人主張需要 release，必須另開 topic 或更新 plan contract，而不是在此 tracker 內追加當前 gate 內容。
+- PR 應清楚列出哪些 `importlib` 被移除、哪些 importability tests 被保留、哪些案例被標記人工 review。
+- merge 前只能宣告本 topic 實際完成的 rewrite 範圍；未處理案例必須留在 blocker 或後續 topic。
+- 本 topic 不需要 release action；若未來有人主張需要 release，必須另開 topic 或更新 plan contract，而不是污染當前 gate source。
