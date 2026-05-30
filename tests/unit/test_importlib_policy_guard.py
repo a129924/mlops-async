@@ -54,6 +54,31 @@ def _collect_importlib_violations(path: Path) -> list[str]:
     return violations
 
 
+def _collect_contract_helper_import_violations(path: Path) -> list[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    violations: list[str] = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "tests.contracts" or alias.name.startswith("tests.contracts."):
+                    violations.append(
+                        f"line {node.lineno}: import from contract test package '{alias.name}'"
+                    )
+        elif isinstance(node, ast.ImportFrom):
+            if node.module and (
+                node.module == "tests.contracts"
+                or node.module.startswith("tests.contracts.")
+                or node.module == "contracts"
+                or node.module.startswith("contracts.")
+            ):
+                violations.append(
+                    f"line {node.lineno}: import from contract test package '{node.module}'"
+                )
+
+    return violations
+
+
 def test_importlib_usage_is_restricted_to_contract_tests() -> None:
     violations: list[str] = []
 
@@ -62,6 +87,20 @@ def test_importlib_usage_is_restricted_to_contract_tests() -> None:
         if _is_contracts_dir(rel):
             continue
         file_violations = _collect_importlib_violations(path)
+        if file_violations:
+            violations.append(f"{rel}: {'; '.join(file_violations)}")
+
+    assert violations == []
+
+
+def test_non_contract_tests_do_not_import_contract_test_helpers() -> None:
+    violations: list[str] = []
+
+    for path in sorted(_tests_root().rglob("*.py")):
+        rel = path.relative_to(_repo_root())
+        if _is_contracts_dir(rel):
+            continue
+        file_violations = _collect_contract_helper_import_violations(path)
         if file_violations:
             violations.append(f"{rel}: {'; '.join(file_violations)}")
 
