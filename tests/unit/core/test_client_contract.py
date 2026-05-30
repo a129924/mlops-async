@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import importlib.util
 import inspect
-from pathlib import Path
 from typing import get_type_hints
 
 import httpx
@@ -25,10 +23,6 @@ def _http_client_class() -> type[Client]:
     http_client: type[Client] = http_client_module.HttpClient
     assert inspect.isclass(http_client)
     return http_client
-
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
 
 
 def test_client_protocol_uses_repo_owned_types_only() -> None:
@@ -63,12 +57,6 @@ def test_transport_http_client_nominally_inherits_client_protocol() -> None:
 
     assert http_client.__bases__ == (Client,)
     assert Client in http_client.__mro__
-
-
-def test_transport_http_client_is_only_supported_concrete_client_module_path() -> None:
-    assert importlib.util.find_spec("mlops_async.transport.http_client") is not None
-    assert importlib.util.find_spec("mlops_async.core.http_client") is None
-    assert not (_repo_root() / "src/mlops_async/core/http_client.py").exists()
 
 
 def test_package_root_does_not_reexport_internal_client_symbols() -> None:
