@@ -2,28 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+import mlops_async.core.auth as auth
+import mlops_async.core.token_storage as token_storage
 import pytest
-
-
-def _auth_module():
-    try:
-        import mlops_async.core.auth as auth_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            f"Internal auth contracts must live at mlops_async.core.auth; import failed: {exc}"
-        )
-    return auth_module
-
-
-def _token_storage_module():
-    try:
-        import mlops_async.core.token_storage as token_storage_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            "Token storage contracts must live at mlops_async.core.token_storage; "
-            f"import failed: {exc}"
-        )
-    return token_storage_module
 
 
 class _StubTokenManager:
@@ -38,14 +19,12 @@ class _StubTokenManager:
 
 @pytest.mark.asyncio
 async def test_auth_provider_turns_token_manager_output_into_bearer_header() -> None:
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
-    access_token = token_storage_module.AccessToken(
+    access_token = token_storage.AccessToken(
         value="managed-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
     token_manager = _StubTokenManager(access_token)
-    auth_provider = auth_module.AuthProvider(token_manager)
+    auth_provider = auth.AuthProvider(token_manager)
 
     headers = await auth_provider.get_auth_headers()
 

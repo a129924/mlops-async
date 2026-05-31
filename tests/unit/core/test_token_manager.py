@@ -3,28 +3,9 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta, timezone
 
+import mlops_async.core.auth as auth
+import mlops_async.core.token_storage as token_storage
 import pytest
-
-
-def _auth_module():
-    try:
-        import mlops_async.core.auth as auth_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            f"Internal auth contracts must live at mlops_async.core.auth; import failed: {exc}"
-        )
-    return auth_module
-
-
-def _token_storage_module():
-    try:
-        import mlops_async.core.token_storage as token_storage_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            "Token storage contracts must live at mlops_async.core.token_storage; "
-            f"import failed: {exc}"
-        )
-    return token_storage_module
 
 
 class _RecordingTokenFetcher:
@@ -90,21 +71,19 @@ class _BlockingTokenFetcher:
 
 @pytest.mark.asyncio
 async def test_token_manager_re_raises_auth_exception_without_wrapping() -> None:
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
 
-    class _CustomAuthException(auth_module.AuthException):
+    class _CustomAuthException(auth.AuthException):
         pass
 
-    previous_token = token_storage_module.AccessToken(
+    previous_token = token_storage.AccessToken(
         value="previous-token",
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
     )
     original_error = _CustomAuthException("auth boundary failed")
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     storage.set_token(previous_token)
     fetcher = _FailingTokenFetcher(original_error)
-    manager = auth_module.TokenManager(storage, fetcher)
+    manager = auth.TokenManager(storage, fetcher)
 
     with pytest.raises(_CustomAuthException) as exc_info:
         await manager.get_access_token()
@@ -119,25 +98,23 @@ async def test_token_manager_re_raises_auth_exception_without_wrapping() -> None
 
 @pytest.mark.asyncio
 async def test_token_manager_reuses_near_expiry_token_when_custom_manager_skew_is_zero() -> None:
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
-    near_expiry_token = token_storage_module.AccessToken(
+    near_expiry_token = token_storage.AccessToken(
         value="cached-token",
         expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
     )
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     storage.set_token(near_expiry_token)
     fetcher = _RecordingTokenFetcher(
-        fetch_token=token_storage_module.AccessToken(
+        fetch_token=token_storage.AccessToken(
             value="unused-fetch-token",
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=20),
         ),
-        refresh_token=token_storage_module.AccessToken(
+        refresh_token=token_storage.AccessToken(
             value="unused-refresh-token",
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
         ),
     )
-    manager = auth_module.TokenManager(storage, fetcher, expiry_skew=timedelta(0))
+    manager = auth.TokenManager(storage, fetcher, expiry_skew=timedelta(0))
 
     resolved = await manager.get_access_token()
 
@@ -149,21 +126,19 @@ async def test_token_manager_reuses_near_expiry_token_when_custom_manager_skew_i
 
 @pytest.mark.asyncio
 async def test_token_manager_reuses_non_expired_token_without_fetch_or_refresh() -> None:
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
-    token = token_storage_module.AccessToken(
+    token = token_storage.AccessToken(
         value="cached-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     storage.set_token(token)
     fetcher = _RecordingTokenFetcher(
-        fetch_token=token_storage_module.AccessToken(
+        fetch_token=token_storage.AccessToken(
             value="new-token",
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
         )
     )
-    manager = auth_module.TokenManager(storage, fetcher)
+    manager = auth.TokenManager(storage, fetcher)
 
     resolved = await manager.get_access_token()
 
@@ -175,15 +150,13 @@ async def test_token_manager_reuses_non_expired_token_without_fetch_or_refresh()
 
 @pytest.mark.asyncio
 async def test_token_manager_fetches_when_storage_is_empty() -> None:
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
-    fetched_token = token_storage_module.AccessToken(
+    fetched_token = token_storage.AccessToken(
         value="fetched-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
     )
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     fetcher = _RecordingTokenFetcher(fetch_token=fetched_token)
-    manager = auth_module.TokenManager(storage, fetcher)
+    manager = auth.TokenManager(storage, fetcher)
 
     resolved = await manager.get_access_token()
 
@@ -195,26 +168,24 @@ async def test_token_manager_fetches_when_storage_is_empty() -> None:
 
 @pytest.mark.asyncio
 async def test_token_manager_treats_default_skew_window_as_expired_and_refreshes() -> None:
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
-    near_expiry_token = token_storage_module.AccessToken(
+    near_expiry_token = token_storage.AccessToken(
         value="cached-token",
         expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
     )
-    refreshed_token = token_storage_module.AccessToken(
+    refreshed_token = token_storage.AccessToken(
         value="refreshed-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
     )
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     storage.set_token(near_expiry_token)
     fetcher = _RecordingTokenFetcher(
-        fetch_token=token_storage_module.AccessToken(
+        fetch_token=token_storage.AccessToken(
             value="unused-fetch-token",
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=20),
         ),
         refresh_token=refreshed_token,
     )
-    manager = auth_module.TokenManager(storage, fetcher)
+    manager = auth.TokenManager(storage, fetcher)
 
     resolved = await manager.get_access_token()
 
@@ -229,26 +200,24 @@ async def test_token_manager_treats_default_skew_window_as_expired_and_refreshes
 async def test_token_manager_refreshes_near_expiry_token_when_custom_manager_skew_is_large() -> (
     None
 ):
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
-    near_expiry_token = token_storage_module.AccessToken(
+    near_expiry_token = token_storage.AccessToken(
         value="cached-token",
         expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
     )
-    refreshed_token = token_storage_module.AccessToken(
+    refreshed_token = token_storage.AccessToken(
         value="refreshed-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
     )
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     storage.set_token(near_expiry_token)
     fetcher = _RecordingTokenFetcher(
-        fetch_token=token_storage_module.AccessToken(
+        fetch_token=token_storage.AccessToken(
             value="unused-fetch-token",
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=20),
         ),
         refresh_token=refreshed_token,
     )
-    manager = auth_module.TokenManager(storage, fetcher, expiry_skew=timedelta(minutes=5))
+    manager = auth.TokenManager(storage, fetcher, expiry_skew=timedelta(minutes=5))
 
     resolved = await manager.get_access_token()
 
@@ -261,20 +230,18 @@ async def test_token_manager_refreshes_near_expiry_token_when_custom_manager_ske
 
 @pytest.mark.asyncio
 async def test_token_manager_refreshes_once_for_ten_concurrent_waiters() -> None:
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
-    expired_token = token_storage_module.AccessToken(
+    expired_token = token_storage.AccessToken(
         value="expired-token",
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
     )
-    refreshed_token = token_storage_module.AccessToken(
+    refreshed_token = token_storage.AccessToken(
         value="refreshed-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
     )
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     storage.set_token(expired_token)
     fetcher = _BlockingTokenFetcher(fetch_token=refreshed_token, refresh_token=refreshed_token)
-    manager = auth_module.TokenManager(storage, fetcher)
+    manager = auth.TokenManager(storage, fetcher)
 
     tasks = [asyncio.create_task(manager.get_access_token()) for _ in range(10)]
     await fetcher.started.wait()
@@ -292,15 +259,13 @@ async def test_token_manager_refreshes_once_for_ten_concurrent_waiters() -> None
 async def test_token_manager_fetches_once_for_ten_concurrent_waiters_when_storage_is_empty() -> (
     None
 ):
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
-    fetched_token = token_storage_module.AccessToken(
+    fetched_token = token_storage.AccessToken(
         value="fetched-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
     )
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     fetcher = _BlockingTokenFetcher(fetch_token=fetched_token)
-    manager = auth_module.TokenManager(storage, fetcher)
+    manager = auth.TokenManager(storage, fetcher)
 
     tasks = [asyncio.create_task(manager.get_access_token()) for _ in range(10)]
     try:
@@ -320,20 +285,18 @@ async def test_token_manager_fetches_once_for_ten_concurrent_waiters_when_storag
 
 @pytest.mark.asyncio
 async def test_token_manager_translates_refresh_failure_preserving_previous_token() -> None:
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
-    previous_token = token_storage_module.AccessToken(
+    previous_token = token_storage.AccessToken(
         value="previous-token",
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
     )
     original_error = RuntimeError("token endpoint unavailable")
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     storage.set_token(previous_token)
     fetcher = _FailingTokenFetcher(original_error)
-    manager = auth_module.TokenManager(storage, fetcher)
+    manager = auth.TokenManager(storage, fetcher)
 
     with pytest.raises(
-        auth_module.TokenFetchException,
+        auth.TokenFetchException,
         match="RuntimeError: token endpoint unavailable",
     ) as exc_info:
         await manager.get_access_token()
@@ -347,14 +310,12 @@ async def test_token_manager_translates_refresh_failure_preserving_previous_toke
 
 @pytest.mark.asyncio
 async def test_token_manager_uses_fallback_message_for_empty_generic_fetch_failure() -> None:
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
     original_error = RuntimeError()
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     fetcher = _FailingTokenFetcher(original_error)
-    manager = auth_module.TokenManager(storage, fetcher)
+    manager = auth.TokenManager(storage, fetcher)
 
-    with pytest.raises(auth_module.TokenFetchException, match="RuntimeError") as exc_info:
+    with pytest.raises(auth.TokenFetchException, match="RuntimeError") as exc_info:
         await manager.get_access_token()
 
     assert str(exc_info.value) == "RuntimeError during token fetch/refresh"
@@ -365,20 +326,18 @@ async def test_token_manager_uses_fallback_message_for_empty_generic_fetch_failu
 
 @pytest.mark.asyncio
 async def test_token_manager_preserves_previous_token_state_on_refresh_cancellation() -> None:
-    auth_module = _auth_module()
-    token_storage_module = _token_storage_module()
-    previous_token = token_storage_module.AccessToken(
+    previous_token = token_storage.AccessToken(
         value="previous-token",
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
     )
-    refreshed_token = token_storage_module.AccessToken(
+    refreshed_token = token_storage.AccessToken(
         value="refreshed-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
     )
-    storage = token_storage_module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
     storage.set_token(previous_token)
     fetcher = _BlockingTokenFetcher(fetch_token=refreshed_token, refresh_token=refreshed_token)
-    manager = auth_module.TokenManager(storage, fetcher)
+    manager = auth.TokenManager(storage, fetcher)
 
     task = asyncio.create_task(manager.get_access_token())
     await fetcher.started.wait()

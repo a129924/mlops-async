@@ -3,24 +3,9 @@ from __future__ import annotations
 from dataclasses import FrozenInstanceError
 from types import ModuleType
 
+import mlops_async.exceptions as root_exceptions
+import mlops_async.transport.exceptions as transport_exceptions
 import pytest
-
-
-def _import_root_exceptions_module() -> ModuleType:
-    import mlops_async.exceptions as root_exceptions_module
-
-    return root_exceptions_module
-
-
-def _import_transport_exceptions_module() -> ModuleType:
-    try:
-        import mlops_async.transport.exceptions as transport_exceptions_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            "Transport exceptions must live at mlops_async.transport.exceptions; "
-            f"import failed: {exc}"
-        )
-    return transport_exceptions_module
 
 
 def _exception_type(module: ModuleType, name: str) -> type[BaseException]:
@@ -30,20 +15,16 @@ def _exception_type(module: ModuleType, name: str) -> type[BaseException]:
 
 
 def test_root_exceptions_module_exports_only_base_exception() -> None:
-    root_module = _import_root_exceptions_module()
-
-    assert root_module.__all__ == ["MlopsAsyncBaseException"]
-    assert hasattr(root_module, "MlopsAsyncBaseException")
-    assert not hasattr(root_module, "HttpErrorContext")
-    assert not hasattr(root_module, "HttpTransportException")
-    assert not hasattr(root_module, "HTTPStatusException")
-    assert not hasattr(root_module, "InvalidJSONResponseException")
+    assert root_exceptions.__all__ == ["MlopsAsyncBaseException"]
+    assert hasattr(root_exceptions, "MlopsAsyncBaseException")
+    assert not hasattr(root_exceptions, "HttpErrorContext")
+    assert not hasattr(root_exceptions, "HttpTransportException")
+    assert not hasattr(root_exceptions, "HTTPStatusException")
+    assert not hasattr(root_exceptions, "InvalidJSONResponseException")
 
 
 def test_transport_exceptions_module_defines_transport_error_contract() -> None:
-    transport_module = _import_transport_exceptions_module()
-
-    assert transport_module.__all__ == [
+    assert transport_exceptions.__all__ == [
         "HttpErrorContext",
         "HttpTransportException",
         "HTTPStatusException",
@@ -52,13 +33,10 @@ def test_transport_exceptions_module_defines_transport_error_contract() -> None:
 
 
 def test_transport_exception_hierarchy_flows_through_transport_base() -> None:
-    root_module = _import_root_exceptions_module()
-    transport_module = _import_transport_exceptions_module()
-
-    base_exception = _exception_type(root_module, "MlopsAsyncBaseException")
-    transport_exception = _exception_type(transport_module, "HttpTransportException")
-    http_status_exception = _exception_type(transport_module, "HTTPStatusException")
-    invalid_json_exception = _exception_type(transport_module, "InvalidJSONResponseException")
+    base_exception = _exception_type(root_exceptions, "MlopsAsyncBaseException")
+    transport_exception = _exception_type(transport_exceptions, "HttpTransportException")
+    http_status_exception = _exception_type(transport_exceptions, "HTTPStatusException")
+    invalid_json_exception = _exception_type(transport_exceptions, "InvalidJSONResponseException")
 
     assert transport_exception.__bases__ == (base_exception,)
     assert http_status_exception.__bases__ == (transport_exception,)
@@ -66,8 +44,7 @@ def test_transport_exception_hierarchy_flows_through_transport_base() -> None:
 
 
 def test_http_error_context_is_frozen_and_truncates_body_snippet() -> None:
-    transport_module = _import_transport_exceptions_module()
-    context_type = getattr(transport_module, "HttpErrorContext", None)
+    context_type = getattr(transport_exceptions, "HttpErrorContext", None)
     assert context_type is not None
 
     context = context_type(
@@ -84,9 +61,8 @@ def test_http_error_context_is_frozen_and_truncates_body_snippet() -> None:
 
 
 def test_http_status_exception_exposes_context_and_normalized_message() -> None:
-    transport_module = _import_transport_exceptions_module()
-    context_type = getattr(transport_module, "HttpErrorContext", None)
-    http_status_exception = _exception_type(transport_module, "HTTPStatusException")
+    context_type = getattr(transport_exceptions, "HttpErrorContext", None)
+    http_status_exception = _exception_type(transport_exceptions, "HTTPStatusException")
     assert context_type is not None
 
     context = context_type(
@@ -109,10 +85,9 @@ def test_http_status_exception_exposes_context_and_normalized_message() -> None:
 
 
 def test_invalid_json_response_exception_preserves_context_and_transport_inheritance() -> None:
-    transport_module = _import_transport_exceptions_module()
-    context_type = getattr(transport_module, "HttpErrorContext", None)
-    invalid_json_exception = _exception_type(transport_module, "InvalidJSONResponseException")
-    transport_exception = _exception_type(transport_module, "HttpTransportException")
+    context_type = getattr(transport_exceptions, "HttpErrorContext", None)
+    invalid_json_exception = _exception_type(transport_exceptions, "InvalidJSONResponseException")
+    transport_exception = _exception_type(transport_exceptions, "HttpTransportException")
     assert context_type is not None
 
     context = context_type(
@@ -138,9 +113,8 @@ def test_invalid_json_response_exception_preserves_context_and_transport_inherit
 
 
 def test_invalid_json_response_exception_handles_empty_success_body_mapping() -> None:
-    transport_module = _import_transport_exceptions_module()
-    context_type = getattr(transport_module, "HttpErrorContext", None)
-    invalid_json_exception = _exception_type(transport_module, "InvalidJSONResponseException")
+    context_type = getattr(transport_exceptions, "HttpErrorContext", None)
+    invalid_json_exception = _exception_type(transport_exceptions, "InvalidJSONResponseException")
     assert context_type is not None
 
     context = context_type(

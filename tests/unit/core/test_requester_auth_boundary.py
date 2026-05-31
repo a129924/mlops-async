@@ -3,39 +3,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+import mlops_async.core.auth as auth
+import mlops_async.core.requester as requester_mod
 import pytest
 
 from mlops_async.core.request_options import ClientRequestOptions
 from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
-
-
-def _auth_module():
-    try:
-        import mlops_async.core.auth as auth_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            f"Internal auth contracts must live at mlops_async.core.auth; import failed: {exc}"
-        )
-    return auth_module
-
-
-def _requester_module():
-    try:
-        import mlops_async.core.requester as requester_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(f"Requester must live at mlops_async.core.requester; import failed: {exc}")
-    return requester_module
-
-
-def _token_storage_module():
-    try:
-        import mlops_async.core.token_storage as token_storage_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            "Token storage contracts must live at mlops_async.core.token_storage; "
-            f"import failed: {exc}"
-        )
-    return token_storage_module
 
 
 @dataclass
@@ -116,10 +89,9 @@ class _FailingAuthProvider:
 
 @pytest.mark.asyncio
 async def test_requester_merges_defaults_auth_and_caller_headers_before_transport() -> None:
-    requester_module = _requester_module()
     transport = _FakeHttpClient()
     auth_provider = _StaticAuthProvider({"Authorization": "Bearer managed-token"})
-    requester = requester_module.Requester(
+    requester = requester_mod.Requester(
         transport,
         auth_provider=auth_provider,
         default_headers={"X-Mode": "default"},
@@ -149,14 +121,13 @@ async def test_requester_merges_defaults_auth_and_caller_headers_before_transpor
 async def test_requester_rejects_caller_authorization_when_auth_provider_is_configured(
     header_name: str,
 ) -> None:
-    requester_module = _requester_module()
     transport = _FakeHttpClient()
-    requester = requester_module.Requester(
+    requester = requester_mod.Requester(
         transport,
         auth_provider=_StaticAuthProvider({"Authorization": "Bearer managed-token"}),
     )
 
-    with pytest.raises(requester_module.AuthorizationConflictException, match="Authorization"):
+    with pytest.raises(requester_mod.AuthorizationConflictException, match="Authorization"):
         await requester.request(
             HttpMethod.GET,
             "/items",
@@ -168,9 +139,8 @@ async def test_requester_rejects_caller_authorization_when_auth_provider_is_conf
 
 @pytest.mark.asyncio
 async def test_requester_allows_caller_authorization_without_auth_provider() -> None:
-    requester_module = _requester_module()
     transport = _FakeHttpClient()
-    requester = requester_module.Requester(transport)
+    requester = requester_mod.Requester(transport)
 
     await requester.request(
         HttpMethod.GET,
@@ -187,15 +157,13 @@ async def test_requester_allows_caller_authorization_without_auth_provider() -> 
 
 @pytest.mark.asyncio
 async def test_requester_does_not_call_transport_after_auth_layer_failure() -> None:
-    auth_module = _auth_module()
-    requester_module = _requester_module()
     transport = _FakeHttpClient()
-    requester = requester_module.Requester(
+    requester = requester_mod.Requester(
         transport,
-        auth_provider=_FailingAuthProvider(auth_module.AuthException("token endpoint unavailable")),
+        auth_provider=_FailingAuthProvider(auth.AuthException("token endpoint unavailable")),
     )
 
-    with pytest.raises(auth_module.AuthException, match="token endpoint unavailable"):
+    with pytest.raises(auth.AuthException, match="token endpoint unavailable"):
         await requester.request(HttpMethod.GET, "/items")
 
     assert transport.requests == []

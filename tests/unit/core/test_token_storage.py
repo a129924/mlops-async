@@ -2,33 +2,20 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+import mlops_async.core.token_storage as token_storage
 import pytest
 
 
-def _token_storage_module():
-    try:
-        import mlops_async.core.token_storage as token_storage_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            "Token storage module must live at mlops_async.core.token_storage; "
-            f"import failed: {exc}"
-        )
-    return token_storage_module
-
-
 def test_access_token_rejects_naive_expires_at() -> None:
-    module = _token_storage_module()
-
     with pytest.raises(ValueError, match="expires_at must be timezone-aware"):
-        module.AccessToken(
+        token_storage.AccessToken(
             value="managed-token",
             expires_at=datetime(2026, 5, 20, 12, 0, 0),
         )
 
 
 def test_access_token_rejects_naive_now_argument() -> None:
-    module = _token_storage_module()
-    access_token = module.AccessToken(
+    access_token = token_storage.AccessToken(
         value="managed-token",
         expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
     )
@@ -38,8 +25,7 @@ def test_access_token_rejects_naive_now_argument() -> None:
 
 
 def test_access_token_is_expired_with_default_60_second_skew() -> None:
-    module = _token_storage_module()
-    access_token = module.AccessToken(
+    access_token = token_storage.AccessToken(
         value="managed-token",
         expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
     )
@@ -48,8 +34,7 @@ def test_access_token_is_expired_with_default_60_second_skew() -> None:
 
 
 def test_access_token_respects_explicit_skew_override() -> None:
-    module = _token_storage_module()
-    access_token = module.AccessToken(
+    access_token = token_storage.AccessToken(
         value="managed-token",
         expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
     )
@@ -58,12 +43,11 @@ def test_access_token_respects_explicit_skew_override() -> None:
 
 
 def test_in_memory_token_storage_round_trips_and_clears_token_state() -> None:
-    module = _token_storage_module()
-    token = module.AccessToken(
+    token = token_storage.AccessToken(
         value="managed-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
-    storage = module.InMemoryTokenStorage()
+    storage = token_storage.InMemoryTokenStorage()
 
     assert storage.get_token() is None
 
