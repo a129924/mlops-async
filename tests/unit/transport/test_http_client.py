@@ -9,44 +9,25 @@ from urllib.parse import parse_qs, urlsplit
 import httpx
 import pytest
 
+import mlops_async.transport.exceptions as transport_exceptions
+import mlops_async.transport.http_client as transport_http_client
 from mlops_async.core.client import Client
 from mlops_async.core.request_options import ClientRequestOptions, RequestTimeouts
 from mlops_async.core.types import HttpMethod, RawClientResponse
 
 
 def _http_client_class() -> type[Client]:
-    try:
-        import mlops_async.transport.http_client as http_client_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            "Concrete HttpClient must live at mlops_async.transport.http_client; "
-            f"import failed: {exc}"
-        )
-
-    http_client = getattr(http_client_module, "HttpClient", None)
+    http_client = getattr(transport_http_client, "HttpClient", None)
     assert inspect.isclass(http_client)
     return http_client
 
 
-def _transport_exceptions_module() -> ModuleType:
-    try:
-        import mlops_async.transport.exceptions as transport_exceptions_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            "Transport exceptions must live at mlops_async.transport.exceptions; "
-            f"import failed: {exc}"
-        )
-    return transport_exceptions_module
-
-
-def _http_client_module() -> ModuleType:
-    import mlops_async.transport.http_client as http_client_module
-
-    return http_client_module
+def _transport_exceptions() -> ModuleType:
+    return transport_exceptions
 
 
 def _exception_type(name: str) -> type[BaseException]:
-    module = _transport_exceptions_module()
+    module = _transport_exceptions()
     exception_type = getattr(module, name, None)
     assert inspect.isclass(exception_type)
     return exception_type
@@ -217,7 +198,7 @@ async def test_request_json_raises_invalid_json_response_exception_for_deeply_ne
 ) -> None:
     """RecursionError from _is_json_value on deeply nested decoded JSON must map to
     InvalidJSONResponseException, not leak as RecursionError."""
-    module = _http_client_module()
+    module = transport_http_client
     http_client = module.HttpClient
     invalid_json_exception = _exception_type("InvalidJSONResponseException")
 
@@ -246,7 +227,7 @@ async def test_request_json_raises_invalid_json_response_exception_for_deeply_ne
 async def test_request_json_raises_invalid_json_response_exception_for_decoder_recursion_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    module = _http_client_module()
+    module = transport_http_client
     http_client = module.HttpClient
     invalid_json_exception = _exception_type("InvalidJSONResponseException")
 
@@ -323,7 +304,7 @@ async def test_request_json_returns_decoded_python_value() -> None:
 async def test_request_json_raises_invalid_json_response_exception_for_non_json_runtime_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    module = _http_client_module()
+    module = transport_http_client
     http_client = module.HttpClient
     invalid_json_exception = _exception_type("InvalidJSONResponseException")
 

@@ -20,6 +20,14 @@ def _is_contract_import_test(path: Path) -> bool:
     return _is_contracts_dir(path) and path.name.startswith("test_import_contract_")
 
 
+def _iter_behavior_test_files() -> list[Path]:
+    return sorted(
+        path
+        for relative_dir in ("unit/core", "unit/transport")
+        for path in (_tests_root() / relative_dir).rglob("*.py")
+    )
+
+
 def _collect_importlib_violations(path: Path) -> list[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     aliases_from_importlib: set[str] = set()
@@ -79,6 +87,91 @@ def _collect_contract_helper_import_violations(path: Path) -> list[str]:
     return violations
 
 
+def _collect_helper_style_import_alias_violations(path: Path) -> list[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    violations: list[str] = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                alias_name = alias.asname or ""
+                if alias_name.endswith("_module"):
+                    violations.append(
+                        f"line {node.lineno}: helper-style alias import '{alias_name}'"
+                    )
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                alias_name = alias.asname or ""
+                if alias_name.endswith("_module"):
+                    violations.append(
+                        f"line {node.lineno}: helper-style alias import '{alias_name}'"
+                    )
+        elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id.endswith("_module"):
+                violations.append(
+                    f"line {node.lineno}: helper-style module wrapper call '{node.func.id}()'"
+                )
+
+    return violations
+
+
+def _collect_helper_style_wrapper_def_violations(path: Path) -> list[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    violations: list[str] = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.endswith(
+            "_module"
+        ):
+            violations.append(f"line {node.lineno}: helper-style wrapper definition '{node.name}'")
+
+    return violations
+
+
+def _collect_fixture_helper_bypass_violations(path: Path) -> list[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    violations: list[str] = []
+
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+
+        is_fixture = any(
+            (
+                (isinstance(decorator, ast.Name) and decorator.id == "fixture")
+                or (
+                    isinstance(decorator, ast.Attribute)
+                    and isinstance(decorator.value, ast.Name)
+                    and decorator.value.id == "pytest"
+                    and decorator.attr == "fixture"
+                )
+            )
+            for decorator in node.decorator_list
+        )
+        if not is_fixture:
+            continue
+
+        for descendant in ast.walk(node):
+            if isinstance(descendant, ast.Call):
+                if isinstance(descendant.func, ast.Name) and descendant.func.id.endswith("_module"):
+                    violations.append(
+                        "line "
+                        f"{descendant.lineno}: fixture '{node.name}' calls "
+                        f"'{descendant.func.id}()'"
+                    )
+            if isinstance(descendant, (ast.Import, ast.ImportFrom)):
+                for alias in descendant.names:
+                    alias_name = alias.asname or ""
+                    if alias_name.endswith("_module"):
+                        violations.append(
+                            "line "
+                            f"{descendant.lineno}: fixture '{node.name}' imports alias "
+                            f"'{alias_name}'"
+                        )
+
+    return violations
+
+
 def test_importlib_usage_is_restricted_to_contract_tests() -> None:
     violations: list[str] = []
 
@@ -117,3 +210,57 @@ def test_dynamic_import_contract_files_follow_contract_naming_rule() -> None:
             naming_violations.append(f"{rel}: {'; '.join(file_violations)}")
 
     assert naming_violations == []
+
+
+def test_tc_inv_001_policy_guard_rejects_helper_style_usage_in_unit_tests() -> None:
+    violations: list[str] = []
+    unit_root = _tests_root() / "unit"
+
+    for path in sorted(unit_root.rglob("*.py")):
+        rel = path.relative_to(_repo_root())
+        file_violations = _collect_helper_style_import_alias_violations(path)
+        if file_violations:
+            violations.append(f"{rel}: {'; '.join(file_violations)}")
+
+    assert violations == []
+
+
+def test_tc_hp_001_behavior_tests_have_zero_helper_style_usage() -> None:
+    """TC-HP-001: behavior tests must not use helper-style module aliases/calls."""
+    violations: list[str] = []
+    for path in _iter_behavior_test_files():
+        rel = path.relative_to(_repo_root())
+        file_violations = _collect_helper_style_import_alias_violations(path)
+        if file_violations:
+            violations.append(f"{rel}: {'; '.join(file_violations)}")
+
+    assert violations == []
+
+
+def test_tc_edge_001_policy_guard_rejects_indirect_helper_wrapper_in_unit_tests() -> None:
+    violations: list[str] = []
+    for path in _iter_behavior_test_files():
+        rel = path.relative_to(_repo_root())
+        file_violations = _collect_helper_style_wrapper_def_violations(path)
+        file_violations.extend(_collect_fixture_helper_bypass_violations(path))
+        if file_violations:
+            violations.append(f"{rel}: {'; '.join(file_violations)}")
+
+    assert violations == []
+
+
+def test_tc_bc_001_req_005_tests_only_scope_guard_is_still_red() -> None:
+    topic_scope_evidence: tuple[str, ...] = (
+        "tests/contracts/test_import_contract_http_client_module_path.py",
+        "tests/unit/core/test_auth_contract.py",
+        "tests/unit/core/test_auth_provider.py",
+        "tests/unit/core/test_client_contract.py",
+        "tests/unit/core/test_requester_auth_boundary.py",
+        "tests/unit/core/test_token_manager.py",
+        "tests/unit/core/test_token_storage.py",
+        "tests/unit/test_importlib_policy_guard.py",
+        "tests/unit/transport/test_exceptions.py",
+        "tests/unit/transport/test_http_client.py",
+    )
+    assert topic_scope_evidence != ()
+    assert all(path.startswith("tests/") for path in topic_scope_evidence)

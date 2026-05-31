@@ -7,20 +7,14 @@ import httpx
 import pytest
 
 import mlops_async
-import mlops_async.core.client as client_module
+import mlops_async.core.client as core_client
+import mlops_async.transport.http_client as transport_http_client
 from mlops_async.core.client import Client
 from mlops_async.core.types import JSONValue, RawClientResponse
 
 
 def _http_client_class() -> type[Client]:
-    try:
-        import mlops_async.transport.http_client as http_client_module
-    except ModuleNotFoundError as exc:
-        pytest.fail(
-            "Concrete HttpClient must live at mlops_async.transport.http_client; "
-            f"import failed: {exc}"
-        )
-    http_client: type[Client] = http_client_module.HttpClient
+    http_client: type[Client] = transport_http_client.HttpClient
     assert inspect.isclass(http_client)
     return http_client
 
@@ -33,7 +27,7 @@ def test_client_protocol_uses_repo_owned_types_only() -> None:
     assert request_signature.parameters["options"].name == "options"
     assert request_hints["return"] is RawClientResponse
     assert request_json_hints["return"] == JSONValue
-    assert "httpx" not in inspect.getsource(client_module)
+    assert "httpx" not in inspect.getsource(core_client)
 
 
 @pytest.mark.asyncio
