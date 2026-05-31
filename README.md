@@ -8,13 +8,14 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
-As of **v0.10.9**, the repository closes the `tests-importlib-next-spec-xxx-module-cleanup`
-post-merge follow-up: behavior tests now enforce explicit imports with zero tolerance
-for `importlib`, while import-contract checks are isolated under `tests/contracts/.`
+As of **v0.10.10**, the repository closes the `PR #25` review-comment follow-up:
+the tests-only scope guard now derives changed paths from the actual git diff state,
+helper-style attribute calls are rejected, and the topic docs stay aligned with the
+delivered scope.
 
-v0.10.9 補齊 `tests-importlib-next-spec-xxx-module-cleanup` 合併後的後續整理：
-一般行為測試改為 explicit import 並落實 importlib 零容忍；
-允許動態引入的 import contract 測試已集中於 `tests/contracts/`。
+v0.10.10 補齊 `PR #25` review comments 的後續整理：
+tests-only scope guard 改為依實際 git diff/state 判定；
+helper-style attribute call 也會被拒絕，且 topic 文件已與交付範圍對齊。
 
 As of **v0.10.8**, the repository closes the `tests-importlib-plan-review`
 post-merge follow-up: tests now remove non-essential `importlib` module-loading
