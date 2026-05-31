@@ -33,13 +33,12 @@
 
 1. 既有 `tests/contracts/` 可承接 import contract 類測試。
 2. 人工 recheck 角色可對 BLOCKED 案例做語意判定並回填決策。
-3. 本次僅交付 planning artifacts，不執行測試實作改寫。
+3. 本次交付的是 `tests/**` rewrite topic 的需求/規格基線；實作改寫會在後續 implementation phase 依此文件落地。
 
 ## Non-goals
 
 1. 不變更 `src/` 模組結構、公開 API、runtime import 行為。
-2. 不在本階段提交任何測試內容實作。
-3. 不修改 CI/release 流程。
+2. 不修改 CI/release 流程。
 
 ## Contradiction Register
 

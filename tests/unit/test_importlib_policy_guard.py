@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import subprocess
 from pathlib import Path
 
 
@@ -10,6 +11,53 @@ def _repo_root() -> Path:
 
 def _tests_root() -> Path:
     return _repo_root() / "tests"
+
+
+def _git_changed_test_paths() -> tuple[Path, ...]:
+    changed_relative_paths: set[str] = set()
+    git_commands = (
+        [
+            "git",
+            "--no-pager",
+            "diff",
+            "--name-only",
+            "--diff-filter=ACMRTUXB",
+            "--",
+            "tests",
+        ],
+        [
+            "git",
+            "--no-pager",
+            "diff",
+            "--cached",
+            "--name-only",
+            "--diff-filter=ACMRTUXB",
+            "--",
+            "tests",
+        ],
+        [
+            "git",
+            "--no-pager",
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+            "--",
+            "tests",
+        ],
+    )
+    for command in git_commands:
+        completed = subprocess.run(
+            command,
+            cwd=_repo_root(),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        changed_relative_paths.update(
+            relative_path for relative_path in completed.stdout.splitlines() if relative_path
+        )
+
+    return tuple(sorted(_repo_root() / relative_path for relative_path in changed_relative_paths))
 
 
 def _is_contracts_dir(path: Path) -> bool:
@@ -110,6 +158,12 @@ def _collect_helper_style_import_alias_violations(path: Path) -> list[str]:
             if isinstance(node.func, ast.Name) and node.func.id.endswith("_module"):
                 violations.append(
                     f"line {node.lineno}: helper-style module wrapper call '{node.func.id}()'"
+                )
+            elif isinstance(node.func, ast.Attribute) and node.func.attr.endswith("_module"):
+                violations.append(
+                    "line "
+                    f"{node.lineno}: helper-style module wrapper call "
+                    f"'{ast.unparse(node.func)}()'"
                 )
 
     return violations
@@ -249,18 +303,8 @@ def test_tc_edge_001_policy_guard_rejects_indirect_helper_wrapper_in_unit_tests(
     assert violations == []
 
 
-def test_tc_bc_001_req_005_tests_only_scope_guard_is_still_red() -> None:
-    topic_scope_evidence: tuple[str, ...] = (
-        "tests/contracts/test_import_contract_http_client_module_path.py",
-        "tests/unit/core/test_auth_contract.py",
-        "tests/unit/core/test_auth_provider.py",
-        "tests/unit/core/test_client_contract.py",
-        "tests/unit/core/test_requester_auth_boundary.py",
-        "tests/unit/core/test_token_manager.py",
-        "tests/unit/core/test_token_storage.py",
-        "tests/unit/test_importlib_policy_guard.py",
-        "tests/unit/transport/test_exceptions.py",
-        "tests/unit/transport/test_http_client.py",
-    )
+def test_tc_bc_001_req_006_tests_only_scope_guard_is_still_red() -> None:
+    topic_scope_evidence = _git_changed_test_paths()
     assert topic_scope_evidence != ()
-    assert all(path.startswith("tests/") for path in topic_scope_evidence)
+    for path in topic_scope_evidence:
+        assert path.relative_to(_repo_root()).parts[:1] == ("tests",)

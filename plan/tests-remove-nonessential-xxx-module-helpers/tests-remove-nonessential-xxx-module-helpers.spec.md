@@ -6,8 +6,8 @@
 2. REQ-002：只有 import path / importability / import contract 驗證測試可保留 helper-style usage。
 3. REQ-003：`patch-before-import` 僅能出現在第 2 點例外案例；否則視為違規。
 4. REQ-004：不得以 fixture/helper 轉移方式規避政策；若偵測到間接 helper-style usage 仍判違規。
-5. REQ-004：若任一案例無法判定為行為測試或 import-contract，必須標記為 BLOCKED 並等待人工 recheck。
-6. REQ-005：本 topic 變更不得觸及 `src/**`。
+5. REQ-005：若任一案例無法判定為行為測試或 import-contract，必須標記為 BLOCKED 並等待人工 recheck。
+6. REQ-006：本 topic 變更不得觸及 `src/**`。
 
 ### Requirement → Planned Test Mapping (machine-verifiable)
 
@@ -16,10 +16,10 @@
 | REQ-001 | TC-HP-001 | Behavior tests zero helper-style usage | red |
 | REQ-001 | TC-INV-001 | Policy guard rejects helper-style usage in unit tests | red |
 | REQ-004 | TC-EDGE-001 | Indirect helper/fixture bypass is still detected | red |
-| REQ-004 | TC-BLK-001 | Ambiguous classification cases are routed to BLOCKED registry | red |
+| REQ-005 | TC-BLK-001 | Ambiguous classification cases are routed to BLOCKED registry | red |
 | REQ-002 | TC-REG-001 | Import-contract helper-style exception remains valid | red |
 | REQ-003 | TC-REG-001 | patch-before-import restricted to import-contract scope | red |
-| REQ-005 | TC-BC-001 | No `src/**` changes and no public contract changes | red |
+| REQ-006 | TC-BC-001 | No `src/**` changes and no public contract changes | red |
 
 ### Planned Test Category Mapping (explicit 5-category coverage)
 
