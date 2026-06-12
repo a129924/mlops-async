@@ -13,15 +13,17 @@
   - creator 這一輪會直接建立哪些 exact artifact files
   - 哪些 repo-specific contract 只能保留為 optional/default input
 
-## Inputs / Prerequisites
+## Scope
 
-- Requirements baseline: `analysis/codex-skill-blockers/requirements.md`
-- Technical baseline: `analysis/codex-skill-blockers/technical-spec.md`
-- Workflow contract: `plan/agent-handoff-workflow.md`
-- Prompt contract:
+- **In scope**:
+  - `analysis/codex-skill-blockers/requirements.md`
+  - `analysis/codex-skill-blockers/technical-spec.md`
+  - `plan/agent-handoff-workflow.md`
   - `.github/prompts/create-analysis.prompt.md`
   - `.github/prompts/create-agent-plan.prompt.md`
-- Bootstrap input files:
+  - `plan/codex-skill-blockers/codex-skill-blockers.plan.md`
+  - `plan/codex-skill-blockers/codex-skill-blockers.step.md`
+  - `plan/codex-skill-blockers/codex-skill-blockers.checklist.md`
   - `.github/skills/api-client-porting-planner/SKILL.md`
   - `.github/skills/api-client-porting-planner/reference.md`
   - `.github/skills/api-client-porting-planner/examples.md`
@@ -30,15 +32,6 @@
   - `.github/skills/api-client-porting-implementer/reference.md`
   - `.github/skills/api-client-porting-implementer/examples.md`
   - `.github/skills/api-client-porting-implementer/templates/porting-result.md`
-
-## Scope
-
-- **In scope**:
-  - `analysis/codex-skill-blockers/requirements.md`
-  - `analysis/codex-skill-blockers/technical-spec.md`
-  - `plan/codex-skill-blockers/codex-skill-blockers.plan.md`
-  - `plan/codex-skill-blockers/codex-skill-blockers.step.md`
-  - `plan/codex-skill-blockers/codex-skill-blockers.checklist.md`
   - `.agents/skills/api-client-porting-planner/SKILL.md`
   - `.agents/skills/api-client-porting-planner/reference.md`
   - `.agents/skills/api-client-porting-planner/examples.md`
@@ -72,22 +65,22 @@
 - planner artifact set 必須保留 planning-only 核心語意。
 - implementer artifact set 必須保留 implementation-only 核心語意。
 - workflow agent 必須保持 orchestration-only。
-- 本 rerun 只做到新的 draft plan commit，**不進 reviewer / fix / planner final gate**。
+- 新的 implementation draft baseline 已完成 reviewer 與 planner final gate，下一個外部 gate 是 human check。
 - 此 topic **不涉及 stable-library surfaces**。
 
 ## Boundaries / Exclusions
 
 - Planning actor 只重跑 implementation baseline，不直接建立最終 artifact。
 - Creator 後續只能在列舉的 exact artifact paths 內實作。
-- Main Agent 這一輪只做到 draft plan commit routing，不前進 reviewer gate。
+- Main Agent 目前只把 topic 推進到 human check，不前進 publish / merge routing。
 - 本 topic 不進 publish / merge / release routing。
 
 ## Status / Allowed Transitions
 
-- **Current**: `creator-in-progress`
-- **Execution model**: this topic reruns analysis and planning artifacts to
-  produce a new implementation baseline, then stops after a new draft plan
-  commit and before any reviewer gate begins.
+- **Current**: `approved`
+- **Execution model**: this topic reran the analysis and planning artifacts,
+  completed independent review plus planner final gate, and now stops at human
+  check before any publish routing begins.
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -105,8 +98,8 @@
 
 Routing notes:
 
-- Topic pause point is **after new draft plan commit, before review-ready handoff**.
-- Do not advance to `review-ready`, `reviewer-in-progress`, or any later gate in this execution round.
+- Topic pause point is **after planner final gate and before publish routing**.
+- Do not advance to `publish-in-progress`, `pr-open`, or `merged` without human check.
 
 ## Artifact Paths
 
@@ -115,7 +108,7 @@ Routing notes:
 | Topic requirements baseline | `analysis/codex-skill-blockers/requirements.md` | Planning actor | Frozen rerun implementation baseline |
 | Topic technical spec baseline | `analysis/codex-skill-blockers/technical-spec.md` | Planning actor | Frozen execution-facing implementation baseline |
 | Topic plan | `plan/codex-skill-blockers/codex-skill-blockers.plan.md` | Planning actor | Repo-visible execution contract for this implementation topic |
-| Topic step tracker | `plan/codex-skill-blockers/codex-skill-blockers.step.md` | Planning actor | Workflow-step evidence for the pre-review implementation draft lane |
+| Topic step tracker | `plan/codex-skill-blockers/codex-skill-blockers.step.md` | Planning actor | Workflow-step evidence for the human-check-before-publish lane |
 | Topic checklist | `plan/codex-skill-blockers/codex-skill-blockers.checklist.md` | Planning actor | Authoring / scope validation for this implementation topic |
 | Bootstrap input | `.github/skills/api-client-porting-planner/SKILL.md` | Creator | Existing planner skill contract input for Codex-facing implementation |
 | Bootstrap input | `.github/skills/api-client-porting-planner/reference.md` | Creator | Existing planner supporting reference input |
@@ -168,14 +161,14 @@ Artifact path notes:
 - `Artifact Paths` list exact creator artifact file paths, not only directories.
 - The plan records creator implementation scope for two skill artifact sets and one workflow agent artifact.
 - The plan does not place actual `.agents/skills/*` or `.codex/agents/*` creation in out of scope.
-- The plan does not claim `review-ready`, `reviewer-in-progress`, or `approved`.
+- The plan's current status matches the post-review, pre-publish human-check lane.
 - Stable-library intent is explicit as absent.
 
 ## Reviewer Handoff
 
 ```json
 {
-  "verdict": "approved|needs-rework",
+  "verdict": "approved",
   "blocking_issues": [],
   "copilot_feedback_triage": {
     "ADDRESS": [],
@@ -188,7 +181,7 @@ Artifact path notes:
 ## Post-merge / release actions
 
 - No repository release action is required for this topic.
-- This topic does not proceed to publish routing in the current execution round.
+- This topic remains paused until human check explicitly allows any publish routing.
 
 ## Open Questions / Unresolved Items
 

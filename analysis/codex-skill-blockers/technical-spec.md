@@ -75,12 +75,14 @@
    - `.github/copilot-instructions.md` 不得成為新的 Codex-facing artifact 硬依賴
    - 若 supporting files 內仍出現上述 repo-specific path，必須在新 artifact 中降級處理，而非原封不動視為強制 prerequisite
 
-5. **Stop-before-review execution shape**
-   - 本 rerun 只做到新的 draft plan commit
+5. **Review-complete execution shape**
+   - 本 rerun 先形成新的 draft plan commit，再依 workflow 完成 independent review 與 planner final gate
    - 因此 plan / step / checklist 必須清楚表達：
      - analysis / plan rerun 已完成
      - implementation scope 已凍結
-     - reviewer / fix / planner final gate 尚未開始
+     - independent review 已完成
+     - planner final gate 已完成
+     - topic 目前停在 human check 之前，不可直接前進 publish routing
 
 ## Architecture / compliance 自查
 
@@ -93,7 +95,7 @@
   - 只列目錄、不列 exact file paths
   - 將 `.github/skills/api-client-porting-*` 保留為 authority
   - 將 design-only baseline 偽裝成 implementation topic
-  - 在新 draft plan commit 前前進 reviewer gate
+  - 在 human check 前前進 publish / merge routing
 
 ## 驗證
 
@@ -105,7 +107,7 @@
    - `analysis/codex-skill-blockers/requirements.md`
    - `analysis/codex-skill-blockers/technical-spec.md`
 4. `plan.md` 的 `Artifact Paths` 必須列出 exact file paths
-5. `step.md` / `checklist.md` 都把 topic 停在 pre-review draft lane
+5. `step.md` / `checklist.md` 都把 topic 停在 human-check-before-publish lane
 
 建議指令：
 
@@ -121,6 +123,6 @@ test -f plan/codex-skill-blockers/codex-skill-blockers.checklist.md
 
 若出現以下情況，必須停止並請求人工作審：
 
-- 有人要求在新的 draft plan commit 完成前直接進 reviewer gate
+- 有人要求跳過 human check 直接進 publish / merge routing
 - 後續 work 需要額外建立未列舉的 artifact path
 - human 想再次把本 topic 降回 design-only topic

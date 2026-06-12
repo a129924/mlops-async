@@ -138,8 +138,8 @@ Ownership model:
 
 ## Blockers
 
-- 舊的 design-only baseline 已不符合目前 intent；因此必須先重跑 analysis / plan
-  package，形成新的 implementation draft baseline，之後才可接 reviewer gate。
+- 舊的 design-only baseline 已由新的 implementation draft baseline 取代，不再構成當前阻擋。
+- 後續若要前進 publish / merge routing，前提是先完成 human check。
 
 ## Freeze status
 

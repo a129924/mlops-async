@@ -11,8 +11,8 @@
 - [X] Freeze exact implementer skill artifact paths in the rerun plan.
 - [X] Freeze exact workflow agent artifact path in the rerun plan.
 - [X] Create a new draft plan commit for the rerun implementation topic.
-- [ ] Resume this topic into independent review.
-- [ ] Run any later reviewer / planner gates.
+- [X] Resume this topic into independent review.
+- [X] Run any later reviewer / planner gates.
 
 ## Workflow Stages
 
@@ -22,9 +22,9 @@ These stage markers are informational only. Completion gates must read only
 - [X] Analysis rerun
 - [X] Draft implementation package rerun
 - [X] Draft plan commit
-- [ ] Independent review
-- [ ] Planner final gate
+- [X] Independent review
+- [X] Planner final gate
 
 ## Current Handoff
 
-- Waiting at the new draft plan commit before any reviewer gate begins.
+- Waiting for human check before any publish routing begins.

@@ -16,12 +16,13 @@
 - [X] `docs/migration-map.md` 與 `docs/porting-ledger.md` 已降為 optional/default input。
 - [X] `.github/copilot-instructions.md` 已排除為 runtime prerequisite。
 
-## Pause-State Semantics
+## Human-Check Semantics
 
-- [X] topic 目前停在新的 implementation draft plan commit。
-- [X] topic `Current` 沒有宣稱 `review-ready` 或 `approved`。
-- [X] 尚未進入 `plan-reviewer`。
-- [X] 尚未進入 planner final gate。
+- [X] topic 已完成新的 implementation draft plan commit。
+- [X] topic `Current` 已反映 post-review `approved` 狀態。
+- [X] `plan-reviewer` 已完成。
+- [X] planner final gate 已完成。
+- [X] topic 目前停在 human check 之前，尚未進入 publish routing。
 
 ## Boundaries
 
