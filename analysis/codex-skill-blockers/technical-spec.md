@@ -1,4 +1,4 @@
-# Codex Porting Workflow 技術規格
+# Codex Porting Workflow Implementation 技術規格
 
 ## 來源需求
 
@@ -8,18 +8,19 @@
 
 ## 目標
 
-建立一份 execution-facing migration-design baseline，定義如何把：
-
-- `.github/skills/api-client-porting-planner/SKILL.md`
-- `.github/skills/api-client-porting-implementer/SKILL.md`
-
-轉譯為：
+建立一份 execution-facing implementation baseline，定義本 topic 會直接創建：
 
 - `.agents/skills/api-client-porting-planner/SKILL.md`
+- `.agents/skills/api-client-porting-planner/reference.md`
+- `.agents/skills/api-client-porting-planner/examples.md`
+- `.agents/skills/api-client-porting-planner/templates/family-map.md`
 - `.agents/skills/api-client-porting-implementer/SKILL.md`
+- `.agents/skills/api-client-porting-implementer/reference.md`
+- `.agents/skills/api-client-porting-implementer/examples.md`
+- `.agents/skills/api-client-porting-implementer/templates/porting-result.md`
 - `.codex/agents/api-client-porting-workflow.agent.md`
 
-並明確說明哪些語意必須保留、哪些 repo-specific contract 必須抽離。
+並明確說明 bootstrap input、creator implementation scope、語意保留規則與必要驗證。
 
 ## 允許檔案範圍
 
@@ -30,75 +31,81 @@
 - `plan/codex-skill-blockers/codex-skill-blockers.plan.md`
 - `plan/codex-skill-blockers/codex-skill-blockers.step.md`
 - `plan/codex-skill-blockers/codex-skill-blockers.checklist.md`
+- `.agents/skills/api-client-porting-planner/SKILL.md`
+- `.agents/skills/api-client-porting-planner/reference.md`
+- `.agents/skills/api-client-porting-planner/examples.md`
+- `.agents/skills/api-client-porting-planner/templates/family-map.md`
+- `.agents/skills/api-client-porting-implementer/SKILL.md`
+- `.agents/skills/api-client-porting-implementer/reference.md`
+- `.agents/skills/api-client-porting-implementer/examples.md`
+- `.agents/skills/api-client-porting-implementer/templates/porting-result.md`
+- `.codex/agents/api-client-porting-workflow.agent.md`
 
 此階段不得修改：
 
-- `.github/skills/**`
-- `.agents/skills/**`
-- `.codex/agents/**`
+- 其他 `.github/skills/**`
 - `README.md`
 - `VERSION`
 
 ## 技術需求對照
 
 1. **Bootstrap input capture**
-   - topic plan 必須明確記錄 bootstrap input：
+   - implementation plan 必須明確記錄下列 bootstrap input：
      - `.github/skills/api-client-porting-planner/SKILL.md`
+     - `.github/skills/api-client-porting-planner/reference.md`
+     - `.github/skills/api-client-porting-planner/examples.md`
+     - `.github/skills/api-client-porting-planner/templates/family-map.md`
      - `.github/skills/api-client-porting-implementer/SKILL.md`
-   - topic plan 不得把它們寫成 post-bootstrap authority
+     - `.github/skills/api-client-porting-implementer/reference.md`
+     - `.github/skills/api-client-porting-implementer/examples.md`
+     - `.github/skills/api-client-porting-implementer/templates/porting-result.md`
+   - implementation plan 不得把它們寫成 post-bootstrap authority
 
-2. **Target artifact contract**
-   - topic plan 必須明確寫出目標 artifact：
-     - `.agents/skills/api-client-porting-planner/SKILL.md`
-     - `.agents/skills/api-client-porting-implementer/SKILL.md`
-     - `.codex/agents/api-client-porting-workflow.agent.md`
-   - topic plan 必須固定三者分工：
-     - planner skill：planning-only
-     - implementer skill：implementation-only
-     - workflow agent：orchestration-only
+2. **Creator artifact contract**
+   - implementation plan 必須精確寫出 creator 要建立的 exact file paths
+   - 不可用 `.agents/skills/api-client-porting-planner/` 這種 directory-level path 取代檔案層級 contract
 
-3. **Codex-facing skill normalization**
-   - planner 與 implementer 的 `SKILL.md` 設計必須假設 Codex-safe frontmatter
-   - 額外 routing signal 若目前只存在 extra frontmatter，必須在新設計中轉進 `description`
-     或正文 trigger 區塊
-   - supporting files 可保留為 local bundled resources，但必須由 `SKILL.md` 明確引用
+3. **Skill semantic preservation**
+   - planner artifact set 必須保留原 planner 核心語意
+   - implementer artifact set 必須保留原 implementer 核心語意
+   - workflow agent 必須只承接 orchestration，不得重新吸收 planner / implementer 全部規則
 
 4. **Repo-specific abstraction**
-   - `docs/migration-map.md` 與 `docs/porting-ledger.md` 在新設計中不得仍是 unconditional requirement
-   - multi-agent workflow status 可保留為 optional handoff fields，但不得成為所有使用情境下的必填輸出
-   - `.github/copilot-instructions.md` 的 repo policy 不得成為 Codex-facing runtime prerequisite
+   - `docs/migration-map.md` 與 `docs/porting-ledger.md` 只能作為 default example 或 explicit input
+   - `.github/copilot-instructions.md` 不得成為新的 Codex-facing artifact 硬依賴
+   - 若 supporting files 內仍出現上述 repo-specific path，必須在新 artifact 中降級處理，而非原封不動視為強制 prerequisite
 
 5. **Stop-before-review execution shape**
-   - 本 topic 只做到新的 draft plan commit
+   - 本 rerun 只做到新的 draft plan commit
    - 因此 plan / step / checklist 必須清楚表達：
-     - rerun analysis / plan package 已完成
-     - 舊 blocker-only baseline 已被取代
-     - independent review 尚未開始
-     - final gate 尚未開始
+     - analysis / plan rerun 已完成
+     - implementation scope 已凍結
+     - reviewer / fix / planner final gate 尚未開始
 
 ## Architecture / compliance 自查
 
 - **符合**
-  - skill 與 agent 責任分離
-  - planner / implementer 核心語意保留
-  - repo-specific contract 被降級為 optional/default behavior
+  - skill / agent 分工清楚
+  - creator implementation scope 精確列到檔案
+  - repo-specific contract 被降為 optional/default input
 
 - **不符合即阻擋**
-  - 把 `.github/skills/api-client-porting-*` 直接宣稱為新的 authority
-  - 在新 skill 設計中仍硬綁 `docs/migration-map.md` 或 `docs/porting-ledger.md`
-  - 讓 workflow agent 吸收 planner / implementer 全部語意
-  - 未重跑 analysis / plan package 就前進 review
+  - 只列目錄、不列 exact file paths
+  - 將 `.github/skills/api-client-porting-*` 保留為 authority
+  - 將 design-only baseline 偽裝成 implementation topic
+  - 在新 draft plan commit 前前進 reviewer gate
 
 ## 驗證
 
 必要檢查：
 
 1. 五份 topic 工件存在於預期路徑
-2. `requirements.md` 與 `technical-spec.md` 都明確寫出 `2 skills + 1 custom agent`
+2. `requirements.md` 與 `technical-spec.md` 都明確寫出 implementation topic
 3. `plan.md` 必須列出 analysis inputs：
    - `analysis/codex-skill-blockers/requirements.md`
    - `analysis/codex-skill-blockers/technical-spec.md`
-4. `plan.md` / `step.md` / `checklist.md` 都把 topic 停在 pre-review rerun draft lane
+4. `plan.md` 的 `Artifact Paths` 必須列出 exact file paths
+5. `step.md` / `checklist.md` 都把 topic 停在 pre-review draft lane
 
 建議指令：
 
@@ -114,6 +121,6 @@ test -f plan/codex-skill-blockers/codex-skill-blockers.checklist.md
 
 若出現以下情況，必須停止並請求人工作審：
 
-- 有人要求在未重跑 draft baseline 前直接進 reviewer
-- 後續 work 漂移到實際建立 `.agents/skills/**` 或 `.codex/agents/**`
-- human 想把本 rerun topic 直接當成 artifact implementation topic
+- 有人要求在新的 draft plan commit 完成前直接進 reviewer gate
+- 後續 work 需要額外建立未列舉的 artifact path
+- human 想再次把本 topic 降回 design-only topic
