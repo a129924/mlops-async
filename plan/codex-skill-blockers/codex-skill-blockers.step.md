@@ -9,7 +9,7 @@
 - [X] Recreate `plan/codex-skill-blockers/codex-skill-blockers.checklist.md`.
 - [X] Create a new draft plan commit for the rerun migration topic.
 - [X] Resume this topic into independent review.
-- [ ] Run any later reviewer / planner gates.
+- [X] Run any later reviewer / planner gates.
 
 ## Workflow Stages
 
@@ -20,4 +20,8 @@ These stage markers are informational only. Completion gates must read only
 - [X] Draft plan package rerun
 - [X] Draft plan commit
 - [X] Independent review
-- [ ] Planner final gate
+- [X] Planner final gate
+
+## Current Handoff
+
+- Waiting for human check before any further workflow movement.
