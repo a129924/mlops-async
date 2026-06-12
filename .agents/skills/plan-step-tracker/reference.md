@@ -16,7 +16,7 @@
 Use the local script from the repository root:
 
 ```bash
-python skills/plan-step-tracker/scripts/step_tracker.py <operation> <topic>
+python .agents/skills/plan-step-tracker/scripts/step_tracker.py <operation> <topic>
 ```
 
 Supported operations:

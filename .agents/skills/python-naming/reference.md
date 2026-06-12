@@ -13,7 +13,7 @@
 - Use ASCII names and avoid mixed separators.
 - Prefer whole words over unclear abbreviations.
 - Keep file and folder names aligned with the responsibility they expose.
-- Exception classes should end with `Error` when they model an error condition.
+- Exception classes should end with `Exception` when they model an error condition, unless a local policy explicitly requires a different suffix.
 
 ## Avoid
 - `camelCase` functions or modules in normal Python code.
