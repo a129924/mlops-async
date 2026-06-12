@@ -1,16 +1,27 @@
 > **Analysis layer — strict mode**
 >
 > `analysis/codex-skill-blockers/requirements.md` and
-> `analysis/codex-skill-blockers/technical-spec.md` exist. This plan maps to
-> that technical spec as the execution-facing baseline.
+> `analysis/codex-skill-blockers/technical-spec.md` exist. This rerun plan maps
+> to that technical spec as the execution-facing migration-design baseline.
 
 ## Goal / Outcome
 
-- 建立一份 repo-visible blocker topic plan，凍結兩個 `api-client-porting-*` skills
-  不能直接進入 Codex skill projection 的執行合約。
-- 當此 topic 停下時，repo 內應有一套可追溯的 blocker package，清楚說明：
-  - 目前為何不能 projection
-  - 未來還缺哪些 prerequisite
+- 建立一份 repo-visible rerun topic plan，將舊的 blocker-only baseline 改寫成
+  Codex porting workflow migration-design baseline。
+- 當此 topic 停下時，repo 內應有一套可追溯的 rerun package，清楚說明：
+  - 現有 `.github/skills/api-client-porting-*` 哪些語意要保留
+  - 哪些 repo-specific contract 要抽離
+  - 新的 `2 agent skills + 1 custom agent` 目標分工為何
+
+## Inputs / Prerequisites
+
+- Requirements baseline: `analysis/codex-skill-blockers/requirements.md`
+- Technical baseline: `analysis/codex-skill-blockers/technical-spec.md`
+- Workflow contract: `plan/agent-handoff-workflow.md`
+- Prompt contract:
+  - `.github/prompts/create-analysis.prompt.md`
+  - `.github/prompts/create-agent-plan.prompt.md`
+- Prior draft baseline commit replaced by this rerun: `639759c`
 
 ## Scope
 
@@ -20,37 +31,45 @@
   - `plan/codex-skill-blockers/codex-skill-blockers.plan.md`
   - `plan/codex-skill-blockers/codex-skill-blockers.step.md`
   - `plan/codex-skill-blockers/codex-skill-blockers.checklist.md`
-  - `.github/skills/api-client-porting-implementer/`
   - `.github/skills/api-client-porting-planner/`
+  - `.github/skills/api-client-porting-implementer/`
+  - target design for `.agents/skills/api-client-porting-planner/`
+  - target design for `.agents/skills/api-client-porting-implementer/`
+  - target design for `.codex/agents/api-client-porting-workflow/`
 
 - **Out of scope**:
-  - 同名可 projection skills
-  - `.github/agents/*`
-  - actual canonicalization
-  - actual `.codex/skills` projection
+  - 其他 `.github/skills/*`
+  - actual `.agents/skills` materialization
+  - actual `.codex/agents` materialization
+  - runtime installation or load verification
   - `README.md`、`VERSION`
 
 ## Locked Decisions
 
-- 這兩個 skill 屬 blocker topic，不可直接進入 projection lane。
-- 在 future canonical `skills/api-client-porting-*` 真正存在前，不得規劃
-  `platform-projection-adapter --apply`。
-- 本 topic 只做到 draft plan commit，**不進 independent plan review**。
-- 本 topic 是 planning / governance topic，不是 implementation topic。
+- 本 topic 固定採用 `2 agent skills + 1 custom agent` 結構。
+- `.github/skills/api-client-porting-*` 只作 bootstrap input，不是新的 authority。
+- 新的 skill authority 目標是：
+  - `.agents/skills/api-client-porting-planner/`
+  - `.agents/skills/api-client-porting-implementer/`
+- 新的 custom agent 目標是：
+  - `.codex/agents/api-client-porting-workflow/`
+- planner skill 保持 planning-only；implementer skill 保持 implementation-only；
+  workflow agent 保持 orchestration-only。
+- 本 topic 只做到 rerun draft plan commit，**不進 independent plan review**。
 - 此 topic **不涉及 stable-library surfaces**。
 
 ## Boundaries / Exclusions
 
-- Planning actor 只建立 blocker package。
-- Creator 後續不得把本 topic 擴張成 actual skill authoring，除非 human 另開新 topic。
-- Reviewer 與 planner final gate 在本輪不進入；topic 明確停在 draft-plan commit 後。
-- Main Agent 僅負責 draft commit routing，不假裝此 topic 已完成 full workflow。
+- Planning actor 只建立 rerun migration-design package。
+- Creator 不得把本 topic 擴張成實際 artifact 建立，除非 human 另開新 topic。
+- Reviewer 與 planner final gate 在本輪不進入；topic 明確停在新的 draft-plan commit 後。
+- Main Agent 僅負責 rerun draft commit routing，不假裝此 topic 已完成 full workflow。
 
 ## Status / Allowed Transitions
 
 - **Current**: `creator-in-progress`
-- **Execution model**: this topic intentionally stops after draft plan commit and
-  pauses before independent review.
+- **Execution model**: this topic reruns analysis and planning artifacts, then
+  pauses after a new draft plan commit and before independent review.
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -68,48 +87,49 @@
 
 Routing notes:
 
-- Topic pause point is **after draft plan commit, before review-ready handoff**.
+- Topic pause point is **after rerun draft plan commit, before review-ready handoff**.
 - Do not advance to `review-ready` or `reviewer-in-progress` in this execution round.
 
 ## Artifact Paths
 
 | Artifact | Path | Owner | Role |
 | --- | --- | --- | --- |
-| Topic requirements baseline | `analysis/codex-skill-blockers/requirements.md` | Planning actor | Frozen blocker baseline |
-| Topic technical spec baseline | `analysis/codex-skill-blockers/technical-spec.md` | Planning actor | Frozen execution-facing blocker baseline |
-| Topic plan | `plan/codex-skill-blockers/codex-skill-blockers.plan.md` | Planning actor | Repo-visible execution contract for this blocker topic |
-| Topic step tracker | `plan/codex-skill-blockers/codex-skill-blockers.step.md` | Planning actor | Workflow-step evidence for the paused draft lane |
-| Topic checklist | `plan/codex-skill-blockers/codex-skill-blockers.checklist.md` | Planning actor | Authoring / pause-state validation for this topic |
-| Current blocker source | `.github/skills/api-client-porting-implementer/` | Creator | Existing compatibility-only source that lacks canonical counterpart |
-| Current blocker source | `.github/skills/api-client-porting-planner/` | Creator | Existing compatibility-only source that lacks canonical counterpart |
-| Future prerequisite | `skills/api-client-porting-implementer/` | Creator | Required canonical source before any later projection topic |
-| Future prerequisite | `skills/api-client-porting-planner/` | Creator | Required canonical source before any later projection topic |
-| Future projected target | `.codex/skills/api-client-porting-implementer/` | Creator | Deferred projection target; not executable in this topic |
-| Future projected target | `.codex/skills/api-client-porting-planner/` | Creator | Deferred projection target; not executable in this topic |
+| Topic requirements baseline | `analysis/codex-skill-blockers/requirements.md` | Planning actor | Frozen rerun migration baseline |
+| Topic technical spec baseline | `analysis/codex-skill-blockers/technical-spec.md` | Planning actor | Frozen execution-facing migration-design baseline |
+| Topic plan | `plan/codex-skill-blockers/codex-skill-blockers.plan.md` | Planning actor | Repo-visible execution contract for this rerun topic |
+| Topic step tracker | `plan/codex-skill-blockers/codex-skill-blockers.step.md` | Planning actor | Workflow-step evidence for the rerun draft lane |
+| Topic checklist | `plan/codex-skill-blockers/codex-skill-blockers.checklist.md` | Planning actor | Authoring / rerun-state validation for this topic |
+| Bootstrap input | `.github/skills/api-client-porting-planner/` | Creator | Existing planner skill input for Codex-facing translation design |
+| Bootstrap input | `.github/skills/api-client-porting-implementer/` | Creator | Existing implementer skill input for Codex-facing translation design |
+| Future skill authority | `.agents/skills/api-client-porting-planner/` | Creator | Target planner skill authority after later implementation topic |
+| Future skill authority | `.agents/skills/api-client-porting-implementer/` | Creator | Target implementer skill authority after later implementation topic |
+| Future workflow agent | `.codex/agents/api-client-porting-workflow/` | Creator | Target Codex custom agent authority after later implementation topic |
 
 Artifact path notes:
 
-- This topic does **not** modify `README.md`, `VERSION`, or `.github/agents/*`.
-- Listed future prerequisite / projected paths are deferred targets, not files created in
+- This topic does **not** modify `README.md`, `VERSION`, `.github/skills/**`,
+  `.agents/skills/**`, or `.codex/agents/**`.
+- Listed future skill / agent paths are deferred targets, not files created in
   this execution round.
 
 ## Implementation Steps
 
-1. Freeze the two-skill blocker inventory and the no-direct-projection rule in the
-   analysis layer.
-2. Author a repo-visible plan that records both current blocker sources and the
-   future canonical prerequisites.
-3. Create the topic step tracker and checklist.
-4. Create a draft plan commit for this topic.
-5. Pause the topic before independent review so later requirement expansion can
-   happen without pretending the full workflow already ran.
+1. Re-run the two-skill analysis baseline and replace the old blocker-only requirements.
+2. Re-run the technical spec so it matches the selected `2 skills + 1 custom agent` design.
+3. Author a repo-visible plan that records bootstrap inputs, future skill authorities,
+   and the future workflow agent target.
+4. Recreate the topic step tracker and checklist around the rerun migration-design semantics.
+5. Create a new draft plan commit for this rerun topic.
+6. Pause the topic before independent review so the rerun baseline, not the replaced
+   blocker-only baseline, is what later review gates evaluate.
 
 ## Validation / Acceptance Checks
 
 - All five topic artifacts exist at their exact paths.
-- The plan explicitly says this topic stops after draft plan commit.
+- The plan explicitly cites both analysis inputs and the prompt / workflow contracts.
+- The plan records exactly two target skills and one target custom agent.
 - The plan does not claim `review-ready`, `reviewer-in-progress`, or `approved`.
-- The plan does not authorize direct projection from `.github/skills/api-client-porting-*`.
+- The plan does not authorize direct artifact creation under `.agents/skills/**` or `.codex/agents/**`.
 - Stable-library intent is explicit as absent.
 
 ## Reviewer Handoff
@@ -133,5 +153,6 @@ Artifact path notes:
 
 ## Open Questions / Unresolved Items
 
-- Future canonicalization topic shape for `api-client-porting-implementer`
-- Future canonicalization topic shape for `api-client-porting-planner`
+- Exact Codex custom agent artifact schema under `.codex/agents/`
+- Whether later implementation should preserve sibling `reference.md` / `examples.md`
+  layout as-is or normalize directory placement

@@ -1,4 +1,4 @@
-# Codex Skill Blockers 技術規格
+# Codex Porting Workflow 技術規格
 
 ## 來源需求
 
@@ -8,9 +8,18 @@
 
 ## 目標
 
-建立一份 execution-facing blocker topic baseline，說明兩個 `api-client-porting-*`
-skills 為何必須先停在 blocker lane，並把後續 canonicalization prerequisite 鎖成
-未來 topic 的前提。
+建立一份 execution-facing migration-design baseline，定義如何把：
+
+- `.github/skills/api-client-porting-planner/`
+- `.github/skills/api-client-porting-implementer/`
+
+轉譯為：
+
+- `.agents/skills/api-client-porting-planner/`
+- `.agents/skills/api-client-porting-implementer/`
+- `.codex/agents/api-client-porting-workflow/`
+
+並明確說明哪些語意必須保留、哪些 repo-specific contract 必須抽離。
 
 ## 允許檔案範圍
 
@@ -24,55 +33,72 @@ skills 為何必須先停在 blocker lane，並把後續 canonicalization prereq
 
 此階段不得修改：
 
-- `skills/**`
-- `.codex/skills/**`
-- `.github/agents/**`
+- `.github/skills/**`
+- `.agents/skills/**`
+- `.codex/agents/**`
 - `README.md`
 - `VERSION`
 
 ## 技術需求對照
 
-1. **Blocker evidence capture**
-   - topic plan 必須明確記錄兩個 blocker skill 的現況來源路徑：
-     - `.github/skills/api-client-porting-implementer/`
+1. **Bootstrap input capture**
+   - topic plan 必須明確記錄 bootstrap input：
      - `.github/skills/api-client-porting-planner/`
-   - topic plan 不得把它們寫成 future canonical source
+     - `.github/skills/api-client-porting-implementer/`
+   - topic plan 不得把它們寫成 post-bootstrap authority
 
-2. **Future prerequisite contract**
-   - topic plan 必須明確寫出未來 prerequisite：
-     - `skills/api-client-porting-implementer/`
-     - `skills/api-client-porting-planner/`
-   - 在 prerequisite 未成立前，不得規劃 `.codex/skills` apply
+2. **Target artifact contract**
+   - topic plan 必須明確寫出目標 artifact：
+     - `.agents/skills/api-client-porting-planner/`
+     - `.agents/skills/api-client-porting-implementer/`
+     - `.codex/agents/api-client-porting-workflow/`
+   - topic plan 必須固定三者分工：
+     - planner skill：planning-only
+     - implementer skill：implementation-only
+     - workflow agent：orchestration-only
 
-3. **Stop-before-review execution shape**
-   - 本 topic 只做到 draft plan commit
+3. **Codex-facing skill normalization**
+   - planner 與 implementer 的 `SKILL.md` 設計必須假設 Codex-safe frontmatter
+   - 額外 routing signal 若目前只存在 extra frontmatter，必須在新設計中轉進 `description`
+     或正文 trigger 區塊
+   - supporting files 可保留為 local bundled resources，但必須由 `SKILL.md` 明確引用
+
+4. **Repo-specific abstraction**
+   - `docs/migration-map.md` 與 `docs/porting-ledger.md` 在新設計中不得仍是 unconditional requirement
+   - multi-agent workflow status 可保留為 optional handoff fields，但不得成為所有使用情境下的必填輸出
+   - `.github/copilot-instructions.md` 的 repo policy 不得成為 Codex-facing runtime prerequisite
+
+5. **Stop-before-review execution shape**
+   - 本 topic 只做到新的 draft plan commit
    - 因此 plan / step / checklist 必須清楚表達：
-     - topic package 已建立
+     - rerun analysis / plan package 已完成
+     - 舊 blocker-only baseline 已被取代
      - independent review 尚未開始
      - final gate 尚未開始
-
-4. **Feasibility / compliance notes**
-   - 目前看不到同名 canonical source，因此 blocker 判定成立
-   - 若後續 human 要求解 blocker，需另開 canonicalization topic，而不是把 blocker topic
-     偷偷擴張成 implementation topic
 
 ## Architecture / compliance 自查
 
 - **符合**
-  - 保持 blocker lane 與 projection lane 分離
-  - 不把 naming similarity 當成 canonical evidence
+  - skill 與 agent 責任分離
+  - planner / implementer 核心語意保留
+  - repo-specific contract 被降級為 optional/default behavior
 
 - **不符合即阻擋**
-  - 直接規劃 `.github/skills/api-client-porting-*` -> `.codex/skills/*`
-  - 在 blocker topic 內發明替代 canonical source
+  - 把 `.github/skills/api-client-porting-*` 直接宣稱為新的 authority
+  - 在新 skill 設計中仍硬綁 `docs/migration-map.md` 或 `docs/porting-ledger.md`
+  - 讓 workflow agent 吸收 planner / implementer 全部語意
+  - 未重跑 analysis / plan package 就前進 review
 
 ## 驗證
 
 必要檢查：
 
 1. 五份 topic 工件存在於預期路徑
-2. `requirements.md` 與 `technical-spec.md` 都明確寫出 no-direct-projection rule
-3. `plan.md` / `step.md` / `checklist.md` 都把 topic 停在 pre-review draft lane
+2. `requirements.md` 與 `technical-spec.md` 都明確寫出 `2 skills + 1 custom agent`
+3. `plan.md` 必須列出 analysis inputs：
+   - `analysis/codex-skill-blockers/requirements.md`
+   - `analysis/codex-skill-blockers/technical-spec.md`
+4. `plan.md` / `step.md` / `checklist.md` 都把 topic 停在 pre-review rerun draft lane
 
 建議指令：
 
@@ -88,6 +114,6 @@ test -f plan/codex-skill-blockers/codex-skill-blockers.checklist.md
 
 若出現以下情況，必須停止並請求人工作審：
 
-- 有人要求在無 canonical source 下直接 projection
-- 後續 work 漂移到 `skills/**` 或 `.codex/skills/**`
-- human 想把 blocker topic 直接當成 custom-agent 或 projection topic
+- 有人要求在未重跑 draft baseline 前直接進 reviewer
+- 後續 work 漂移到實際建立 `.agents/skills/**` 或 `.codex/agents/**`
+- human 想把本 rerun topic 直接當成 artifact implementation topic
