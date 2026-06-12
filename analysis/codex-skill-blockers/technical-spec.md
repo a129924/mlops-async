@@ -10,8 +10,8 @@
 
 建立一份 execution-facing migration-design baseline，定義如何把：
 
-- `.github/skills/api-client-porting-planner/`
-- `.github/skills/api-client-porting-implementer/`
+- `.github/skills/api-client-porting-planner/SKILL.md`
+- `.github/skills/api-client-porting-implementer/SKILL.md`
 
 轉譯為：
 
@@ -43,8 +43,8 @@
 
 1. **Bootstrap input capture**
    - topic plan 必須明確記錄 bootstrap input：
-     - `.github/skills/api-client-porting-planner/`
-     - `.github/skills/api-client-porting-implementer/`
+     - `.github/skills/api-client-porting-planner/SKILL.md`
+     - `.github/skills/api-client-porting-implementer/SKILL.md`
    - topic plan 不得把它們寫成 post-bootstrap authority
 
 2. **Target artifact contract**

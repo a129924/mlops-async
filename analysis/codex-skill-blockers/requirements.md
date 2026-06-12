@@ -12,8 +12,8 @@
 
 本需求只涵蓋下列 migration-design 目標：
 
-- `.github/skills/api-client-porting-planner/`
-- `.github/skills/api-client-porting-implementer/`
+- `.github/skills/api-client-porting-planner/SKILL.md`
+- `.github/skills/api-client-porting-implementer/SKILL.md`
 - `.agents/skills/api-client-porting-planner/SKILL.md`
 - `.agents/skills/api-client-porting-implementer/SKILL.md`
 - `.codex/agents/api-client-porting-workflow.agent.md`

@@ -31,8 +31,8 @@
   - `plan/codex-skill-blockers/codex-skill-blockers.plan.md`
   - `plan/codex-skill-blockers/codex-skill-blockers.step.md`
   - `plan/codex-skill-blockers/codex-skill-blockers.checklist.md`
-  - `.github/skills/api-client-porting-planner/`
-  - `.github/skills/api-client-porting-implementer/`
+  - `.github/skills/api-client-porting-planner/SKILL.md`
+  - `.github/skills/api-client-porting-implementer/SKILL.md`
   - target design for `.agents/skills/api-client-porting-planner/SKILL.md`
   - target design for `.agents/skills/api-client-porting-implementer/SKILL.md`
   - target design for `.codex/agents/api-client-porting-workflow.agent.md`
@@ -100,8 +100,8 @@ Routing notes:
 | Topic plan | `plan/codex-skill-blockers/codex-skill-blockers.plan.md` | Planning actor | Repo-visible execution contract for this rerun topic |
 | Topic step tracker | `plan/codex-skill-blockers/codex-skill-blockers.step.md` | Planning actor | Workflow-step evidence for the rerun draft lane |
 | Topic checklist | `plan/codex-skill-blockers/codex-skill-blockers.checklist.md` | Planning actor | Authoring / rerun-state validation for this topic |
-| Bootstrap input | `.github/skills/api-client-porting-planner/` | Creator | Existing planner skill input for Codex-facing translation design |
-| Bootstrap input | `.github/skills/api-client-porting-implementer/` | Creator | Existing implementer skill input for Codex-facing translation design |
+| Bootstrap input | `.github/skills/api-client-porting-planner/SKILL.md` | Creator | Existing planner skill contract input for Codex-facing translation design |
+| Bootstrap input | `.github/skills/api-client-porting-implementer/SKILL.md` | Creator | Existing implementer skill contract input for Codex-facing translation design |
 | Future skill authority | `.agents/skills/api-client-porting-planner/SKILL.md` | Creator | Target planner skill authority after later implementation topic |
 | Future skill authority | `.agents/skills/api-client-porting-implementer/SKILL.md` | Creator | Target implementer skill authority after later implementation topic |
 | Future workflow agent | `.codex/agents/api-client-porting-workflow.agent.md` | Creator | Target Codex custom agent authority after later implementation topic |
@@ -112,6 +112,8 @@ Artifact path notes:
   `.agents/skills/**`, or `.codex/agents/**`.
 - Listed future skill / agent paths are exact deferred targets, not files created in
   this execution round.
+- If later work appears outside the listed paths, that is a plan-alignment
+  problem and requires a plan update before continuing.
 
 ## Implementation Steps
 
