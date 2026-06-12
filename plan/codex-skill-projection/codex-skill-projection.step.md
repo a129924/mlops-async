@@ -2,24 +2,34 @@
 
 ## Implementation Steps
 
-- [X] Freeze the 32-skill candidate set and exclusion set in the analysis layer.
-- [X] Create `analysis/codex-skill-projection/technical-spec.md` and keep it frozen.
-- [X] Create `plan/codex-skill-projection/codex-skill-projection.plan.md`.
-- [X] Create `plan/codex-skill-projection/codex-skill-projection.step.md`.
-- [X] Create `plan/codex-skill-projection/codex-skill-projection.checklist.md`.
-- [X] Create a draft plan commit for the projection topic.
-- [X] Run independent `plan-reviewer` review and capture the verdict.
-- [X] Apply `plan-creator` fix/update pass after review.
-- [X] Run planner final gate and stop at wait-human-check.
+- [X] Freeze the 32-skill same-name scope and exclusion set in the analysis layer.
+- [X] Rewrite the analysis, plan, step, checklist, and audit artifacts to the
+  `.agents/skills/` target model.
+- [X] Create or update `AGENTS.md` to declare `.agents/skills/` as the repo-local
+  discovery surface.
+- [X] Create `plan/codex-skill-projection/codex-skill-projection.corrective-prompt.md`.
+- [X] Audit source existence for all 32 names under `source repo/.codex/skills/`.
+- [X] Audit target existence for all 32 names under `.agents/skills/`.
+- [X] Create or refresh `plan/codex-skill-projection/codex-skill-projection.audit.md`
+  against the `.agents/skills/` target.
+- [X] Create missing target skill roots for the frozen 32 names under
+  `.agents/skills/`.
+- [X] Remove topic-managed `.codex/skills/<name>` copies from the branch.
+- [X] Re-run recursive verification and confirm all 32 target skill roots under
+  `.agents/skills/` align with source.
+- [X] Update `plan/codex-skill-projection/codex-skill-projection.checklist.md`
+  and this step tracker to reflect completed creator work.
+- [ ] Run reviewer verification for target alignment, `AGENTS.md`, and audit
+  accuracy.
+- [ ] Run planner final gate and stop at wait-human-check.
 
 ## Workflow Stages
 
 These stage markers are informational only. Completion gates must read only
 `## Implementation Steps`.
 
-- [X] Analysis freeze
-- [X] Draft plan commit
-- [X] Independent plan review
-- [X] Review-fix pass
-- [X] Planner final gate
+- [X] Analysis rewrite
+- [X] Discovery-contract and migration execution
+- [ ] Reviewer gate
+- [ ] Planner final gate
 - [ ] Human check

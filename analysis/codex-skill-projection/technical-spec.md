@@ -8,113 +8,145 @@
 
 ## 目標
 
-把「同名 skill canonicalization -> `.codex/skills` projection」落成一個可被後續
-creator 執行的 repo-visible topic plan，並明確保留 skills / agents 分流。
+把 32 個 in-scope same-name skills 從
+`source repo/.codex/skills/<name>/` 對齊到
+`target repo/.agents/skills/<name>/`，並讓 `AGENTS.md` 明確宣告
+`.agents/skills/` 是此 repo 的 discoverable skill surface。
 
 ## 允許檔案範圍
 
-此 planning 階段只能建立或更新：
+本 topic 允許建立或更新：
 
+- `AGENTS.md`
 - `analysis/codex-skill-projection/requirements.md`
 - `analysis/codex-skill-projection/technical-spec.md`
 - `plan/codex-skill-projection/codex-skill-projection.plan.md`
 - `plan/codex-skill-projection/codex-skill-projection.step.md`
 - `plan/codex-skill-projection/codex-skill-projection.checklist.md`
+- `plan/codex-skill-projection/codex-skill-projection.audit.md`
+- `plan/codex-skill-projection/codex-skill-projection.corrective-prompt.md`
+- `.agents/skills/<name>/` for the frozen 32 names only
 
-此階段不得修改：
+本 topic 不得修改：
 
-- `skills/**`
-- `.codex/skills/**`
-- `.github/skills/**`
 - `.github/agents/**`
+- `.github/skills/**`
+- `skills/**`
 - `README.md`
 - `VERSION`
 
 ## 技術需求對照
 
-1. **Candidate inventory freeze**
-   - Topic plan 必須固定 32 個可轉移 skill 名稱
-   - 必須明確記錄排除：
-     - `copilot-instructions-init`
-     - `api-client-porting-implementer`
-     - `api-client-porting-planner`
-     - `.github/agents/*`
+1. **Discovery contract**
+   - `AGENTS.md` 必須宣告 `.agents/skills/` 是 repo-local discoverable skill
+     root
+   - 內容需明確區分：
+     - `.agents/skills/` = active target / discovery surface for this repo
+     - `.codex/skills/` = non-active / superseded surface for this topic
 
-2. **Source-of-truth mapping**
-   - Topic plan 必須把 future canonical source 鎖定為
-     `agent-skills/skills/<name>/`
-   - `mlops-async/.github/skills/<name>/` 僅能被描述為現況 compatibility surface
+2. **Source inventory**
+   - 對 frozen 32 names 逐一檢查 source skill root 是否存在
+   - source path 固定為
+     `source repo/.codex/skills/<name>/`
 
-3. **Future implementation target model**
-   - Topic plan 必須把未來目標拆成兩層：
-     - canonical `mlops-async/skills/<name>/`
-     - projected `mlops-async/.codex/skills/<name>/`
-   - 必須明確說明 `.codex/skills` 是 projection / compatibility surface，
-     不是 canonical source
+3. **Target inventory**
+   - 對 frozen 32 names 逐一檢查 target skill root 是否存在
+   - target path 固定為
+     `target repo/.agents/skills/<name>/`
 
-4. **Projection execution contract**
-   - future creator work 必須先引入 `platform-projection-adapter`
-   - projection 只能走：
-     - dry-run
-     - `--apply` with explicit write intent
-     - `--force` only with explicit human overwrite authorization
-   - 不允許第二套 projection algorithm
+4. **Recursive diff audit**
+   - 若 source 與 target 都存在，必須做整棵目錄的 recursive compare
+   - compare scope 包含 skill root 內所有 repo-visible files and subdirectories
 
-5. **Agent split contract**
-   - topic plan 必須把 `.github/agents/python-implementation-workflow.agent.md`
-     明確排除到 `custom-agent-codex-compat`
-   - 不得把任何 `.github/agents/*` 路徑列為本 topic creator artifact
+5. **Migration rule**
+   - 若 source 存在且 target 不存在，建立 target 並複製整棵 source root
 
-6. **Feasibility / compliance notes**
-   - 目前 repo 缺少 canonical `skills/` tree 與 `.codex/` surface，因此此 topic
-     是 future-migration planning，不是 immediate projection execution
-   - 若後續 implementation 發現 `.codex/skills` 還需要 README、provenance、
-     或其他 support files 才能符合 consumer expectation，必須 stop and amend
-     plan，而不是在 creator 階段擴張
+6. **Overwrite rule**
+   - 若 source 存在、target 存在且 recursive compare 不一致：
+     - 先記錄 diff audit
+     - 再用 source 整棵覆蓋 target
+     - 移除 target-only 檔案
+
+7. **Legacy `.codex/skills` cleanup**
+   - 若 branch 內已有本 topic 建出的 `.codex/skills/<name>`：
+     - 視為錯誤落點
+     - 從 topic branch 移除
+   - reviewer 不以 `.codex/skills/*` 作成功依據
+
+8. **No-op rule**
+   - 若 source 與 target 已一致，只記錄 `identical`，不重寫 target
+
+9. **Audit ledger contract**
+   - `codex-skill-projection.audit.md` 必須為 32 個 skill 各有一列
+   - 每列至少記錄：
+     - `skill_name`
+     - `source_exists`
+     - `target_exists_before`
+     - `migrated_before`
+     - `diff_status_before`
+     - `action`
+     - `result`
+     - `post_verify`
+     - `notes`
 
 ## Architecture / compliance 自查
 
 - **符合**
-  - planning / governance topic 與 repo `project-goal`、`project-guidelines`
-    一致
-  - 明確維持 skills / agents 分流
-  - 不把 compatibility surface 誤當 canonical source
+  - 只讀 source repo 的 `.codex/skills/`
+  - 只寫 target repo 的 `.agents/skills/`
+  - 以 `AGENTS.md` 鎖定 repo-local discovery contract
+  - 明確維持 skills / agents / blockers 分流
 
 - **不符合即阻擋**
-  - 在無 canonical `skills/` 的前提下直接規劃 `.github/skills` -> `.codex`
-  - 在無 human authorization 下規劃 `--force`
-  - 在 projection topic 內處理 agent compatibility
+  - 讀 `.github/skills/*` 當 source
+  - 寫 `skills/*`
+  - 在 topic 內碰 `.github/agents/*`
+  - 繼續把 `.codex/skills/*` 當 active target
+  - 不更新 `AGENTS.md` 就宣稱 `.agents/skills/` 可 discovery
 
 - **需豁免才可前進**
-  - 若後續需要超出 topic plan 列出的 artifact paths
+  - 若後續需要處理本次 32 個 skill 以外的 target roots
 
 ## 驗證
 
-此階段僅限分析與計畫產物。
-
 必要檢查：
 
-1. 五份 topic 工件都存在於預期路徑
-2. `requirements.md` 明確列出 32 個 candidates 與排除集合
-3. `technical-spec.md`、`plan.md` 都明確記錄 canonical source 與 projection
-   surface 差異
-4. `plan.md` 不得列入 `.github/agents/*`
+1. 八份 topic / governance 工件都存在：
+   - `AGENTS.md`
+   - requirements
+   - technical-spec
+   - plan
+   - step
+   - checklist
+   - audit
+   - corrective-prompt
+2. `.agents/skills/` 存在
+3. 對每個 frozen name：
+   - source 存在
+   - target 於執行後存在
+   - `post_verify = aligned`
+4. target 內不應殘留 target-only drift
+5. `.codex/skills/*` 不再作為本 topic 成功條件
 
 建議指令：
 
 ```bash
+test -f AGENTS.md
 test -f analysis/codex-skill-projection/requirements.md
 test -f analysis/codex-skill-projection/technical-spec.md
 test -f plan/codex-skill-projection/codex-skill-projection.plan.md
 test -f plan/codex-skill-projection/codex-skill-projection.step.md
 test -f plan/codex-skill-projection/codex-skill-projection.checklist.md
+test -f plan/codex-skill-projection/codex-skill-projection.audit.md
+test -f plan/codex-skill-projection/codex-skill-projection.corrective-prompt.md
+test -d .agents/skills
 ```
 
 ## 停止條件
 
 若出現以下情況，必須停止並請求人工作審：
 
-- candidate set 與 `agent-skills/skills/` 真實內容不一致
-- future implementation 需要處理 `.github/agents/*`
-- projection 需要額外 governance support files，但 plan 尚未列入
-- 後續執行者想繞過 `platform-projection-adapter`
+- frozen 32 names 中任何 source skill 缺失
+- 執行中發現需碰 `.github/agents/*`
+- 執行中發現需碰 blockers
+- 執行中發現需建立 `skills/*`

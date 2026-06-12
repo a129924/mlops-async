@@ -2,28 +2,28 @@
 
 ## Authoring
 
-- [X] `requirements.md` 列出 32 個 projection candidates。
-- [X] `requirements.md` 明確排除 `copilot-instructions-init`、blockers、與 agents。
-- [X] `technical-spec.md` 明確鎖定 canonical `skills/` 與 projected `.codex/skills/`
-  的兩層 surface。
-- [X] `plan.md` 使用 canonical workflow sections。
-- [X] `step.md` 與 `checklist.md` 已建立。
+- [X] `requirements.md` 已改為 repo-local `.agents/skills` migration 方向。
+- [X] `technical-spec.md` 已把 source 鎖定為
+  `agent-skills/.codex/skills/<name>/`。
+- [X] `technical-spec.md` 已把 target 鎖定為 `mlops-async/.agents/skills/<name>/`。
+- [X] `plan.md` 已移除 `platform-projection-adapter` 與 canonical `skills/`
+  language。
+- [X] `AGENTS.md` 已納入本 topic 的 discovery contract。
+- [X] `audit.md` 已建立，且只涵蓋 frozen 32 names。
+- [X] `corrective-prompt.md` 已存在並對齊 `.agents/skills/` 方向。
 
 ## Review
 
-- [X] `Reviewer Handoff` 是單一 JSON 物件。
-- [X] Stable-library intent 明確標示為 absent。
-- [X] `Artifact Paths` 沒有把 `.github/agents/*` 納入本 topic。
-- [X] `Artifact Paths` 沒有把 `copilot-instructions-init` 納入 candidate set。
-- [X] `Artifact Paths` 已把 32 個 future creator targets 轉成 exact repo-visible、
-  role-labeled contract。
-- [X] `Artifact path notes` 已明確宣告 `.github/copilot-instructions.md` 為 no-change。
-- [X] 未發明第二套 projection algorithm。
+- [ ] reviewer 已確認 `AGENTS.md` 明確宣告 `.agents/skills/` discovery surface。
+- [ ] reviewer 已確認 32 個 target skill roots 都存在於 `.agents/skills/`。
+- [ ] reviewer 已確認 audit ledger 與實際 target 狀態一致。
+- [ ] reviewer 已確認 topic-managed `.codex/skills/` 副本已移除。
+- [ ] reviewer 已確認沒有碰 `.github/agents/*`、blockers、`.github/skills/*`、
+  或 `skills/*`。
+- [ ] reviewer 已確認 `step.md` 勾選與實際 creator work 一致。
 
 ## Final Gate
 
-- [X] draft plan commit 已建立。
-- [X] independent `plan-reviewer` gate 已重新通過。
-- [X] `plan-creator` fix/update pass 已完成。
-- [X] planner final gate 已完成。
-- [X] topic 目前只停在 wait-human-check，未進 publish routing。
+- [ ] planner 已確認 topic 停在 reviewer 後的正確狀態。
+- [ ] planner 已確認此 topic 未進 publish / release routing。
+- [ ] topic 已停在 wait-human-check。
