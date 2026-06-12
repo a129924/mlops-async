@@ -11,16 +11,19 @@
 
 ## Review
 
-- [ ] `Reviewer Handoff` 是單一 JSON 物件。
-- [ ] Stable-library intent 明確標示為 absent。
-- [ ] `Artifact Paths` 沒有把 `.github/agents/*` 納入本 topic。
-- [ ] `Artifact Paths` 沒有把 `copilot-instructions-init` 納入 candidate set。
-- [ ] 未發明第二套 projection algorithm。
+- [X] `Reviewer Handoff` 是單一 JSON 物件。
+- [X] Stable-library intent 明確標示為 absent。
+- [X] `Artifact Paths` 沒有把 `.github/agents/*` 納入本 topic。
+- [X] `Artifact Paths` 沒有把 `copilot-instructions-init` 納入 candidate set。
+- [X] `Artifact Paths` 已把 32 個 future creator targets 轉成 exact repo-visible、
+  role-labeled contract。
+- [X] `Artifact path notes` 已明確宣告 `.github/copilot-instructions.md` 為 no-change。
+- [X] 未發明第二套 projection algorithm。
 
 ## Final Gate
 
 - [X] draft plan commit 已建立。
-- [ ] independent `plan-reviewer` gate 已通過。
-- [ ] `plan-creator` fix/update pass 已完成。
-- [ ] planner final gate 已完成。
-- [ ] topic 目前只停在 wait-human-check，未進 publish routing。
+- [X] independent `plan-reviewer` gate 已重新通過。
+- [X] `plan-creator` fix/update pass 已完成。
+- [X] planner final gate 已完成。
+- [X] topic 目前只停在 wait-human-check，未進 publish routing。

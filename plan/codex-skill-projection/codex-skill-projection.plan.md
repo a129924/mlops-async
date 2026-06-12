@@ -56,10 +56,11 @@
 
 ## Status / Allowed Transitions
 
-- **Current**: `review-ready`
-- **Execution model**: this planning topic has completed draft authoring and is
-  ready for independent plan review; later publish routing remains out of scope
-  for this execution round.
+- **Current**: `approved`
+- **Execution model**: this planning topic completed draft authoring, received a
+  `needs-rework` reviewer verdict, completed a `plan-creator` correction pass,
+  passed re-review, and then completed planner final gate. It now stops at human
+  check before any later publish routing.
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -77,8 +78,7 @@
 
 Routing notes:
 
-- This topic will enter independent plan review immediately after the draft plan
-  commit.
+- This topic intentionally stops at human check after planner final gate.
 - No release action is declared.
 - Shared-file coordination warning: future edits under `skills/` or `.codex/skills/`
   may conflict with other worktrees if they touch the same skill names.
@@ -93,44 +93,79 @@ Routing notes:
 | Topic step tracker | `plan/codex-skill-projection/codex-skill-projection.step.md` | Planning actor | Workflow-step evidence for this topic package |
 | Topic checklist | `plan/codex-skill-projection/codex-skill-projection.checklist.md` | Planning actor | Author / reviewer / final-gate checks for this topic package |
 
-Projection candidate set (future creator targets, exact directory pairs):
+Future creator-owned exact projection targets:
 
-- `skills/business-intent-alignment/` -> `.codex/skills/business-intent-alignment/`
-- `skills/business-to-technical-translation/` -> `.codex/skills/business-to-technical-translation/`
-- `skills/git-branch-naming/` -> `.codex/skills/git-branch-naming/`
-- `skills/git-commit-convention/` -> `.codex/skills/git-commit-convention/`
-- `skills/git-post-merge-workflow/` -> `.codex/skills/git-post-merge-workflow/`
-- `skills/git-release-management/` -> `.codex/skills/git-release-management/`
-- `skills/plan-creator/` -> `.codex/skills/plan-creator/`
-- `skills/plan-reviewer/` -> `.codex/skills/plan-reviewer/`
-- `skills/plan-step-tracker/` -> `.codex/skills/plan-step-tracker/`
-- `skills/python-api-signature/` -> `.codex/skills/python-api-signature/`
-- `skills/python-async-await/` -> `.codex/skills/python-async-await/`
-- `skills/python-async-planning/` -> `.codex/skills/python-async-planning/`
-- `skills/python-class-design/` -> `.codex/skills/python-class-design/`
-- `skills/python-code-review/` -> `.codex/skills/python-code-review/`
-- `skills/python-context-management/` -> `.codex/skills/python-context-management/`
-- `skills/python-data-model-methods/` -> `.codex/skills/python-data-model-methods/`
-- `skills/python-docstrings/` -> `.codex/skills/python-docstrings/`
-- `skills/python-error-handling/` -> `.codex/skills/python-error-handling/`
-- `skills/python-implementation-review/` -> `.codex/skills/python-implementation-review/`
-- `skills/python-library-architecture/` -> `.codex/skills/python-library-architecture/`
-- `skills/python-model-selection/` -> `.codex/skills/python-model-selection/`
-- `skills/python-module-boundaries/` -> `.codex/skills/python-module-boundaries/`
-- `skills/python-naming/` -> `.codex/skills/python-naming/`
-- `skills/python-package-layout/` -> `.codex/skills/python-package-layout/`
-- `skills/python-plan-authoring/` -> `.codex/skills/python-plan-authoring/`
-- `skills/python-plan-review/` -> `.codex/skills/python-plan-review/`
-- `skills/python-serialization-boundaries/` -> `.codex/skills/python-serialization-boundaries/`
-- `skills/python-tdd-test-authoring/` -> `.codex/skills/python-tdd-test-authoring/`
-- `skills/python-testing-pytest/` -> `.codex/skills/python-testing-pytest/`
-- `skills/python-type-hints-strict/` -> `.codex/skills/python-type-hints-strict/`
-- `skills/sense-env-scaffold/` -> `.codex/skills/sense-env-scaffold/`
-- `skills/worktree-manager/` -> `.codex/skills/worktree-manager/`
+| Artifact | Path | Owner | Role |
+| --- | --- | --- | --- |
+| Canonical skill root: `business-intent-alignment` | `skills/business-intent-alignment/` | Future creator | Materialize canonical skill root from `agent-skills/skills/business-intent-alignment/` |
+| Projected Codex skill root: `business-intent-alignment` | `.codex/skills/business-intent-alignment/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `business-to-technical-translation` | `skills/business-to-technical-translation/` | Future creator | Materialize canonical skill root from `agent-skills/skills/business-to-technical-translation/` |
+| Projected Codex skill root: `business-to-technical-translation` | `.codex/skills/business-to-technical-translation/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `git-branch-naming` | `skills/git-branch-naming/` | Future creator | Materialize canonical skill root from `agent-skills/skills/git-branch-naming/` |
+| Projected Codex skill root: `git-branch-naming` | `.codex/skills/git-branch-naming/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `git-commit-convention` | `skills/git-commit-convention/` | Future creator | Materialize canonical skill root from `agent-skills/skills/git-commit-convention/` |
+| Projected Codex skill root: `git-commit-convention` | `.codex/skills/git-commit-convention/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `git-post-merge-workflow` | `skills/git-post-merge-workflow/` | Future creator | Materialize canonical skill root from `agent-skills/skills/git-post-merge-workflow/` |
+| Projected Codex skill root: `git-post-merge-workflow` | `.codex/skills/git-post-merge-workflow/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `git-release-management` | `skills/git-release-management/` | Future creator | Materialize canonical skill root from `agent-skills/skills/git-release-management/` |
+| Projected Codex skill root: `git-release-management` | `.codex/skills/git-release-management/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `plan-creator` | `skills/plan-creator/` | Future creator | Materialize canonical skill root from `agent-skills/skills/plan-creator/` |
+| Projected Codex skill root: `plan-creator` | `.codex/skills/plan-creator/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `plan-reviewer` | `skills/plan-reviewer/` | Future creator | Materialize canonical skill root from `agent-skills/skills/plan-reviewer/` |
+| Projected Codex skill root: `plan-reviewer` | `.codex/skills/plan-reviewer/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `plan-step-tracker` | `skills/plan-step-tracker/` | Future creator | Materialize canonical skill root from `agent-skills/skills/plan-step-tracker/` |
+| Projected Codex skill root: `plan-step-tracker` | `.codex/skills/plan-step-tracker/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-api-signature` | `skills/python-api-signature/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-api-signature/` |
+| Projected Codex skill root: `python-api-signature` | `.codex/skills/python-api-signature/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-async-await` | `skills/python-async-await/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-async-await/` |
+| Projected Codex skill root: `python-async-await` | `.codex/skills/python-async-await/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-async-planning` | `skills/python-async-planning/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-async-planning/` |
+| Projected Codex skill root: `python-async-planning` | `.codex/skills/python-async-planning/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-class-design` | `skills/python-class-design/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-class-design/` |
+| Projected Codex skill root: `python-class-design` | `.codex/skills/python-class-design/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-code-review` | `skills/python-code-review/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-code-review/` |
+| Projected Codex skill root: `python-code-review` | `.codex/skills/python-code-review/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-context-management` | `skills/python-context-management/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-context-management/` |
+| Projected Codex skill root: `python-context-management` | `.codex/skills/python-context-management/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-data-model-methods` | `skills/python-data-model-methods/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-data-model-methods/` |
+| Projected Codex skill root: `python-data-model-methods` | `.codex/skills/python-data-model-methods/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-docstrings` | `skills/python-docstrings/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-docstrings/` |
+| Projected Codex skill root: `python-docstrings` | `.codex/skills/python-docstrings/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-error-handling` | `skills/python-error-handling/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-error-handling/` |
+| Projected Codex skill root: `python-error-handling` | `.codex/skills/python-error-handling/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-implementation-review` | `skills/python-implementation-review/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-implementation-review/` |
+| Projected Codex skill root: `python-implementation-review` | `.codex/skills/python-implementation-review/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-library-architecture` | `skills/python-library-architecture/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-library-architecture/` |
+| Projected Codex skill root: `python-library-architecture` | `.codex/skills/python-library-architecture/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-model-selection` | `skills/python-model-selection/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-model-selection/` |
+| Projected Codex skill root: `python-model-selection` | `.codex/skills/python-model-selection/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-module-boundaries` | `skills/python-module-boundaries/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-module-boundaries/` |
+| Projected Codex skill root: `python-module-boundaries` | `.codex/skills/python-module-boundaries/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-naming` | `skills/python-naming/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-naming/` |
+| Projected Codex skill root: `python-naming` | `.codex/skills/python-naming/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-package-layout` | `skills/python-package-layout/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-package-layout/` |
+| Projected Codex skill root: `python-package-layout` | `.codex/skills/python-package-layout/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-plan-authoring` | `skills/python-plan-authoring/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-plan-authoring/` |
+| Projected Codex skill root: `python-plan-authoring` | `.codex/skills/python-plan-authoring/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-plan-review` | `skills/python-plan-review/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-plan-review/` |
+| Projected Codex skill root: `python-plan-review` | `.codex/skills/python-plan-review/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-serialization-boundaries` | `skills/python-serialization-boundaries/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-serialization-boundaries/` |
+| Projected Codex skill root: `python-serialization-boundaries` | `.codex/skills/python-serialization-boundaries/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-tdd-test-authoring` | `skills/python-tdd-test-authoring/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-tdd-test-authoring/` |
+| Projected Codex skill root: `python-tdd-test-authoring` | `.codex/skills/python-tdd-test-authoring/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-testing-pytest` | `skills/python-testing-pytest/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-testing-pytest/` |
+| Projected Codex skill root: `python-testing-pytest` | `.codex/skills/python-testing-pytest/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `python-type-hints-strict` | `skills/python-type-hints-strict/` | Future creator | Materialize canonical skill root from `agent-skills/skills/python-type-hints-strict/` |
+| Projected Codex skill root: `python-type-hints-strict` | `.codex/skills/python-type-hints-strict/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `sense-env-scaffold` | `skills/sense-env-scaffold/` | Future creator | Materialize canonical skill root from `agent-skills/skills/sense-env-scaffold/` |
+| Projected Codex skill root: `sense-env-scaffold` | `.codex/skills/sense-env-scaffold/` | Future creator | Project the canonical skill into the Codex compatibility surface |
+| Canonical skill root: `worktree-manager` | `skills/worktree-manager/` | Future creator | Materialize canonical skill root from `agent-skills/skills/worktree-manager/` |
+| Projected Codex skill root: `worktree-manager` | `.codex/skills/worktree-manager/` | Future creator | Project the canonical skill into the Codex compatibility surface |
 
 Artifact path notes:
 
-- This topic does **not** modify `README.md`, `VERSION`, or `.github/agents/*`.
+- This topic does **not** modify `README.md`, `VERSION`,
+  `.github/copilot-instructions.md`, or `.github/agents/*`.
 - Listed paths are an executable contract; if later work drifts outside them, stop
   and realign the plan before implementation continues.
 
@@ -165,7 +200,7 @@ Artifact path notes:
 
 ```json
 {
-  "verdict": "approved|needs-rework",
+  "verdict": "approved",
   "blocking_issues": [],
   "copilot_feedback_triage": {
     "ADDRESS": [],
@@ -178,7 +213,7 @@ Artifact path notes:
 ## Post-merge / release actions
 
 - After merge, no repository release action is required for this topic.
-- This topic does not proceed to publish routing in the current execution round.
+- This topic stops at human check before any later publish routing is resumed.
 
 ## Open Questions / Unresolved Items
 

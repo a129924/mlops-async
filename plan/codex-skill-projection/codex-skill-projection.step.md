@@ -8,9 +8,9 @@
 - [X] Create `plan/codex-skill-projection/codex-skill-projection.step.md`.
 - [X] Create `plan/codex-skill-projection/codex-skill-projection.checklist.md`.
 - [X] Create a draft plan commit for the projection topic.
-- [ ] Run independent `plan-reviewer` review and capture the verdict.
-- [ ] Apply `plan-creator` fix/update pass after review.
-- [ ] Run planner final gate and stop at wait-human-check.
+- [X] Run independent `plan-reviewer` review and capture the verdict.
+- [X] Apply `plan-creator` fix/update pass after review.
+- [X] Run planner final gate and stop at wait-human-check.
 
 ## Workflow Stages
 
@@ -19,7 +19,7 @@ These stage markers are informational only. Completion gates must read only
 
 - [X] Analysis freeze
 - [X] Draft plan commit
-- [ ] Independent plan review
-- [ ] Review-fix pass
-- [ ] Planner final gate
+- [X] Independent plan review
+- [X] Review-fix pass
+- [X] Planner final gate
 - [ ] Human check
