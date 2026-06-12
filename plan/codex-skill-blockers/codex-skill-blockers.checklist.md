@@ -4,7 +4,7 @@
 
 - [X] `requirements.md` 明確改成 migration-design baseline。
 - [X] `technical-spec.md` 明確固定為 `2 skills + 1 custom agent`。
-- [X] `plan.md` 明確列出 analysis inputs、bootstrap inputs 與 future targets。
+- [X] `plan.md` 明確列出 analysis inputs、bootstrap inputs 與 exact future targets。
 - [X] `step.md` 與 `checklist.md` 已重建。
 
 ## Migration Contract
@@ -18,7 +18,7 @@
 
 ## Pause-State Semantics
 
-- [X] topic 目前停在新的 rerun draft plan commit。
+- [X] topic 目前處於 `review-ready` handoff 點。
 - [X] topic `Current` 沒有宣稱 `reviewer-in-progress` 或 `approved`。
 - [X] 尚未進入 `plan-reviewer`。
 - [X] 尚未進入 planner final gate。

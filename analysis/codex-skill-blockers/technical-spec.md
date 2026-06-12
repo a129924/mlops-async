@@ -15,9 +15,9 @@
 
 轉譯為：
 
-- `.agents/skills/api-client-porting-planner/`
-- `.agents/skills/api-client-porting-implementer/`
-- `.codex/agents/api-client-porting-workflow/`
+- `.agents/skills/api-client-porting-planner/SKILL.md`
+- `.agents/skills/api-client-porting-implementer/SKILL.md`
+- `.codex/agents/api-client-porting-workflow.agent.md`
 
 並明確說明哪些語意必須保留、哪些 repo-specific contract 必須抽離。
 
@@ -49,9 +49,9 @@
 
 2. **Target artifact contract**
    - topic plan 必須明確寫出目標 artifact：
-     - `.agents/skills/api-client-porting-planner/`
-     - `.agents/skills/api-client-porting-implementer/`
-     - `.codex/agents/api-client-porting-workflow/`
+     - `.agents/skills/api-client-porting-planner/SKILL.md`
+     - `.agents/skills/api-client-porting-implementer/SKILL.md`
+     - `.codex/agents/api-client-porting-workflow.agent.md`
    - topic plan 必須固定三者分工：
      - planner skill：planning-only
      - implementer skill：implementation-only

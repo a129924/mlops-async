@@ -14,9 +14,9 @@
 
 - `.github/skills/api-client-porting-planner/`
 - `.github/skills/api-client-porting-implementer/`
-- `.agents/skills/api-client-porting-planner/`
-- `.agents/skills/api-client-porting-implementer/`
-- `.codex/agents/api-client-porting-workflow/`
+- `.agents/skills/api-client-porting-planner/SKILL.md`
+- `.agents/skills/api-client-porting-implementer/SKILL.md`
+- `.codex/agents/api-client-porting-workflow.agent.md`
 - `analysis/codex-skill-blockers/requirements.md`
 - `analysis/codex-skill-blockers/technical-spec.md`
 - `plan/codex-skill-blockers/codex-skill-blockers.plan.md`
@@ -104,9 +104,9 @@ Ownership model:
 
 ## Non-goals
 
-- 本 topic 不直接建立 `.agents/skills/api-client-porting-planner/`
-- 本 topic 不直接建立 `.agents/skills/api-client-porting-implementer/`
-- 本 topic 不直接建立 `.codex/agents/api-client-porting-workflow/`
+- 本 topic 不直接建立 `.agents/skills/api-client-porting-planner/SKILL.md`
+- 本 topic 不直接建立 `.agents/skills/api-client-porting-implementer/SKILL.md`
+- 本 topic 不直接建立 `.codex/agents/api-client-porting-workflow.agent.md`
 - 本 topic 不定義其他 Codex custom agent 路徑或 registry
 - 本 topic 不處理 runtime installation
 

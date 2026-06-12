@@ -33,9 +33,9 @@
   - `plan/codex-skill-blockers/codex-skill-blockers.checklist.md`
   - `.github/skills/api-client-porting-planner/`
   - `.github/skills/api-client-porting-implementer/`
-  - target design for `.agents/skills/api-client-porting-planner/`
-  - target design for `.agents/skills/api-client-porting-implementer/`
-  - target design for `.codex/agents/api-client-porting-workflow/`
+  - target design for `.agents/skills/api-client-porting-planner/SKILL.md`
+  - target design for `.agents/skills/api-client-porting-implementer/SKILL.md`
+  - target design for `.codex/agents/api-client-porting-workflow.agent.md`
 
 - **Out of scope**:
   - 其他 `.github/skills/*`
@@ -49,27 +49,27 @@
 - 本 topic 固定採用 `2 agent skills + 1 custom agent` 結構。
 - `.github/skills/api-client-porting-*` 只作 bootstrap input，不是新的 authority。
 - 新的 skill authority 目標是：
-  - `.agents/skills/api-client-porting-planner/`
-  - `.agents/skills/api-client-porting-implementer/`
+  - `.agents/skills/api-client-porting-planner/SKILL.md`
+  - `.agents/skills/api-client-porting-implementer/SKILL.md`
 - 新的 custom agent 目標是：
-  - `.codex/agents/api-client-porting-workflow/`
+  - `.codex/agents/api-client-porting-workflow.agent.md`
 - planner skill 保持 planning-only；implementer skill 保持 implementation-only；
   workflow agent 保持 orchestration-only。
-- 本 topic 只做到 rerun draft plan commit，**不進 independent plan review**。
+- 本 topic creator pass 已完成，下一步是 independent plan review。
 - 此 topic **不涉及 stable-library surfaces**。
 
 ## Boundaries / Exclusions
 
 - Planning actor 只建立 rerun migration-design package。
 - Creator 不得把本 topic 擴張成實際 artifact 建立，除非 human 另開新 topic。
-- Reviewer 與 planner final gate 在本輪不進入；topic 明確停在新的 draft-plan commit 後。
-- Main Agent 僅負責 rerun draft commit routing，不假裝此 topic 已完成 full workflow。
+- Main Agent 負責 review routing、fix routing、planner final gate 與 human-check handoff。
+- 本 topic 不進 publish / merge / release routing。
 
 ## Status / Allowed Transitions
 
-- **Current**: `creator-in-progress`
-- **Execution model**: this topic reruns analysis and planning artifacts, then
-  pauses after a new draft plan commit and before independent review.
+- **Current**: `review-ready`
+- **Execution model**: creator rerun work is complete, the plan is now ready for
+  independent review, and this topic stops before publish / merge routing.
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -87,8 +87,9 @@
 
 Routing notes:
 
-- Topic pause point is **after rerun draft plan commit, before review-ready handoff**.
-- Do not advance to `review-ready` or `reviewer-in-progress` in this execution round.
+- Current handoff point is **review-ready**.
+- This topic may advance through independent review and planner final gate, but
+  it does not enter publish / merge routing in this execution round.
 
 ## Artifact Paths
 
@@ -101,15 +102,15 @@ Routing notes:
 | Topic checklist | `plan/codex-skill-blockers/codex-skill-blockers.checklist.md` | Planning actor | Authoring / rerun-state validation for this topic |
 | Bootstrap input | `.github/skills/api-client-porting-planner/` | Creator | Existing planner skill input for Codex-facing translation design |
 | Bootstrap input | `.github/skills/api-client-porting-implementer/` | Creator | Existing implementer skill input for Codex-facing translation design |
-| Future skill authority | `.agents/skills/api-client-porting-planner/` | Creator | Target planner skill authority after later implementation topic |
-| Future skill authority | `.agents/skills/api-client-porting-implementer/` | Creator | Target implementer skill authority after later implementation topic |
-| Future workflow agent | `.codex/agents/api-client-porting-workflow/` | Creator | Target Codex custom agent authority after later implementation topic |
+| Future skill authority | `.agents/skills/api-client-porting-planner/SKILL.md` | Creator | Target planner skill authority after later implementation topic |
+| Future skill authority | `.agents/skills/api-client-porting-implementer/SKILL.md` | Creator | Target implementer skill authority after later implementation topic |
+| Future workflow agent | `.codex/agents/api-client-porting-workflow.agent.md` | Creator | Target Codex custom agent authority after later implementation topic |
 
 Artifact path notes:
 
 - This topic does **not** modify `README.md`, `VERSION`, `.github/skills/**`,
   `.agents/skills/**`, or `.codex/agents/**`.
-- Listed future skill / agent paths are deferred targets, not files created in
+- Listed future skill / agent paths are exact deferred targets, not files created in
   this execution round.
 
 ## Implementation Steps
@@ -120,15 +121,15 @@ Artifact path notes:
    and the future workflow agent target.
 4. Recreate the topic step tracker and checklist around the rerun migration-design semantics.
 5. Create a new draft plan commit for this rerun topic.
-6. Pause the topic before independent review so the rerun baseline, not the replaced
-   blocker-only baseline, is what later review gates evaluate.
+6. Hand the rerun baseline to independent review so the replaced blocker-only
+   baseline is no longer the review basis.
 
 ## Validation / Acceptance Checks
 
 - All five topic artifacts exist at their exact paths.
 - The plan explicitly cites both analysis inputs and the prompt / workflow contracts.
 - The plan records exactly two target skills and one target custom agent.
-- The plan does not claim `review-ready`, `reviewer-in-progress`, or `approved`.
+- The plan truthfully claims `review-ready` and does not skip canonical review transitions.
 - The plan does not authorize direct artifact creation under `.agents/skills/**` or `.codex/agents/**`.
 - Stable-library intent is explicit as absent.
 
@@ -153,6 +154,5 @@ Artifact path notes:
 
 ## Open Questions / Unresolved Items
 
-- Exact Codex custom agent artifact schema under `.codex/agents/`
 - Whether later implementation should preserve sibling `reference.md` / `examples.md`
-  layout as-is or normalize directory placement
+  layout as-is or normalize directory placement under `.agents/skills/*`
