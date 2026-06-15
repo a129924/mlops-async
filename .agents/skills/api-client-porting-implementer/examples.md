@@ -7,7 +7,7 @@ Good implementation pattern:
 1. Re-read the source lines and confirm request behavior.
 2. Add a request test that checks method, path, required header subset, query key-value semantics, and body shape.
 3. Implement only the async behavior needed for the request test.
-4. Add a tolerant response model with `extra="ignore"` or `extra="allow"`.
+4. Add a tolerant response model that ignores or allows unknown fields.
 5. Add response and error tests from observed fixtures or documented behavior.
 6. Mark response compatibility `normalized` if converting raw JSON into a typed model.
 7. Update in-scope trackers or emit tracker-ready handoff content.

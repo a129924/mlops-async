@@ -39,11 +39,11 @@ Request tests must not assert:
 
 Default external-boundary policy:
 
-| Schema artifact type | Default `extra` policy |
+| Schema artifact type | Default unknown-fields policy |
 | --- | --- |
-| Request schema artifact | `extra="forbid"` |
-| Response schema artifact | `extra="ignore"` or `extra="allow"` |
-| Error schema artifact | `extra="allow"` |
+| Request schema artifact | forbid unknown fields |
+| Response schema artifact | ignore or allow unknown fields |
+| Error schema artifact | allow unknown fields |
 
 Allowed compatibility labels:
 
