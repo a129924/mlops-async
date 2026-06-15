@@ -5,59 +5,59 @@ description: Wrapper workflow recipe for parent Codex sessions that need to coor
 
 # Python Implementation Workflow
 
-Use this skill when a parent Codex session needs the repo-local Python implementation workflow for a single topic with plan, implementation, and review handoffs.
+當 parent Codex session 需要針對單一 topic 使用 repo-local Python implementation workflow，並完成 plan、implementation 與 review handoff 時，使用此 skill。
 
-Read [reference.md](./reference.md) before acting.
+執行前請先閱讀 [reference.md](./reference.md)。
 
 ## Role
 
-This skill is a wrapper recipe for the parent Codex session.
+此 skill 是提供給 parent Codex session 的 wrapper recipe。
 
-- It does not replace runtime orchestration with its own engine.
-- It does not redefine the core workflow contract that belongs in custom agents.
-- It does not create a runtime dependency on legacy `.github/agents/*.agent.md` files.
+- 它不會以自己的 engine 取代 runtime orchestration。
+- 它不會重新定義屬於 custom agents 的核心 workflow contract。
+- 它不會建立對 legacy `.github/agents/*.agent.md` 檔案的 runtime dependency。
 
 ## Required Inputs
 
-- A single active topic with its plan artifacts
+- 單一 active topic 與其對應的 plan artifacts
 - Repo-local custom agents:
   - `planner`
   - `implementer`
   - `reviewer`
-- The shared `workflow-artifact-contract` skill when workflow artifacts are being created or reviewed
+- 當建立或審查 workflow artifacts 時，需使用共享的 `workflow-artifact-contract` skill
 
 ## Wrapper Handoff Recipe
 
-1. Use `planner` to confirm or refine the topic execution plan from current repo artifacts.
-2. Use `implementer` to make scoped repository changes that satisfy the approved plan.
-3. Use `reviewer` to check correctness, path compliance, contract boundaries, and validation coverage.
-4. Keep all workflow artifacts on official repo-local paths only.
+1. 使用 `planner` 依據目前的 repo artifacts 確認或細化 topic execution plan。
+2. 使用 `implementer` 進行滿足已核准 plan 的 scoped repository changes。
+3. 使用 `reviewer` 檢查 correctness、path compliance、contract boundaries 與 validation coverage。
+4. 所有 workflow artifacts 只能保留在正式的 repo-local paths。
 
 ## Required Returned Artifacts
 
-- `planner` must return a concrete execution plan for the single active topic, including scoped steps, assumptions, constraints, and the repo-local artifact paths it expects the workflow to use.
-- `implementer` must return the applied repository change set, a concise implementation summary, and the validation results needed to show the approved plan was executed.
-- `reviewer` must return review findings, residual risks or open questions, and an explicit pass/fail recommendation for whether the topic is ready to leave review.
-- Returned artifacts must be grounded in current repo-local workflow outputs and must not depend on legacy `.github/agents/*.agent.md` files at runtime.
-- Legacy `.github/agents/*.agent.md` files remain frozen provenance only and are not a required runtime artifact source for this wrapper skill.
+- `planner` 必須針對單一 active topic 回傳具體的 execution plan，包含 scoped steps、assumptions、constraints，以及 workflow 預期使用的 repo-local artifact paths。
+- `implementer` 必須回傳實際套用的 repository change set、精簡的 implementation summary，以及用來證明已執行核准 plan 的 validation results。
+- `reviewer` 必須回傳 review findings、residual risks 或 open questions，以及明確的 pass/fail recommendation，說明該 topic 是否可離開 review 階段。
+- 回傳的 artifacts 必須建立在目前 repo-local workflow outputs 之上，且執行時不得依賴 legacy `.github/agents/*.agent.md` 檔案。
+- Legacy `.github/agents/*.agent.md` 檔案僅作為 frozen provenance 保留，並非此 wrapper skill 所需的 runtime artifact source。
 
 ## Required Gates
 
-- Planning gate: `planner` must produce or confirm a usable topic plan before `implementer` begins scoped repository changes.
-- Implementation gate: `implementer` must stay within the approved topic scope and return the applied change summary plus validation evidence before handoff to `reviewer`.
-- Review gate: `reviewer` must verify correctness, path compliance, artifact-contract boundaries, and validation coverage before the parent Codex session treats the topic as review-complete.
-- Path gate: all workflow artifacts must stay on official repo-local paths; this wrapper skill must not redirect runtime artifacts to legacy `.github/agents/*.agent.md` files or repo-root `agents/openai.yaml`.
-- Workflow boundary gate: git commit, push, and pull request actions remain outside this workflow and are not part of satisfying these gates.
+- Planning gate: `planner` 必須先產出或確認可用的 topic plan，`implementer` 才能開始進行 scoped repository changes。
+- Implementation gate: `implementer` 必須維持在已核准的 topic scope 內，並在 handoff 給 `reviewer` 之前回傳已套用的 change summary 與 validation evidence。
+- Review gate: 在 parent Codex session 將 topic 視為 review-complete 之前，`reviewer` 必須驗證 correctness、path compliance、artifact-contract boundaries 與 validation coverage。
+- Path gate: 所有 workflow artifacts 必須留在正式的 repo-local paths；此 wrapper skill 不可將 runtime artifacts 轉導到 legacy `.github/agents/*.agent.md` 檔案或 repo-root `agents/openai.yaml`。
+- Workflow boundary gate: git commit、push 與 pull request actions 仍屬於此 workflow 之外，不屬於滿足這些 gates 的一部分。
 
 ## Human-Review Stop Boundary
 
-- The parent Codex session must stop for human review once `reviewer` has returned findings and a final pass/fail recommendation for the scoped topic.
-- The wrapper skill coordinates `planner`, `implementer`, and `reviewer`, but it must not present itself as an autonomous runtime orchestration engine that self-approves release or merge decisions.
-- If `reviewer` reports blocking findings, unresolved risks, or insufficient validation, the workflow must return to the parent Codex session for explicit human-directed next steps.
-- Even when review passes, commit, push, and pull request decisions remain outside this workflow boundary and require separate human-directed handling.
+- 一旦 `reviewer` 已針對 scoped topic 回傳 findings 與最終 pass/fail recommendation，parent Codex session 就必須停下來交由人工審查。
+- 此 wrapper skill 會協調 `planner`、`implementer` 與 `reviewer`，但不得將自己呈現為可自行核准 release 或 merge 決策的 autonomous runtime orchestration engine。
+- 若 `reviewer` 回報 blocking findings、unresolved risks 或 validation 不足，workflow 必須返回 parent Codex session，由人類明確指示下一步。
+- 即使 review 通過，commit、push 與 pull request 的決策仍在此 workflow boundary 之外，必須由人類另行處理。
 
 ## Boundaries
 
-- The parent Codex session remains responsible for sequencing and tool execution.
-- This skill is descriptive guidance for that session, not a standalone orchestrator.
-- Git commit, push, and pull request actions stay outside this workflow skill.
+- Parent Codex session 仍負責 sequencing 與 tool execution。
+- 此 skill 是提供給該 session 的描述性指引，不是獨立的 orchestrator。
+- Git commit、push 與 pull request actions 仍在此 workflow skill 之外。
