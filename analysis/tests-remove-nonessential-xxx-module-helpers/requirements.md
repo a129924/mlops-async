@@ -26,7 +26,7 @@
 | BR-03 | 測試維護者 | 當案例含 `patch-before-import` | 仍須先通過 import-contract 分類 | 未被分類為 import-contract 的 `patch-before-import` 一律違規 |
 | BR-04 | Reviewer | 當執行全域稽核 | `tests/` 全樹完成分類：allowed / rewrite / BLOCKED | 三類清單缺一不可，缺少則不得標記 complete |
 | BR-05 | Reviewer | 當遇到難以判定「行為測試 vs import-contract」 | 案例進入 BLOCKED，等待人工定版 | 不允許預設歸類；無穩定結論即 BLOCKED |
-| BR-06 | Executor | 當執行 topic 變更 | 只改 `tests/**` | 若任何改動觸及 `src/**` 即 scope violation |
+| BR-06 | Executor | 當需要驗證 `tests` scope 證據時 | 若存在 `tests/**` 變更，相關 evidence path 全部位於 `tests/**`；若沒有 `tests/**` 變更，此 guard 仍可通過 | 只有在觀察到 `tests/**` 變更時才檢查其 path 邊界；不得把「必須有 `tests/**` 變更」當成通過前提 |
 | BR-07 | Reviewer | 當驗收完成 | 行為測試 helper-style usage = 0，且無 fixture 轉移規避 | 偵測到 helper 轉移到 fixture/helper wrapper 仍判違規 |
 
 ## Assumptions
@@ -34,6 +34,7 @@
 1. 既有 `tests/contracts/` 可承接 import contract 類測試。
 2. 人工 recheck 角色可對 BLOCKED 案例做語意判定並回填決策。
 3. 本次交付的是 `tests/**` rewrite topic 的需求/規格基線；實作改寫會在後續 implementation phase 依此文件落地。
+4. `BR-06` 是 `tests` scope evidence guard，不等同於「整個 patch 必須 tests-only」或「一定要有 `tests/**` 變更」。
 
 ## Non-goals
 

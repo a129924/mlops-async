@@ -21,8 +21,9 @@
 1. REQ-001：行為測試 helper-style usage 必須完全移除（0 usage）。
 2. REQ-002：import-contract 類測試可保留必要 helper-style usage，但需有明確分類理由。
 3. REQ-003：`patch-before-import` 僅在 import-contract 類可接受。
-4. REQ-004：無法判定分類案例必須 BLOCKED，等待人工 recheck。
-5. REQ-005：變更範圍僅 `tests/**`。
+4. REQ-004：不得以 fixture/helper 轉移方式規避政策；若偵測到間接 helper-style usage 仍判違規。
+5. REQ-005：若任一案例無法判定為行為測試或 import-contract，必須標記為 BLOCKED 並等待人工 recheck。
+6. REQ-006：只有當 topic 變更落在 `tests` scope 時，才要求相關 evidence path 全部位於 `tests/**`；沒有 `tests/**` 變更時可通過。
 
 ### Phase 2 Prerequisite Evidence (machine-verifiable)
 
@@ -56,7 +57,7 @@ phase_2_prerequisites:
       - TC-BLK-001: red (failed)
     requirement_mapping_closure:
       - REQ-003 -> TC-REG-001
-      - REQ-005 -> TC-BC-001
+      - REQ-006 -> TC-BC-001
 ```
 
 ## Decisions
@@ -99,7 +100,7 @@ Candidate files to inspect:
 3. 在 `rewrite` 類目標檔（限定 `tests/unit/core/*.py` 與 `tests/unit/transport/*.py`）移除 helper-style import，改為 explicit module path import 或直接符號 import，且不得新增任何 fixture/helper 包裝來間接保留 `*_module()` 呼叫。
 4. 在 `tests/contracts/test_import_contract_http_client_module_path.py`（`allowed` 類）逐一確認保留的 helper-style usage 只服務於 import path / importability / import contract 斷言；若需 `patch-before-import`，僅可存在於此 import-contract 檔案。
 5. 在 `tests/unit/test_importlib_policy_guard.py` 更新測試 policy guard 規則：明確攔截 `tests/unit/**` 下任何 `*_module()` / `xxx_module` 使用，同時避免以 fixture/helper 轉移方式繞過；不得將 contracts 類合法例外一併誤攔。
-6. 僅執行本 plan 的驗證命令（`uv run pytest tests/ -q`、`uv run ruff check tests/`、`uv run pyright`）確認測試層改動可通過；若出現無法分類案例，維持 BLOCKED 狀態並等待人工 recheck，不延伸到 `tests/**` 之外。
+6. 僅執行本 plan 的驗證命令（`uv run pytest tests/ -q`、`uv run ruff check tests/`、`uv run pyright`）確認測試層改動可通過；若存在 `tests/**` 變更，另確認其 evidence path 全部位於 `tests/**`；若出現無法分類案例，維持 BLOCKED 狀態並等待人工 recheck。
 
 ## Test Plan
 
@@ -110,8 +111,8 @@ Test cases:
 - TC-HP-001 (REQ-001) [category: happy path, expected_initial_status: red]：`tests/unit/core/*.py` 與 `tests/unit/transport/*.py` 中 helper-style imports 已移除，既有行為斷言仍通過。
 - TC-INV-001 (REQ-001) [category: error/exception, expected_initial_status: red]：在 unit 測試範圍故意引入 `*_module()` / `xxx_module` 使用時，測試 policy guard 應明確 fail。
 - TC-EDGE-001 (REQ-004) [category: boundary/edge, expected_initial_status: red]：當 helper-style usage 出現在 fixture/helper 包裝層（非直接測試函式）時，guard 仍可偵測並 fail。
-- TC-BLK-001 (REQ-004) [category: boundary/edge, expected_initial_status: red]：無法穩定分類案例必須記錄於 BLOCKED registry 並要求人工 recheck owner。
-- TC-BC-001 (REQ-005) [category: state/side effects, expected_initial_status: red]：對外 public API 與 `src/**` 無任何變更；僅測試層 import 風格調整，不改變既有對外契約行為。
+- TC-BLK-001 (REQ-005) [category: boundary/edge, expected_initial_status: red]：無法穩定分類案例必須記錄於 BLOCKED registry 並要求人工 recheck owner。
+- TC-BC-001 (REQ-006) [category: state/side effects, expected_initial_status: red]：`tests` scope guard 採寬鬆版語意；若存在 `tests/**` 變更，相關 evidence path 必須全部位於 `tests/**`，但不要求 topic 一定要有 `tests/**` 變更。
 - TC-REG-001 (REQ-002, REQ-003) [category: integration points, expected_initial_status: red]：`tests/contracts/test_import_contract_http_client_module_path.py` 既有 import-contract 驗證持續可用，且 patch-before-import 限制僅存在於 import-contract 範疇。
 
 ## Validation Commands

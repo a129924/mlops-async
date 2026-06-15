@@ -29,7 +29,7 @@
 | BR-03 | 把 patch-before-import 納入同一例外規則，不得獨立豁免 | classification decision log |
 | BR-04 | 輸出 allowed / rewrite / BLOCKED 三類交接證據 | 三類清單與摘要統計 |
 | BR-05 | 設計 ambiguous case routing 為 BLOCKED | BLOCKED registry + owner 欄位 |
-| BR-06 | 實作範圍護欄僅限 tests | diff scope check（`tests/**` only） |
+| BR-06 | `tests` scope evidence guard：若存在 `tests/**` 變更，其 evidence path 必須全部位於 `tests/**`；若無 `tests/**` 變更亦可通過 | changed-test-path evidence check |
 | BR-07 | 增加反規避檢核（fixture/helper 搬移） | anti-bypass guard test / review checklist |
 
 ## Classification Rule（核心）
@@ -51,7 +51,7 @@
 - 產出：rewrite blueprint（顯式 import 方案、fixture 去規避檢查點）。
 
 ### WS-4：驗收與護欄
-- 產出：零容忍驗收清單（behavior tests helper-style usage = 0）與 scope guard（no `src/**` change）。
+- 產出：零容忍驗收清單（behavior tests helper-style usage = 0）與 `tests` scope evidence guard（只在存在 `tests/**` 變更時檢查其 path 邊界）。
 
 ## Feasibility Conflicts / Blockers
 

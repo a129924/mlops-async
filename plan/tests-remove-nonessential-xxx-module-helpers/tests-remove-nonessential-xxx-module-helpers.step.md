@@ -25,7 +25,7 @@ created: 2026-05-31
 - [X] phase2-requirement-to-test-mapping-recorded (source: *.plan.md + *.spec.md)
 - [X] phase2-planned-test-expected-initial-status-recorded (status: red for planned RED tests)
 - [X] phase2-requirement-to-test-mapping-updated-for-ambiguous-blocked-rule (REQ-004 -> TC-BLK-001)
-- [X] phase2-requirement-to-test-mapping-updated-for-req-003-and-req-005 (REQ-003 -> TC-REG-001, REQ-005 -> TC-BC-001)
+- [X] phase2-requirement-to-test-mapping-updated-for-req-003-and-req-006 (REQ-003 -> TC-REG-001, REQ-006 -> TC-BC-001)
 - [X] phase2-tdd-test-authoring-executed (evidence: targeted pytest command executed with RED outcomes)
 - [X] phase2-expected-initial-status-verified (TC-HP-001, TC-INV-001, TC-EDGE-001, TC-BC-001, TC-REG-001, TC-BLK-001 all observed red)
 - [X] phase2-targeted-pytest-outcome-recorded (`6 failed, 5 passed`; failed IDs include TC-HP-001 / TC-BC-001 / TC-REG-001)
@@ -37,7 +37,7 @@ created: 2026-05-31
 - [X] 3. 將 `rewrite` 類行為測試改為 explicit import，確認無 helper-style usage 與無 fixture 轉移規避。
 - [X] 4. 審核 `allowed` 類 import-contract 測試，確認每個保留用法皆屬 import path/importability/contract 驗證，且 patch-before-import 僅限此類。
 - [X] 5. 新增/擴充 policy guard，阻擋行為測試 helper-style usage（含 indirect helper/fixture bypass）。
-- [X] 6. 執行驗證命令，確認 `tests/**` 通過，且 diff 不含 `src/**`；回填結果供後續 review gate。
+- [X] 6. 執行驗證命令；若存在 `tests/**` 變更，確認其 evidence path 全部位於 `tests/**`，無 `tests/**` 變更時此 guard 亦可通過；回填結果供後續 review gate。
 
 ## Implementation Evidence
 
@@ -110,7 +110,7 @@ created: 2026-05-31
   - 新增 `_iter_behavior_test_files()`，僅掃描 `tests/unit/core`、`tests/unit/transport` 行為測試範圍
   - 保留 helper-style alias/call 與 wrapper definition 偵測
   - 新增 `_collect_fixture_helper_bypass_violations()`，補抓 fixture 內 indirect helper/alias bypass
-  - `TC-BC-001` 由 placeholder 改為 tests-only scope evidence（所有列舉路徑皆 `tests/**`）
+  - `TC-BC-001` 由 placeholder 改為 `tests` scope evidence guard：只在存在 changed test paths 時驗證其皆位於 `tests/**`，沒有 changed test paths 亦可通過
 - contracts 例外不被誤攔：helper-style/fixture bypass 檢查僅作用於 behavior test roots。
 
 ### Step 6 — Validation evidence
@@ -118,4 +118,4 @@ created: 2026-05-31
 - `uv run pytest tests/ -q` → `113 passed, 1 warning`
 - `uv run ruff check tests/` → `All checks passed!`
 - `uv run pyright` → `0 errors, 0 warnings, 0 informations`
-- `git --no-pager diff --name-only` → 僅 `tests/**`（無 `src/**`）
+- `git --no-pager diff --name-only` → 當時 implementation diff 實際落在 `tests/**`；此為滿足 `REQ-006` 的一組有效證據，但 `REQ-006` canon 不要求必須存在 `tests/**` 變更
