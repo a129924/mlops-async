@@ -122,6 +122,15 @@ test -f analysis/codex-skill-blockers/technical-spec.md
 test -f plan/codex-skill-blockers/codex-skill-blockers.plan.md
 test -f plan/codex-skill-blockers/codex-skill-blockers.step.md
 test -f plan/codex-skill-blockers/codex-skill-blockers.checklist.md
+test -f .agents/skills/api-client-porting-planner/SKILL.md
+test -f .agents/skills/api-client-porting-planner/reference.md
+test -f .agents/skills/api-client-porting-planner/examples.md
+test -f .agents/skills/api-client-porting-planner/templates/family-map.md
+test -f .agents/skills/api-client-porting-implementer/SKILL.md
+test -f .agents/skills/api-client-porting-implementer/reference.md
+test -f .agents/skills/api-client-porting-implementer/examples.md
+test -f .agents/skills/api-client-porting-implementer/templates/porting-result.md
+test -f .codex/agents/api-client-porting-workflow.toml
 ```
 
 ## 停止條件

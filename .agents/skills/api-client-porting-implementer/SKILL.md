@@ -4,7 +4,7 @@ description: Implement one source SDK API or safe same-family batch from planner
 ---
 
 # Purpose
-Implement one bounded API port, or a safe same-family batch, from planner output using a contract-first sequence: source evidence, request test first, minimal implementation, response and error validation, optional tracker updates, and an explicit final decision.
+Implement one bounded API port, or a safe same-family batch, from planner output using a contract-first sequence: source evidence, request test first, minimal implementation, response and error validation, repo-governed tracker handling, and an explicit final decision.
 
 # Use when
 - planner output or equivalent request-contract evidence already exists
@@ -21,7 +21,7 @@ Implement one bounded API port, or a safe same-family batch, from planner output
 - source code evidence from the original SDK or legacy repository
 - target module, class, method, and allowed file scope
 - existing test style and local validation commands
-- optional repo-local tracker artifacts when they are already in scope
+- repo-local tracker artifacts when they are already in scope, including `docs/migration-map.md` and `docs/porting-ledger.md` for `mlops-async` governed work
 
 # Process
 1. Confirm one bounded API or safe same-family batch, the allowed files, the source evidence, and any in-scope tracker files.
@@ -33,7 +33,7 @@ Implement one bounded API port, or a safe same-family batch, from planner output
 7. Extract response contract only after the request gate passes.
 8. Apply external-boundary schema policy from [reference.md](reference.md).
 9. Add response and error tests based on observed or documented behavior.
-10. If a migration map and ledger are both in scope, update the migration map before the ledger. If either tracker is absent or out of scope, emit tracker-ready content in the task output instead of inventing a new path.
+10. In `mlops-async` governed work, if `docs/migration-map.md` and `docs/porting-ledger.md` are present in the repo and in scope, update `docs/migration-map.md` before `docs/porting-ledger.md` and do not finish with tracker-ready output only. In non-`mlops-async` or explicit alternate-governance contexts, if canonical tracker files are absent or out of scope, emit tracker-ready content in the task output instead of inventing a new path.
 11. End with exactly one decision label: `continue`, `stable`, `needs-human-review`, or `blocked`.
 
 # Outputs
@@ -41,7 +41,8 @@ Implement one bounded API port, or a safe same-family batch, from planner output
 - minimal target implementation
 - response and error contract tests when evidence is available
 - typed schema artifacts or schema updates when needed
-- tracker-ready migration rows or ledger-ready output when tracker files are absent or out of scope
+- `mlops-async` tracker updates in `docs/migration-map.md` and then `docs/porting-ledger.md` when those canonical tracker files are present and in scope
+- tracker-ready migration rows or ledger-ready output only for non-`mlops-async` or explicit alternate-governance contexts where canonical tracker files are absent or out of scope
 - final decision label plus workflow state fields
 
 # Validation
@@ -51,7 +52,8 @@ Implement one bounded API port, or a safe same-family batch, from planner output
 - request tests assert only semantic request behavior
 - compatibility uses only `equivalent`, `normalized`, `intentionally_changed`, `not_supported`, or `unknown`
 - final decision uses only `continue`, `stable`, `needs-human-review`, or `blocked`
-- tracker files are updated only when they are already in scope
+- in `mlops-async` governed work, `docs/migration-map.md` and `docs/porting-ledger.md` are updated in that order when they are present and in scope
+- tracker-ready output is used only when canonical tracker files are absent or out of scope under the active governance context
 
 # Failure handling
 - mark `BLOCKED` when source evidence or request contract is missing
@@ -60,7 +62,7 @@ Implement one bounded API port, or a safe same-family batch, from planner output
 
 # Boundaries
 - this skill implements from planner output; it does not redo broad endpoint-family discovery
-- this skill does not require repo-local tracker artifacts or repo-local instruction artifacts to exist at runtime
+- outside `mlops-async` or under explicit alternate governance, this skill does not require repo-local tracker artifacts or repo-local instruction artifacts to exist at runtime
 - this skill does not batch across endpoint families
 - this skill does not modify files outside the active plan's allowed implementation scope
 

@@ -158,7 +158,8 @@ Artifact path notes:
 
 ## Validation / Acceptance Checks
 
-- All five topic artifacts exist at their exact paths.
+- All five topic planning/package artifacts exist at their exact paths.
+- All listed creator artifacts under `.agents/skills/api-client-porting-planner/*`, `.agents/skills/api-client-porting-implementer/*`, and `.codex/agents/api-client-porting-workflow.toml` are covered by the acceptance contract as the execution-facing implementation scope.
 - The plan explicitly cites both analysis inputs and all bootstrap input files.
 - `Artifact Paths` list exact creator artifact file paths, not only directories.
 - The plan records creator implementation scope for two skill artifact sets and one workflow agent artifact.
