@@ -8,6 +8,18 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.0**, the repository closes the `PR #26` same-name skill migration:
+32 frozen agent skills are now materialized under the repo-local `.agents/skills/`
+discovery surface, `AGENTS.md` declares that surface explicitly, and the
+`codex-skill-projection` topic artifacts plus audit ledger remain available as the
+repo-visible delivery trail.
+
+v0.11.0 補齊 `PR #26` 的 same-name skill migration：
+32 個 frozen agent skills 已正式更新到 repo-local `.agents/skills/` discovery
+surface，`AGENTS.md` 也已明確宣告該 surface，且
+`codex-skill-projection` 的 topic artifacts 與 audit ledger 仍保留為
+repo-visible 交付軌跡。
+
 As of **v0.10.10**, the repository closes the `PR #25` review-comment follow-up:
 the tests-only scope guard now derives changed paths from the actual git diff state,
 helper-style attribute calls are rejected, and the topic docs stay aligned with the
