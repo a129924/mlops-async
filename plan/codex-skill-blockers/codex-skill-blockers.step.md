@@ -30,7 +30,7 @@ These stage markers are informational only. Completion gates must read only
 
 ## Current Handoff
 
-- Waiting for human check before any publish routing begins.
+- PR is open at `https://github.com/a129924/mlops-async/pull/27`; waiting for human triage.
 
 ## Creator Implementation Steps
 
@@ -55,4 +55,4 @@ These stage markers are informational only. Completion gates must read only
 
 ## Implementation Handoff
 
-- Waiting for human check before any commit / push routing begins.
+- Publish routing completed and the topic is now at `pr-open`; waiting for human triage on PR `#27`.
