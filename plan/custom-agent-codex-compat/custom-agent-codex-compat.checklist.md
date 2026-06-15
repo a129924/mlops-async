@@ -1,21 +1,34 @@
 # Custom Agent Codex Compat Checklist
 
-## Draft Package
+## Official Discovery Paths
 
-- [X] `requirements.md` 只分析 `.github/agents/python-implementation-workflow.agent.md`。
-- [X] `technical-spec.md` 明確列出 `.codex/agents` governance gap。
-- [X] `plan.md` 明確禁止把 `platform-projection-adapter` 當成 agent solution。
-- [X] `step.md` 與 `checklist.md` 已建立。
+- [X] planning artifacts now use `./.codex/agents/*.toml` as the only allowed custom-agent discovery path
+- [X] planning artifacts now use `./.agents/skills/<skill-name>/SKILL.md` as the wrapper skill path
+- [X] planning artifacts now use `./.agents/skills/<skill-name>/agents/openai.yaml` as the wrapper binding path
+- [X] planning artifacts explicitly forbid `./codex/**`
+- [X] planning artifacts explicitly forbid `./agents/openai.yaml`
 
-## Pause-State Semantics
+## Artifact Family Contract
 
-- [X] topic 現在只停在 draft plan commit。
-- [X] topic `Current` 沒有宣稱 `reviewer-in-progress` 或 `approved`。
-- [X] 尚未進入 `plan-reviewer`。
-- [X] 尚未進入 planner final gate。
+- [X] `plan.md` enumerates the full implementation artifact family
+- [X] `technical-spec.md` enumerates the same three downstream targets
+- [X] `step.md` requires all three downstream artifacts before Phase 3 can pass
+- [ ] downstream implementation artifacts themselves are still pending in this round
 
-## Boundaries
+## Legacy Dependency Boundary
 
-- [X] 未混入 `.github/skills/*` 或 `.codex/skills/*`。
-- [X] 未假設 `.codex/agents` 已可直接落地。
-- [X] 未修改 `.github/agents/python-implementation-workflow.agent.md` 本體。
+- [X] `.github/agents/python-implementation-workflow.agent.md` is preserved as read-only source evidence
+- [X] planning artifacts do not treat `.github/agents/*` as the final discovery surface
+- [X] no planning artifact requires direct edits to the legacy source file
+
+## Wrapper Skill Boundary
+
+- [X] `SKILL.md` is described as a wrapper layer, not a replacement for the custom agent
+- [X] `agents/openai.yaml` is described as a binding artifact, not a standalone workflow surface
+- [X] planning artifacts require the custom agent to remain the owner of core orchestration semantics
+
+## Planning Round Status
+
+- [X] this topic is now described as an implementation baseline
+- [X] this round is clearly limited to planning artifacts ready for downstream implementation
+- [X] Phase 3 implementation steps remain pending and visible in `step.md`
