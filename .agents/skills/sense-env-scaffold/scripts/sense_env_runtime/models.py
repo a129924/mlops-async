@@ -187,6 +187,8 @@ class Manifest:
 
 
 __all__ = [
+    "SCHEMA_VERSION",
+    "SCRIPT_VERSION",
     "AssertionExpected",
     "AssertionKind",
     "AssertionObserved",
@@ -206,6 +208,4 @@ __all__ = [
     "Meta",
     "RemediationType",
     "RunMode",
-    "SCHEMA_VERSION",
-    "SCRIPT_VERSION",
 ]

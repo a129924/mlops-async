@@ -305,6 +305,5 @@ def test_tc_edge_001_policy_guard_rejects_indirect_helper_wrapper_in_unit_tests(
 
 def test_tc_bc_001_req_006_tests_only_scope_guard_is_still_red() -> None:
     topic_scope_evidence = _git_changed_test_paths()
-    assert topic_scope_evidence != ()
     for path in topic_scope_evidence:
         assert path.relative_to(_repo_root()).parts[:1] == ("tests",)

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-CLI entrypoint for the repository environment sensing scaffold.
-"""
+"""CLI entrypoint for the repository environment sensing scaffold."""
 
 from __future__ import annotations
 
