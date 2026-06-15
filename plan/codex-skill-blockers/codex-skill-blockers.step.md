@@ -30,3 +30,28 @@ These stage markers are informational only. Completion gates must read only
 ## Current Handoff
 
 - Waiting for human check before any publish routing begins.
+
+## Creator Implementation Steps
+
+- [X] Create `.agents/skills/api-client-porting-planner/SKILL.md`.
+- [X] Create `.agents/skills/api-client-porting-planner/reference.md`.
+- [X] Create `.agents/skills/api-client-porting-planner/examples.md`.
+- [X] Create `.agents/skills/api-client-porting-planner/templates/family-map.md`.
+- [X] Create `.agents/skills/api-client-porting-implementer/SKILL.md`.
+- [X] Create `.agents/skills/api-client-porting-implementer/reference.md`.
+- [X] Create `.agents/skills/api-client-porting-implementer/examples.md`.
+- [X] Create `.agents/skills/api-client-porting-implementer/templates/porting-result.md`.
+- [X] Create `.codex/agents/api-client-porting-workflow.toml`.
+- [X] Verify repo-specific tracking paths are optional/default inputs, not hard dependencies.
+- [X] Review implementation artifacts and this step tracker for scope drift.
+- [X] Run planner final gate for implementation handoff.
+
+## Implementation Workflow Stages
+
+- [X] Creator implementation
+- [X] Implementation review
+- [X] Planner final gate
+
+## Implementation Handoff
+
+- Waiting for human check before any commit / push routing begins.
