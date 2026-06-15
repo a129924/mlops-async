@@ -13,8 +13,9 @@
 - [X] Re-align the workflow agent path contract from `.agent.md` to `.toml`.
 - [X] Freeze that the TOML agent `developer_instructions` owns the orchestration contract.
 - [X] Create a new draft plan commit for the rerun implementation topic.
-- [X] Resume this topic into independent review.
-- [X] Run any later reviewer / planner gates.
+- [X] Complete independent review for this rerun implementation topic.
+- [X] Complete planner final gate for this rerun implementation topic.
+- [X] Pause this topic at human check before any publish routing.
 
 ## Workflow Stages
 
