@@ -14,6 +14,20 @@ discovery surface, `AGENTS.md` declares that surface explicitly, and the
 `codex-skill-projection` topic artifacts plus audit ledger remain available as the
 repo-visible delivery trail.
 
+As of **v0.11.1**, the repository closes the `PR #27` codex-skill-blockers merge:
+the repo now includes neutral `api-client-porting-planner` /
+`api-client-porting-implementer` skills under `.agents/skills/`, a
+Codex-specific `.codex/agents/api-client-porting-workflow.toml` orchestration
+surface, and aligned implementation topic artifacts that preserve contract-first
+porting governance while keeping tracker and instruction dependencies explicit.
+
+v0.11.1 補齊 `PR #27` 的 codex-skill-blockers 合併後整理：
+repo 現已新增中立化的 `api-client-porting-planner` /
+`api-client-porting-implementer` skills 到 `.agents/skills/`，並新增
+Codex-specific 的 `.codex/agents/api-client-porting-workflow.toml`
+orchestration surface；相關 implementation topic artifacts 也已對齊，保留
+contract-first porting governance，同時將 tracker 與 instruction 依賴明確化。
+
 v0.11.0 補齊 `PR #26` 的 same-name skill migration：
 32 個 frozen agent skills 已正式更新到 repo-local `.agents/skills/` discovery
 surface，`AGENTS.md` 也已明確宣告該 surface，且
