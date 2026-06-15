@@ -21,6 +21,21 @@ Codex-specific `.codex/agents/api-client-porting-workflow.toml` orchestration
 surface, and aligned implementation topic artifacts that preserve contract-first
 porting governance while keeping tracker and instruction dependencies explicit.
 
+As of **v0.11.2**, the repository closes the `PR #28` custom-agent-codex-compat
+merge: the repo now adds repo-local `python-implementation-workflow` and
+`workflow-artifact-contract` skills, aligns the Codex `planner`,
+`implementer`, and `reviewer` agent surfaces under `.codex/agents/`, preserves
+the `custom-agent-codex-compat` analysis / plan delivery trail, and includes a
+baseline test that validates the custom-agent artifact contract against the
+current repo state.
+
+v0.11.2 補齊 `PR #28` 的 custom-agent-codex-compat 合併後整理：
+repo 現已新增 repo-local `python-implementation-workflow` 與
+`workflow-artifact-contract` skills，並對齊 `.codex/agents/` 下的 Codex
+`planner`、`implementer`、`reviewer` agent surfaces；同時保留
+`custom-agent-codex-compat` 的 analysis / plan 交付軌跡，並納入會依目前
+repo 狀態驗證 custom-agent artifact contract 的 baseline test。
+
 v0.11.1 補齊 `PR #27` 的 codex-skill-blockers 合併後整理：
 repo 現已新增中立化的 `api-client-porting-planner` /
 `api-client-porting-implementer` skills 到 `.agents/skills/`，並新增
