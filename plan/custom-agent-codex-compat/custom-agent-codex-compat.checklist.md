@@ -13,7 +13,16 @@
 - [X] `plan.md` enumerates the full implementation artifact family
 - [X] `technical-spec.md` enumerates the same three downstream targets
 - [X] `step.md` requires all three downstream artifacts before Phase 3 can pass
-- [ ] downstream implementation artifacts themselves are still pending in this round
+- [X] downstream implementation artifacts now exist on the official repo-local paths
+
+## Phase B Preflight Gate
+
+- [X] planning artifacts define preflight as minimal-schema-only, not full implementation
+- [X] planning artifacts require preflight to pass before full implementation can proceed
+- [X] minimal custom-agent TOML schema is frozen to `name`, `description`, and `developer_instructions`
+- [X] minimal `agents/openai.yaml` schema is frozen to `policy.allow_implicit_invocation: false`
+- [X] preflight failure handling is exact-failure-only
+- [X] preflight failure handling forbids schema guessing, pre-expansion, and official-path changes
 
 ## Legacy Dependency Boundary
 
@@ -27,8 +36,9 @@
 - [X] `agents/openai.yaml` is described as a binding artifact, not a standalone workflow surface
 - [X] planning artifacts require the custom agent to remain the owner of core orchestration semantics
 
-## Planning Round Status
+## Implementation Status
 
 - [X] this topic is now described as an implementation baseline
-- [X] this round is clearly limited to planning artifacts ready for downstream implementation
-- [X] Phase 3 implementation steps remain pending and visible in `step.md`
+- [X] implementation artifacts are now landed on the official repo-local paths
+- [X] implementation steps are complete and marked complete in `step.md`
+- [X] the remaining workflow work is now limited to review stages in `step.md`

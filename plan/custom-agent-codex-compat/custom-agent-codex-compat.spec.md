@@ -24,6 +24,12 @@ implementation-ready。
 
 ## Behavior Contract
 
+### Phase B minimal-schema preflight
+
+- Phase B preflight 只驗證 minimal schema，不做 full implementation。
+- preflight 未通過前，不可進入 full implementation。
+- preflight 失敗時只能依 exact failure 做最小補欄；不得外推其他欄位或修改官方路徑。
+
 ### 1. Custom agent entry
 
 `./.codex/agents/python-implementation-workflow.toml` 必須承接 legacy source 的核心行為：
@@ -35,6 +41,12 @@ implementation-ready。
 - Phase 3 completion 依 `step.md` 的 `## Implementation Steps`
 
 它必須是 core orchestration owner；不得把這些責任外包給 wrapper skill。
+
+Phase B preflight 對此檔只驗證 minimal schema：
+
+- `name`
+- `description`
+- `developer_instructions`
 
 ### 2. Wrapper skill entry
 
@@ -52,6 +64,10 @@ implementation-ready。
 - 維持 wrapper skill 到 custom agent 的關聯
 - 不引用 `./agents/openai.yaml`
 - 不依賴 `./codex/**`
+
+Phase B preflight 對此檔只驗證 minimal schema：
+
+- `policy.allow_implicit_invocation: false`
 
 ## Boundary Contract
 
@@ -78,11 +94,21 @@ implementation-ready。
 - `./codex/**`
 - `./agents/openai.yaml`
 
+## Preflight Failure Handling Contract
+
+- 只捕捉 exact failure。
+- 只補 exact missing required field。
+- 每次最小補欄都必須附一條簡短 justification。
+- 不可猜 schema。
+- 不可預擴欄位。
+- 不可改變官方 repo-local discovery paths。
+
 ## Phase 2 Assessment Gate
 
 - `red-tests-ready` / equivalent readiness 只在 artifact family、path contract、legacy dependency boundary、wrapper skill boundary 都已被明確編碼時成立。
 - 若 phase assessor 發現缺少三檔之一、路徑寫錯、或 wrapper skill boundary 不清，應回 `needs-rework` 或 `BLOCKED`。
 - 若 `spec.md` 與 `plan.md` 衝突，以本 spec 的 artifact/path/boundary contract 為準，並要求回補 plan 對齊。
+- 若進入 Phase B preflight，只有 minimal schema contract 可被驗證；不得把 full implementation 細節當成 preflight 必要條件。
 
 ## Reviewer Focus
 

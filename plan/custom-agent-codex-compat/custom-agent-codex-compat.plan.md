@@ -147,5 +147,5 @@ Artifact path notes:
 
 ## Open Questions / Unresolved Items
 
-- Reviewer should verify whether the eventual `./.codex/agents/python-implementation-workflow.toml` needs any repo-specific metadata keys beyond those implied by the legacy source.
-- Reviewer should verify whether wrapper skill wording needs additional guardrails to prevent orchestration drift into `SKILL.md`.
+- No unresolved schema-expansion questions remain for Phase B preflight.
+- Reviewer should verify only that downstream implementation preserves the already-frozen wrapper skill boundary without moving orchestration semantics out of the custom agent.

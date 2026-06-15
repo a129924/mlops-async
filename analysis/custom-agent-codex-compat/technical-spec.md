@@ -86,6 +86,25 @@ implementation baseline，讓後續 workflow 可以依據 repo-local discovery c
    - 本輪 completion 條件是 planning artifacts ready for downstream implementation。
    - Phase 3 以後才允許建立 custom agent / wrapper skill artifacts。
 
+6. **Phase B preflight is minimal-schema-only**
+   - Phase B preflight 只驗證 minimal schema，不做 full implementation。
+   - preflight 通過前，不可進入 full implementation。
+   - preflight 只允許檢查下列最小必要欄位：
+     - `./.codex/agents/python-implementation-workflow.toml`
+       - `name`
+       - `description`
+       - `developer_instructions`
+     - `./.agents/skills/python-implementation-workflow/agents/openai.yaml`
+       - `policy.allow_implicit_invocation: false`
+
+7. **Preflight failure handling is exact-failure-only**
+   - 若 preflight 失敗，只能捕捉 exact failure。
+   - 只可補上 exact missing required field。
+   - 補欄時必須附一條簡短 justification。
+   - 不可猜 schema。
+   - 不可預擴欄位。
+   - 不可改變官方 repo-local discovery paths。
+
 ## Phase contract
 
 ### Phase 1 Plan Review input
@@ -101,9 +120,22 @@ implementation baseline，讓後續 workflow 可以依據 repo-local discovery c
 此 topic 的 Phase 2 需要 `spec.md`，因為 downstream implementation 同時涉及 agent artifact、
 wrapper skill artifact、與官方 path contract；若沒有獨立 behavior contract，Phase 2 將無法精確判斷 artifact family、cross-reference 與 boundary 是否正確。
 
+### Phase B minimal-schema preflight gate
+
+- Phase B 是獨立 gate，只驗證 minimal schema readiness。
+- Gate 通過前，不得進入 full implementation 或宣稱 implementation-ready。
+- Gate 只檢查：
+  - `./.codex/agents/python-implementation-workflow.toml`
+    - `name`
+    - `description`
+    - `developer_instructions`
+  - `./.agents/skills/python-implementation-workflow/agents/openai.yaml`
+    - `policy.allow_implicit_invocation: false`
+- 若 gate 失敗，只能依 exact failure 做最小補欄，不得推測其他 schema 欄位，也不得擴充官方路徑以外的 surface。
+
 ### Phase 3 implementation gate target
 
-只在所有 canonical `## Implementation Steps` 完成後，才可宣稱 downstream implementation ready for review。
+只在 Phase B minimal-schema preflight 已通過，且所有 canonical `## Implementation Steps` 完成後，才可宣稱 downstream implementation ready for review。
 
 ## Acceptance gate
 
@@ -116,6 +148,8 @@ wrapper skill artifact、與官方 path contract；若沒有獨立 behavior cont
 4. planning artifacts 必須清楚列出 legacy dependency boundary。
 5. planning artifacts 必須清楚列出 wrapper skill boundary。
 6. planning artifacts 必須清楚標示本輪不建立 implementation artifacts。
+7. planning artifacts 必須明確凍結 Phase B preflight 為 minimal-schema-only gate。
+8. planning artifacts 必須明確禁止在 preflight failure 時猜 schema、預擴欄位、或改變官方路徑。
 
 ## Validation
 
@@ -125,6 +159,8 @@ wrapper skill artifact、與官方 path contract；若沒有獨立 behavior cont
 2. `plan.md` 與 `step.md` 的 downstream work 都以建立三個 implementation artifacts 為主，而不是停在治理缺口描述。
 3. `checklist.md` 明確檢查 legacy dependency boundary 與 wrapper skill boundary。
 4. `spec.md` 若存在，必須能作為 Phase 2 的 primary behavior contract。
+5. `technical-spec.md` 與 `spec.md` 必須一致定義 minimal custom-agent TOML schema 與 minimal `agents/openai.yaml` schema。
+6. `technical-spec.md`、`spec.md`、`checklist.md` 必須一致定義 preflight failure handling 為 exact-failure-only。
 
 ## Stop conditions
 
