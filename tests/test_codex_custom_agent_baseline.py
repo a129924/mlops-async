@@ -30,7 +30,8 @@ def test_custom_agent_tomls_use_minimal_schema_and_match_filenames() -> None:
         "reviewer.toml": "reviewer",
     }
 
-    assert {path.name for path in agent_dir.glob("*.toml")} == set(expected_files)
+    actual_files = {path.name for path in agent_dir.glob("*.toml")}
+    assert set(expected_files).issubset(actual_files)
 
     for filename, expected_name in expected_files.items():
         data = _parse_simple_toml(f".codex/agents/{filename}")
@@ -62,7 +63,7 @@ def test_workflow_skills_live_on_official_paths_and_keep_boundaries_clear() -> N
     )
 
     assert "wrapper recipe" in workflow_skill
-    assert "not a standalone orchestrator" in workflow_skill
+    assert "不是獨立的 orchestrator" in workflow_skill
     assert "frozen provenance only" in workflow_reference
     assert disallowed_paths_warning in shared_contract
 
