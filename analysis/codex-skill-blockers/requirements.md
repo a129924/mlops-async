@@ -32,7 +32,7 @@
   - `.agents/skills/api-client-porting-implementer/reference.md`
   - `.agents/skills/api-client-porting-implementer/examples.md`
   - `.agents/skills/api-client-porting-implementer/templates/porting-result.md`
-  - `.codex/agents/api-client-porting-workflow.agent.md`
+  - `.codex/agents/api-client-porting-workflow.toml`
 
 - Topic package
   - `analysis/codex-skill-blockers/requirements.md`
@@ -91,7 +91,15 @@ Ownership model:
      - compatibility
      - final decision
 
-5. **Repo-specific contract downgrade**
+5. **Workflow agent TOML contract**
+   - Condition: 建立 `.codex/agents/api-client-porting-workflow.toml` 時
+   - Required outcome: workflow agent 必須維持 orchestration-only，並以 Codex TOML artifact 表達
+   - Acceptance signal:
+     - 不得把 orchestration agent 降格改寫成 skill
+     - `developer_instructions` 必須承載主要 orchestration contract
+     - 不得吸收 planner / implementer 的完整內文責任
+
+6. **Repo-specific contract downgrade**
    - Condition: 建立 Codex-facing artifacts 時
    - Required outcome: `mlops-async` repo-specific contract 必須降為 optional/default input
    - Acceptance signal:
@@ -99,12 +107,12 @@ Ownership model:
      - `docs/porting-ledger.md` 不得保留為無條件硬依賴
      - `.github/copilot-instructions.md` 不得保留為 runtime prerequisite
 
-6. **Bootstrap authority rule**
+7. **Bootstrap authority rule**
    - Condition: 本 topic 進行實作前
    - Required outcome: `.github/skills/api-client-porting-*` 只能被視為 bootstrap input
    - Acceptance signal: 不可在新的 implementation baseline 中同時宣稱它們仍是 post-bootstrap authority
 
-7. **Repo-visible planning package**
+8. **Repo-visible planning package**
    - Condition: 本 implementation topic draft package 建立時
    - Required outcome: 必須存在 requirements、technical-spec、plan、step、checklist
    - Acceptance signal: 缺任何一份都表示 implementation baseline 尚未可執行

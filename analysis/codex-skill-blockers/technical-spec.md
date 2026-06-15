@@ -18,7 +18,7 @@
 - `.agents/skills/api-client-porting-implementer/reference.md`
 - `.agents/skills/api-client-porting-implementer/examples.md`
 - `.agents/skills/api-client-porting-implementer/templates/porting-result.md`
-- `.codex/agents/api-client-porting-workflow.agent.md`
+- `.codex/agents/api-client-porting-workflow.toml`
 
 並明確說明 bootstrap input、creator implementation scope、語意保留規則與必要驗證。
 
@@ -39,7 +39,7 @@
 - `.agents/skills/api-client-porting-implementer/reference.md`
 - `.agents/skills/api-client-porting-implementer/examples.md`
 - `.agents/skills/api-client-porting-implementer/templates/porting-result.md`
-- `.codex/agents/api-client-porting-workflow.agent.md`
+- `.codex/agents/api-client-porting-workflow.toml`
 
 此階段不得修改：
 
@@ -70,12 +70,17 @@
    - implementer artifact set 必須保留原 implementer 核心語意
    - workflow agent 必須只承接 orchestration，不得重新吸收 planner / implementer 全部規則
 
-4. **Repo-specific abstraction**
+4. **Workflow agent TOML encoding**
+   - custom agent 必須輸出為 `.codex/agents/api-client-porting-workflow.toml`
+   - `developer_instructions` 必須承載原 workflow agent body 的主要 orchestration contract
+   - 不得改寫為 skill artifact，也不得讓 TOML contract 省略 orchestration-only boundary
+
+5. **Repo-specific abstraction**
    - `docs/migration-map.md` 與 `docs/porting-ledger.md` 只能作為 default example 或 explicit input
    - `.github/copilot-instructions.md` 不得成為新的 Codex-facing artifact 硬依賴
    - 若 supporting files 內仍出現上述 repo-specific path，必須在新 artifact 中降級處理，而非原封不動視為強制 prerequisite
 
-5. **Review-complete execution shape**
+6. **Review-complete execution shape**
    - 本 rerun 先形成新的 draft plan commit，再依 workflow 完成 independent review 與 planner final gate
    - 因此 plan / step / checklist 必須清楚表達：
      - analysis / plan rerun 已完成
@@ -106,7 +111,7 @@
 3. `plan.md` 必須列出 analysis inputs：
    - `analysis/codex-skill-blockers/requirements.md`
    - `analysis/codex-skill-blockers/technical-spec.md`
-4. `plan.md` 的 `Artifact Paths` 必須列出 exact file paths
+4. `plan.md` 的 `Artifact Paths` 必須列出 exact file paths，並將 workflow agent path 寫成 `.codex/agents/api-client-porting-workflow.toml`
 5. `step.md` / `checklist.md` 都把 topic 停在 human-check-before-publish lane
 
 建議指令：

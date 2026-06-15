@@ -13,6 +13,8 @@
 - [X] planner skill artifact set 已列出 exact file paths。
 - [X] implementer skill artifact set 已列出 exact file paths。
 - [X] custom workflow agent artifact 已列出 exact file path。
+- [X] custom workflow agent artifact path 已改成 `.codex/agents/api-client-porting-workflow.toml`。
+- [X] custom workflow agent 的 `developer_instructions` 已被定義為主要 orchestration contract 承載面。
 - [X] `docs/migration-map.md` 與 `docs/porting-ledger.md` 已降為 optional/default input。
 - [X] `.github/copilot-instructions.md` 已排除為 runtime prerequisite。
 

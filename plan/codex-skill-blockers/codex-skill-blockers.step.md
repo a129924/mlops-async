@@ -10,6 +10,8 @@
 - [X] Freeze exact planner skill artifact paths in the rerun plan.
 - [X] Freeze exact implementer skill artifact paths in the rerun plan.
 - [X] Freeze exact workflow agent artifact path in the rerun plan.
+- [X] Re-align the workflow agent path contract from `.agent.md` to `.toml`.
+- [X] Freeze that the TOML agent `developer_instructions` owns the orchestration contract.
 - [X] Create a new draft plan commit for the rerun implementation topic.
 - [X] Resume this topic into independent review.
 - [X] Run any later reviewer / planner gates.

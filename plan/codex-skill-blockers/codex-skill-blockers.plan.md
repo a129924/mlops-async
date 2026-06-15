@@ -40,7 +40,7 @@
   - `.agents/skills/api-client-porting-implementer/reference.md`
   - `.agents/skills/api-client-porting-implementer/examples.md`
   - `.agents/skills/api-client-porting-implementer/templates/porting-result.md`
-  - `.codex/agents/api-client-porting-workflow.agent.md`
+  - `.codex/agents/api-client-porting-workflow.toml`
 
 - **Out of scope**:
   - 其他 `.github/skills/*`
@@ -61,10 +61,11 @@
   - `.agents/skills/api-client-porting-implementer/reference.md`
   - `.agents/skills/api-client-porting-implementer/examples.md`
   - `.agents/skills/api-client-porting-implementer/templates/porting-result.md`
-  - `.codex/agents/api-client-porting-workflow.agent.md`
+  - `.codex/agents/api-client-porting-workflow.toml`
 - planner artifact set 必須保留 planning-only 核心語意。
 - implementer artifact set 必須保留 implementation-only 核心語意。
-- workflow agent 必須保持 orchestration-only。
+- workflow agent 必須保持 orchestration-only，並以 TOML artifact 輸出。
+- `.codex/agents/api-client-porting-workflow.toml` 的 `developer_instructions` 必須承載主要 orchestration contract。
 - 新的 implementation draft baseline 已完成 reviewer 與 planner final gate，下一個外部 gate 是 human check。
 - 此 topic **不涉及 stable-library surfaces**。
 
@@ -126,7 +127,7 @@ Routing notes:
 | Creator artifact | `.agents/skills/api-client-porting-implementer/reference.md` | Creator | New implementer supporting reference artifact |
 | Creator artifact | `.agents/skills/api-client-porting-implementer/examples.md` | Creator | New implementer examples artifact |
 | Creator artifact | `.agents/skills/api-client-porting-implementer/templates/porting-result.md` | Creator | New implementer template artifact |
-| Creator artifact | `.codex/agents/api-client-porting-workflow.agent.md` | Creator | New Codex workflow agent artifact |
+| Creator artifact | `.codex/agents/api-client-porting-workflow.toml` | Creator | New Codex workflow agent TOML artifact carrying the orchestration contract |
 
 Artifact path notes:
 
@@ -150,9 +151,10 @@ Artifact path notes:
    - `.agents/skills/api-client-porting-implementer/examples.md`
    - `.agents/skills/api-client-porting-implementer/templates/porting-result.md`
 6. Freeze creator implementation scope for the custom workflow agent artifact:
-   - `.codex/agents/api-client-porting-workflow.agent.md`
+   - `.codex/agents/api-client-porting-workflow.toml`
 7. Freeze validation requirements that the new skill / agent artifacts must stay semantically aligned with the bootstrap inputs while downgrading repo-specific contract to optional/default input.
-8. Create a new draft plan commit for this rerun implementation topic.
+8. Freeze that the custom workflow agent contract lives in TOML and that `developer_instructions` carries the primary orchestration body.
+9. Create a new draft plan commit for this rerun implementation topic.
 
 ## Validation / Acceptance Checks
 
