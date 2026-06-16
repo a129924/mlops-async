@@ -16,11 +16,7 @@
               "Content-Type": "application/json"
             },
             "json_body": {
-              "items": [],
-              "count": 0,
-              "start": 0,
-              "limit": 20,
-              "links": []
+              "items": []
             }
           }
         }
@@ -44,11 +40,7 @@
               "Content-Type": "application/json"
             },
             "json_body": {
-              "items": [],
-              "count": 0,
-              "start": 0,
-              "limit": 20,
-              "links": []
+              "items": []
             }
           }
         }

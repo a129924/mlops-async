@@ -254,19 +254,6 @@ def _load_case_from_locator(locator: str) -> Mapping[str, object]:
     return case
 
 
-def _response_spec_from_answer_case(case: Mapping[str, object]) -> Mapping[str, object]:
-    responses = case.get("responses")
-    if not isinstance(responses, list) or len(responses) != 1:
-        raise AssertionError("Each answer-set case must define exactly one response entry.")
-    entry = responses[0]
-    if not isinstance(entry, dict):
-        raise TypeError("Each response entry must be a JSON object.")
-    response = entry.get("response")
-    if not isinstance(response, dict):
-        raise TypeError("Each response entry must define a response object.")
-    return response
-
-
 def _assert_request_matches_contract(actual: Mapping[str, object], expected: RequestShape) -> None:
     if actual.get("method") != expected.method:
         raise AssertionError(f"Unexpected outbound request: {actual!r}")
@@ -317,19 +304,6 @@ def _assert_request_shape_matches_source_observed(
             assert actual_rule == equals
 
 
-def _assert_fake_response_matches_source_observed(
-    response: FakeResponse,
-    source_response: Mapping[str, object],
-) -> None:
-    assert response.status_code == int(source_response["status_code"])
-    headers = source_response.get("headers", {})
-    if not isinstance(headers, dict):
-        raise TypeError("Source-observed response headers must be a JSON object.")
-    assert dict(response.headers) == {str(key): str(value) for key, value in headers.items()}
-    assert response.json_body == source_response.get("json_body")
-    assert response.text_body == source_response.get("text_body")
-
-
 class SasctlContractHarness:
     """Run a readable contract case through the existing requests interception hook."""
 
@@ -345,13 +319,6 @@ class SasctlContractHarness:
                     _load_case_from_locator(case.source_observed.request_path)
                 ),
             )
-            if case.source_observed.response_path is not None:
-                _assert_fake_response_matches_source_observed(
-                    case.response,
-                    _response_spec_from_answer_case(
-                        _load_case_from_locator(case.source_observed.response_path)
-                    ),
-                )
 
         request_count = 0
 

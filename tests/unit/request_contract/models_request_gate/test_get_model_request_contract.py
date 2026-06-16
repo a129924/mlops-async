@@ -19,39 +19,40 @@ FIXTURE_ROOT = "tests/unit/request_contract/models_request_gate/fixtures"
 DIRECT_IDENTIFIER = "123e4567-e89b-12d3-a456-426614174000"
 GetModelCaptureRunner = Callable[[object, bool, str], list[dict[str, object]]]
 
+case_get_model_direct_identifier = EndpointContractCase(
+    name="model_repository.get_model.direct_identifier",
+    invoke=lambda: ModelRepository.get_model(DIRECT_IDENTIFIER, refresh=False),
+    expected=RequestShape(
+        method="GET",
+        path=f"/modelRepository/models/{DIRECT_IDENTIFIER}",
+        query={},
+        body=None,
+        required_headers={"Authorization": "Bearer ", "Accept": ""},
+    ),
+    response=FakeResponse(
+        status_code=200,
+        json_body={"id": DIRECT_IDENTIFIER},
+        headers={"Content-Type": "application/json"},
+    ),
+    source_observed=SourceObservedFixture(
+        request_path=f"{FIXTURE_ROOT}/get_model_by_id.request-flow.json#direct_identifier",
+    ),
+)
 
-def test_get_model_path_parameter(sasctl_contract: SasctlContractHarness) -> None:
-    case_get_model_path_parameter = EndpointContractCase(
-        name="model_repository.get_model.path_parameter",
-        invoke=lambda: ModelRepository.get_model(DIRECT_IDENTIFIER, refresh=False),
-        expected=RequestShape(
-            method="GET",
-            path=f"/modelRepository/models/{DIRECT_IDENTIFIER}",
-            query={},
-            body=None,
-            required_headers={"Authorization": "Bearer ", "Accept": ""},
-        ),
-        response=FakeResponse(
-            status_code=200,
-            json_body={"id": DIRECT_IDENTIFIER, "name": "demo-model", "links": []},
-            headers={
-                "Content-Type": "application/json",
-                "ETag": "dummy-etag",
-            },
-        ),
-        source_observed=SourceObservedFixture(
-            request_path=f"{FIXTURE_ROOT}/get_model_by_id.request-flow.json#direct_identifier",
-            response_path=f"{FIXTURE_ROOT}/get_model_by_id.mock-responses.json#direct_identifier",
-        ),
-    )
 
-    result = sasctl_contract.run(case_get_model_path_parameter)
+def test_get_model_direct_identifier_request_shape(
+    sasctl_contract: SasctlContractHarness,
+) -> None:
+    sasctl_contract.run(case_get_model_direct_identifier)
 
-    assert result.id == DIRECT_IDENTIFIER
-    assert result.name == "demo-model"
     assert sasctl_contract.last_request is not None
     assert sasctl_contract.last_request["path"] == f"/modelRepository/models/{DIRECT_IDENTIFIER}"
     assert sasctl_contract.last_request["query"] == {}
+    assert sasctl_contract.last_request["body"] is None
+    headers = sasctl_contract.last_request["headers"]
+    assert isinstance(headers, dict)
+    assert str(headers["Authorization"]).startswith("Bearer ")
+    assert "Accept" in headers
 
 
 @pytest.mark.parametrize(

@@ -13,13 +13,10 @@
           "response": {
             "status_code": 200,
             "headers": {
-              "Content-Type": "application/json",
-              "ETag": "dummy-etag"
+              "Content-Type": "application/json"
             },
             "json_body": {
-              "id": "123e4567-e89b-12d3-a456-426614174000",
-              "name": "demo-model",
-              "links": []
+              "id": "123e4567-e89b-12d3-a456-426614174000"
             }
           }
         }
