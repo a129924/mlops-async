@@ -9,8 +9,8 @@
 - [ ] 執行並通過下列驗證，不得為了通過而修改授權範圍外檔案：
   - `uv run --python 3.10.0 pytest tests/unit/request_contract/models_request_gate -q`
   - `uv run --python 3.10.0 ruff check tests/unit/request_contract/models_request_gate`
-  - `uv run --python 3.10.0 pyright`
-- [ ] 確認最終 diff 只落在本 topic 授權的 implementation 檔案，且 `*.request-flow.json`、`projects_request_gate`、`src/**`、`pyproject.toml`、`uv.lock`、`docs/**`、`analysis/**`、其他 topic 的 `plan/**` 全部未改動；同時測試中不再以 returned object、response payload、response header、或 fixture equality 作為成功 oracle。
+  - `uv run --python 3.10.0 pyright tests/unit/request_contract/models_request_gate/conftest.py tests/unit/request_contract/models_request_gate/test_list_models_request_contract.py tests/unit/request_contract/models_request_gate/test_get_model_request_contract.py`
+- [ ] 確認最終 diff 只落在本 topic 授權的五個 implementation 檔案，加上 `plan/models-request-gate-shape-only-alignment/models-request-gate-shape-only-alignment.step.md` 的必要 lifecycle 更新；`*.request-flow.json`、`projects_request_gate`、`src/**`、`pyproject.toml`、`uv.lock`、`docs/**`、`analysis/**`、其他 topic 的 `plan/**` 全部未改動；同時測試中不再以 returned object、response payload、response header、或 fixture equality 作為成功 oracle。
 
 ## Workflow Stages
 

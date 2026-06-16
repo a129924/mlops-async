@@ -165,8 +165,10 @@ Artifact path notes:
 5. 執行並通過下列驗證，不得為了通過而修改授權範圍外檔案：
    - `uv run --python 3.10.0 pytest tests/unit/request_contract/models_request_gate -q`
    - `uv run --python 3.10.0 ruff check tests/unit/request_contract/models_request_gate`
-   - `uv run --python 3.10.0 pyright`
-6. 確認最終 diff 只落在本 plan 授權的六個 implementation 檔案，且：
+   - `uv run --python 3.10.0 pyright tests/unit/request_contract/models_request_gate/conftest.py tests/unit/request_contract/models_request_gate/test_list_models_request_contract.py tests/unit/request_contract/models_request_gate/test_get_model_request_contract.py`
+6. 確認最終 diff 只落在本 plan 授權的五個 implementation 檔案，加上
+   `plan/models-request-gate-shape-only-alignment/models-request-gate-shape-only-alignment.step.md`
+   的必要 lifecycle 更新，且：
    - `*.request-flow.json` 維持未改動
    - `projects_request_gate` 未改動
    - 測試中不再以 returned object、response payload、response header、或 fixture equality
@@ -192,9 +194,12 @@ Artifact path notes:
 - Creator 完成後，`conftest.py` 不再把 response equality 納入 oracle，但仍保留 request
   capture 與 request-shape 檢查。
 - `list_models.request-flow.json` 與 `get_model_by_id.request-flow.json` 於本 topic 維持唯讀。
+- Acceptance 不依賴 repo-wide `pyright`；型別檢查只以本 topic 授權的三個 Python 測試檔案為 gate。
 - 最終 diff 若出現 `src/**`、`pyproject.toml`、`uv.lock`、`docs/**`、`analysis/**`、
   其他 topic 的 `plan/**`、或 `tests/unit/request_contract/projects_request_gate/**`，視為
-  blocking drift。
+  blocking drift；本 topic 只允許五個 implementation 檔案與
+  `plan/models-request-gate-shape-only-alignment/models-request-gate-shape-only-alignment.step.md`
+  的必要 lifecycle 更新出現在最終 diff。
 - `Reviewer Handoff` 必須維持單一 machine-consumable JSON 物件。
 
 ## Reviewer Handoff
