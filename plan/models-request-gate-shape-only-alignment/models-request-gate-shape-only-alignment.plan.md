@@ -78,13 +78,13 @@
 
 ## Status / Allowed Transitions
 
-- **Current**: `planned`
+- **Current**: `review-ready`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; this
   topic stops at `merged` and does not declare a release action.
 - **Step-tracker alignment**:
   `plan/models-request-gate-shape-only-alignment/models-request-gate-shape-only-alignment.step.md`
-  已建立且 `## Implementation Steps` 全部維持 `[ ]`，因此目前仍停留在 `planned`，待 creator
-  開始執行後才可進入 `creator-in-progress`。
+  已建立且 `## Implementation Steps` 已全部標記為 `[X]`；creator gate 已完成，workflow
+  目前等待獨立 review，因此狀態對齊為 `review-ready`。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -162,8 +162,10 @@ Artifact path notes:
    使正向 case 只覆蓋 direct identifier branch，且只斷言 request method、path、
    required header subset、query/body shape；非 UUID 字串、dict-like item、`refresh=True`
    等既有 blocked variants 維持為 out-of-scope gate。
-5. 執行並通過下列驗證，不得為了通過而修改授權範圍外檔案：
-   - `uv run --python 3.10.0 pytest tests/unit/request_contract/models_request_gate -q`
+5. 執行並通過下列驗證，不得為了通過而修改授權範圍外檔案；其中 pytest 驗證必須使用
+   topic-local `addopts` 覆寫，僅以本 topic 授權 surface 與 request-only / shape-only 測試語意為 gate，
+   不依賴 repo-wide coverage addopts / gate：
+   - `uv run --python 3.10.0 pytest --override-ini addopts='' tests/unit/request_contract/models_request_gate -q`
    - `uv run --python 3.10.0 ruff check tests/unit/request_contract/models_request_gate`
    - `uv run --python 3.10.0 pyright tests/unit/request_contract/models_request_gate/conftest.py tests/unit/request_contract/models_request_gate/test_list_models_request_contract.py tests/unit/request_contract/models_request_gate/test_get_model_request_contract.py`
 6. 確認最終 diff 只落在本 plan 授權的五個 implementation 檔案，加上
@@ -194,6 +196,9 @@ Artifact path notes:
 - Creator 完成後，`conftest.py` 不再把 response equality 納入 oracle，但仍保留 request
   capture 與 request-shape 檢查。
 - `list_models.request-flow.json` 與 `get_model_by_id.request-flow.json` 於本 topic 維持唯讀。
+- Acceptance 不依賴 repo-wide coverage gate；pytest 驗證只以本 topic 授權的
+  `tests/unit/request_contract/models_request_gate/**` surface 與 request-only / shape-only
+  測試語意為 gate，並使用 topic-local `--override-ini addopts=''` 指令執行。
 - Acceptance 不依賴 repo-wide `pyright`；型別檢查只以本 topic 授權的三個 Python 測試檔案為 gate。
 - 最終 diff 若出現 `src/**`、`pyproject.toml`、`uv.lock`、`docs/**`、`analysis/**`、
   其他 topic 的 `plan/**`、或 `tests/unit/request_contract/projects_request_gate/**`，視為
