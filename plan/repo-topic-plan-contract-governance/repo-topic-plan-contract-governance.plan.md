@@ -4,17 +4,17 @@
 > - next_step: `plan-review`
 > - status: `COMPLETE`
 >
-> **Analysis layer — strict mode**
->
-> - Business guardrail: `analysis/repo-topic-plan-contract-governance/requirements.md` (`sha256: 9dbb92456a7caf9fb7bbbca0662ac40736bc133c756d76dcfc03a2b20557b059`)
-> - Execution baseline: `analysis/repo-topic-plan-contract-governance/technical-spec.md` (`sha256: e4d5d96d521e01240afcd2b39b43f6cc8b0746503eba74c532fe3cb5123e45a4`)
-> - 本 topic plan 的 `Artifact Paths`、`Implementation Steps` 與 `Validation / Acceptance Checks` 100% 對映上述 technical spec。
->
 > **Bootstrap exception**
 >
-> - 此例外僅適用於 `repo-topic-plan-contract-governance` 的 `create-agent-plan`。
-> - 例外用途僅限在 `plan/topic-plan-contract.md` 尚未存在時，允許本治理 topic 先建立自己的 planning artifacts。
-> - 此例外不得擴散到其他 topic，不得用來跳過 review / implementation gate，也不得把 `plan/agent-handoff-workflow.md` 宣告為永久替代品。
+> - 此例外僅適用於 `repo-topic-plan-contract-governance`。
+> - 例外用途僅限在 `plan/topic-plan-contract.md` 尚未存在時，允許本治理 topic 的 bootstrap `create-agent-plan` 與本次 bootstrap `plan-review` 先行使用既有 workflow-side contract 完成 planning handoff。
+> - 此例外不得擴散到其他 topic，不得用來跳過 creator / review / publish gate；`plan/agent-handoff-workflow.md` 只可作為這兩個 bootstrap 動作的暫時 workflow-side 依據，不是 shared topic-plan contract，也不是永久替代品。
+
+## Inputs
+
+- Business guardrail input: `analysis/repo-topic-plan-contract-governance/requirements.md` (`sha256: 9dbb92456a7caf9fb7bbbca0662ac40736bc133c756d76dcfc03a2b20557b059`)
+- Execution baseline input: `analysis/repo-topic-plan-contract-governance/technical-spec.md` (`sha256: e4d5d96d521e01240afcd2b39b43f6cc8b0746503eba74c532fe3cb5123e45a4`)
+- Analysis-layer routing: strict mode. 本 topic plan 的 `Artifact Paths`、`Implementation Steps` 與 `Validation / Acceptance Checks` 100% 對映上述 `technical-spec.md`，並以 `requirements.md` 作為 business-intent guardrail。
 
 ## Goal / Outcome
 
@@ -53,7 +53,7 @@
 - `plan/agent-handoff-workflow.md` 持續只承載 workflow lifecycle / routing contract；不得被升格為 shared topic-plan contract，也不得被此 bootstrap exception 宣告為永久替代品。
 - consumer compatibility verification 預設為 read-only。若發現 direct semantic contradiction，必須停止並回報，不得在本 topic 靜默擴張為多檔治理重寫。
 - 本 topic **不涉及 stable-library surfaces**；不修改 `README.md`、`VERSION`、release notes，也不宣告 release timing。
-- 本次 bootstrap exception 在本 topic 的 planning artifacts 建立完成後即視為已消耗；其他 topic 仍不得在缺少 `plan/topic-plan-contract.md` 時繼續 `create-agent-plan`。
+- 本次 bootstrap exception 只授權 `repo-topic-plan-contract-governance` 的 bootstrap `create-agent-plan` 與本次 bootstrap `plan-review`；其他 topic 仍不得在缺少 `plan/topic-plan-contract.md` 時沿用此例外。
 
 ## Boundaries / Exclusions
 
@@ -65,7 +65,7 @@
 
 ## Status / Allowed Transitions
 
-- **Current**: `planned`
+- **Current**: `review-ready`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; 本 topic 不宣告 release lane，於 `merged` 終止。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
@@ -84,10 +84,10 @@
 
 Routing notes:
 
-- 本回合只做到 `planned`；不得前進到 `creator-in-progress` 之外的 implementation、review 或 publish work。
+- 此次 planning correction 完成後，下一個外部動作是對本 topic plan 執行 bootstrap `plan-review`；review 通過後，後續 creator phase 才可依標準路由進入 implementation work。
 - publish 前仍遵守標準 Phase 4.5 planner-alignment gate。
 - 若 creator 驗證時發現需要觸及 `plan/topic-plan-contract.md` 以外的修改路徑，或 validation surfaces 之間存在直接衝突，必須先回到 planning / human-check，而不是繼續擴張。
-- bootstrap exception 只允許本 topic 合法產生自己的 planning artifacts；不構成 repository-wide 狀態豁免。
+- bootstrap exception 只允許本 topic 合法完成 bootstrap `create-agent-plan` 與本次 bootstrap `plan-review`；不構成 repository-wide 狀態豁免。
 
 ## Artifact Paths
 
@@ -96,7 +96,7 @@ Routing notes:
 | Topic requirements baseline | `analysis/repo-topic-plan-contract-governance/requirements.md` | Planning actor | Frozen business guardrail for this governance topic |
 | Topic technical spec baseline | `analysis/repo-topic-plan-contract-governance/technical-spec.md` | Planning actor | Frozen execution-facing baseline for this governance topic |
 | Topic plan | `plan/repo-topic-plan-contract-governance/repo-topic-plan-contract-governance.plan.md` | Planning actor | Repo-visible execution contract for this topic |
-| Topic step tracker | `plan/repo-topic-plan-contract-governance/repo-topic-plan-contract-governance.step.md` | Planning actor | Machine-readable creator step tracker for this topic |
+| Topic step tracker | `plan/repo-topic-plan-contract-governance/repo-topic-plan-contract-governance.step.md` | Planning actor | Planning-phase artifact already established for this topic; creator consumes it as the step tracker, not as a creation target |
 | Required creation target | `plan/topic-plan-contract.md` | Creator | Shared repo-level topic-plan contract to be authored in the later implementation phase |
 | Read-only validation surface | `plan/agent-handoff-workflow.md` | Creator | Workflow lifecycle / routing contract boundary check |
 | Read-only validation surface | `.agents/skills/plan-creator/SKILL.md` | Creator | Shared-contract consumer contract verification |
@@ -117,13 +117,8 @@ Artifact path notes:
 
 ## Implementation Steps
 
-1. 建立 `plan/repo-topic-plan-contract-governance/repo-topic-plan-contract-governance.step.md`，使其與本 topic plan 的 creator work 完整對齊。
-2. 建立 `plan/topic-plan-contract.md`，明確定義 shared topic-plan contract 的 purpose 與 authority boundary，並與 `plan/agent-handoff-workflow.md` 及 `plan/<topic>/<topic>.plan.md` 保持責任分離。
-3. 在 `plan/topic-plan-contract.md` 中定義：
-   - canonical required topic-plan sections
-   - template 缺失或不可用時的 fallback behavior
-   - contract-level blocking semantics
-4. 以 read-only 方式驗證以下 surfaces 可由新 shared contract 直接滿足，而不需在本 topic 修改 consumer wording：
+1. 建立 `plan/topic-plan-contract.md`，明確定義 shared topic-plan contract 的 purpose 與 authority boundary，並在同一檔案中凍結 canonical required topic-plan sections、template 缺失或不可用時的 fallback behavior、contract-level blocking semantics，以及它與 `plan/agent-handoff-workflow.md` / `plan/<topic>/<topic>.plan.md` 的責任分界。
+2. 以 read-only 方式驗證以下 surfaces 可由新 shared contract 直接滿足，而不需在本 topic 修改 consumer wording 或 workflow body：
    - `plan/agent-handoff-workflow.md`
    - `.agents/skills/plan-creator/SKILL.md`
    - `.agents/skills/plan-creator/reference.md`
@@ -131,8 +126,7 @@ Artifact path notes:
    - `.agents/skills/plan-reviewer/reference.md`
    - `.agents/skills/plan-reviewer/checklist.md`
    - `.github/prompts/create-agent-plan.prompt.md`
-5. 若驗證發現 direct semantic contradiction 無法只靠 `plan/topic-plan-contract.md` 解決，停止並回報 divergence；不得在本 topic 靜默展開 consumer refresh 或 workflow rewrite。
-6. 重新檢查 `plan/topic-plan-contract.md` 與本 topic 的 planning artifacts，確認 scope 仍侷限於 governance-only 路徑，且未觸及 `src/**`、`tests/**`、`README.md`、`VERSION`、release artifacts 或其他 topic artifacts。
+3. 若 read-only 驗證發現 direct semantic contradiction 無法只靠 `plan/topic-plan-contract.md` 解決，停止並回報 divergence；不得在本 topic 靜默展開 consumer refresh、workflow rewrite 或其他治理面擴張。
 
 ## Validation / Acceptance Checks
 
