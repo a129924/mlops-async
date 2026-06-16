@@ -2,7 +2,7 @@
 
 ## Status
 
-- **Topic status**: `review-ready`
+- **Topic status**: `approved`
 - **Cycle**: 1
 
 ## Implementation Steps

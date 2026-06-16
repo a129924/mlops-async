@@ -65,7 +65,7 @@
 
 ## Status / Allowed Transitions
 
-- **Current**: `review-ready`
+- **Current**: `approved`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; 本 topic 不宣告 release lane，於 `merged` 終止。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
