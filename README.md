@@ -21,6 +21,19 @@ Codex-specific `.codex/agents/api-client-porting-workflow.toml` orchestration
 surface, and aligned implementation topic artifacts that preserve contract-first
 porting governance while keeping tracker and instruction dependencies explicit.
 
+As of **v0.11.3**, the repository closes the combined `PR #29`
+model-repository governance and request-contract alignment merge: the repo now
+adds the shared `plan/topic-plan-contract.md` authority for topic-plan shape,
+clarifies how extra `Inputs` / `Prerequisites` sections coexist with canonical
+required sections, and tightens `models_request_gate` request-contract tests to
+request-only / shape-only assertions.
+
+v0.11.3 補齊 combined `PR #29` 的 governance / request-contract 對齊：
+repo 現已新增 shared `plan/topic-plan-contract.md` 作為 topic-plan shape 的
+repo-visible authority，明確允許 `Inputs` / `Prerequisites` 等額外章節與
+canonical required sections 並存，並把 `models_request_gate` request-contract
+tests 收斂為 request-only / shape-only 驗證。
+
 As of **v0.11.2**, the repository closes the `PR #28` custom-agent-codex-compat
 merge: the repo now adds repo-local `python-implementation-workflow` and
 `workflow-artifact-contract` skills, aligns the Codex `planner`,
