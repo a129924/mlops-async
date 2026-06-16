@@ -45,6 +45,12 @@ artifact payload、implementation steps 或 acceptance evidence。
 若 topic 會影響 stable-library surfaces，例如 `README.md`、`VERSION`、release
 timing 或 release notes，必須額外加入 `## Stable library metadata`。
 
+上述 canonical order 只約束上列 required sections 彼此的相對順序。
+author 可以為了可讀性、prompt compatibility 或 analysis metadata 承載，在這組
+required sections 之前或之後加入額外章節，例如 `Inputs` 或 `Prerequisites`；
+但不得因此更名 canonical required sections、移除其 requiredness，或打亂它們
+彼此的相對順序。
+
 上列 section names 是 shared contract authority。其他 workflow 或 skill surface
 可以為了可讀性重述同一份 canonical list，但不得以不同名稱、不同順序或不同
 requiredness 取代本檔案。
@@ -81,7 +87,8 @@ review、或推進到下一個 workflow phase 的 shared contract failure。
 
 - `plan/topic-plan-contract.md` 或 `plan/agent-handoff-workflow.md` 不可讀
 - topic plan 缺少任何 canonical required section
-- required sections 名稱錯誤、順序漂移到無法清楚比對 canonical contract
+- required sections 名稱錯誤、required sections 彼此相對順序漂移到無法清楚
+  比對 canonical contract
 - `Status / Allowed Transitions` 使用非 canonical transitions，或與 workflow
   lifecycle contract 直接衝突
 - `Artifact Paths` 不精確、不 bounded、不可 repo-visible consumption
@@ -125,6 +132,12 @@ review handoff routing 與 post-merge / release flow。
 - implementation steps
 - validation / acceptance checks
 - post-merge 或 release action
+
+若 `analysis/<topic>/requirements.md` 與 `analysis/<topic>/technical-spec.md`
+已存在，而 prompt 或 skill surface 仍要求明示 analysis metadata，topic-local
+plan 可以額外 `Inputs` 或 `Prerequisites` 章節承載該 metadata。這種額外章節
+屬 topic-local payload placement，不會把 `Inputs` / `Prerequisites` 升格成
+repository-wide canonical required sections。
 
 本檔案不得承載上述 topic-local payload，也不得替任何單一 topic 預先決定 scope、
 status、artifact inventory 或 acceptance evidence。
