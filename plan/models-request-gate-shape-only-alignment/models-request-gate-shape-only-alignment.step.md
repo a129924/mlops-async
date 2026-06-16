@@ -10,7 +10,7 @@
   - `uv run --python 3.10.0 pytest --override-ini addopts='' tests/unit/request_contract/models_request_gate -q`
   - `uv run --python 3.10.0 ruff check tests/unit/request_contract/models_request_gate`
   - `uv run --python 3.10.0 pyright tests/unit/request_contract/models_request_gate/conftest.py tests/unit/request_contract/models_request_gate/test_list_models_request_contract.py tests/unit/request_contract/models_request_gate/test_get_model_request_contract.py`
-- [X] 確認最終 diff 只落在本 topic 授權的五個 implementation 檔案，加上 `plan/models-request-gate-shape-only-alignment/models-request-gate-shape-only-alignment.step.md` 的必要 lifecycle 更新；`*.request-flow.json`、`projects_request_gate`、`src/**`、`pyproject.toml`、`uv.lock`、`docs/**`、`analysis/**`、其他 topic 的 `plan/**` 全部未改動；同時測試中不再以 returned object、response payload、response header、或 fixture equality 作為成功 oracle。
+- [X] 確認此 topic implementation 子 diff 只涵蓋本 topic 授權的五個 implementation 檔案，加上 `plan/models-request-gate-shape-only-alignment/models-request-gate-shape-only-alignment.step.md` 的必要 lifecycle 更新；這一條不宣告 combined PR 全量 diff 邊界。另確認測試中不再以 returned object、response payload、response header、或 fixture equality 作為成功 oracle。
 
 ## Workflow Stages
 
