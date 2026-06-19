@@ -7,7 +7,7 @@
 `plan/**`。
 
 本 topic 的目的是把 request-shape 工作從「邊抓 shape、邊改流程、邊等 review」的混合模式，
-收斂成可 dispatch、可 review、可停住的固定 workflow。
+收斂成可排序、可注入、可 review、可停住的固定 workflow。
 
 ## Required entry order
 
@@ -22,11 +22,11 @@
 ## Entry hierarchy
 
 - `docs/request-shape-priority-workflow/README.md`
-  - 第一入口，說明此 topic 的讀取順序、角色模型與 artifact hierarchy。
+  - 第一入口，說明此 topic 的讀取順序、artifact hierarchy 與回讀規則。
 - `docs/request-shape-priority-workflow/standards.md`
-  - Observer / Dispatcher 的正式工作規則與 phase / gate / dispatch contract。
+  - request-shape `surface + API` 的實作標準、blocked policy、與 artifact 責任分界。
 - `docs/request-shape-priority-workflow/checklist.md`
-  - 跨 family dispatch board 與 session resume checklist。
+  - session resume checklist template 與全域 surface/API implementation board。
 
 ## Non-entry artifacts
 
@@ -43,10 +43,11 @@
 
 本 topic 只負責：
 
-- 凍結 request-shape family queue
+- 凍結 request-shape `surface + API` 實作順序
+- 把 queue 單位固定成明確的 base API surface，而不是抽象 family 名稱
 - 凍結 session-entry contract
-- 凍結 Observer / Dispatcher routing 規則
-- 凍結 cross-family dispatch board 的角色與用途
+- 凍結全域 implementation board 的角色與用途
+- 凍結 `checklist.md` 與 `*.step.md` 的責任分界
 
 本 topic 不負責：
 
@@ -55,11 +56,14 @@
 - response / error contract
 - release workflow
 
-## Current queue
+## Shared-file warning
 
-- `models`：template / first family
-- `projects`：next family
-- `tables`：`BLOCKED`
+`docs/request-shape-priority-workflow/checklist.md` 是共享文件。
+
+- 其中的 session resume checklist 只是一份 **template**
+- 不得直接在共享文件上打勾，避免多個 session 互相污染狀態
+- 若當前 session 需要勾選 resume checklist，必須先複製到自己的 topic-local notes、handoff、
+  或 session artifact，再在複本上操作
 
 ## When to read workflow artifacts
 

@@ -3,18 +3,19 @@
 ## Purpose
 
 本文件凍結 `request-shape-priority-workflow` 的需求基線，目的是把 request-shape 工作的
-session-entry surface、family dispatch order、Observer / Dispatcher 角色邊界與 review
-節奏固定下來，降低工作在 shape discovery、workflow 討論與 review 排隊之間來回切換的成本。
+session-entry surface、`surface + API` 實作順序、共享 implementation board、與 review
+節奏固定下來，降低多個 session 同時工作時的狀態污染與接口排序混亂。
 
 ## Scope
 
 本 topic 的需求只涵蓋：
 
 - session-entry docs contract
-- cross-family dispatch board contract
-- family queue 與 blocked policy
-- Observer / Dispatcher routing 邊界
+- session resume checklist template contract
+- global surface/API implementation board contract
+- `surface + API` queue 與 blocked policy
 - `analysis/**` 與 `plan/**` 相對於 session-entry docs 的階層定位
+- `standards.md` 作為實作標準文件的責任邊界
 
 本 topic 不涵蓋：
 
@@ -28,11 +29,11 @@ session-entry surface、family dispatch order、Observer / Dispatcher 角色邊�
 
 - Primary actor：workflow maintainer
 - Secondary actor：human reviewer
-- Consuming actor：new session Observer / Dispatcher
+- Consuming actor：new session maintainer / implementer / reviewer
 
 Ownership model：
 
-- docs-first workflow governance with human review gate
+- docs-first workflow governance with shared implementation board
 
 ## Measurable requirements
 
@@ -56,7 +57,7 @@ Ownership model：
    - Failure meaning: 缺少固定第一入口時，新 session 無法快速取得 artifact hierarchy
 
 3. **Fixed entry order**
-   - Actor: new session Observer / Dispatcher
+   - Actor: new session maintainer / implementer / reviewer
    - Condition: 新 session 進入 topic 時
    - Required outcome: 固定依序讀取：
      1. `docs/request-shape-priority-workflow/README.md`
@@ -64,7 +65,7 @@ Ownership model：
      3. `docs/request-shape-priority-workflow/checklist.md`
    - Metric / decision rule: 若順序被打亂、跳過任一文件、或直接從 `analysis/**` / `plan/**` 起步，視為不符合基線
    - Evidence signal: docs 與 workflow artifact 內都寫死相同順序
-   - Failure meaning: session 會在 phase、queue、role boundary 尚未讀取前就誤進 planning 或 implementation
+   - Failure meaning: session 會在排序與實作標準尚未讀取前就誤進 planning 或 implementation
 
 4. **Workflow artifacts are not primary entry**
    - Actor: workflow maintainer
@@ -74,38 +75,51 @@ Ownership model：
    - Evidence signal: `README.md`、requirements、technical-spec、plan 一致宣告 docs-first hierarchy
    - Failure meaning: planning 工件與 session context 混疊，會提高恢復上下文成本
 
-5. **Checklist as cross-family dispatch board**
+5. **Shared resume checklist must be template-only**
    - Actor: workflow maintainer
    - Condition: 定義 `docs/request-shape-priority-workflow/checklist.md` 用途時
-   - Required outcome: `checklist.md` 是跨 family 的 dispatch board，不與任何單一 topic 的 `*.step.md` 混用
-   - Metric / decision rule: 若 checklist 被用來承載單一 topic implementation completion gate，即不合格
-   - Evidence signal: checklist 只記錄 queue、phase、blocked reason、next dispatch、resume checks
-   - Failure meaning: cross-family routing 與 topic-local completion gate 混在一起，review 邊界會失焦
+   - Required outcome: session resume checklist 只能作為 template，不得在共享文件直接打勾
+   - Metric / decision rule: 若共享 `checklist.md` 出現可直接被多個 session 共用勾選的 resume checkbox，即不合格
+   - Evidence signal: checklist 明寫「請複製到 session-local artifact 後再使用」
+   - Failure meaning: 多個 session 會互相誤讀共享勾選狀態
 
-6. **Family queue freeze**
+6. **Global surface/API implementation board**
    - Actor: workflow maintainer
-   - Condition: request-shape family 排隊時
-   - Required outcome: family queue 固定為：
-     1. `models`
-     2. `projects`
-     3. `tables` = `BLOCKED`
-   - Metric / decision rule: 若在無新人工決策下調整順序或自動解鎖 `tables`，視為超出基線
-   - Evidence signal: docs / analysis / plan 皆記錄相同 queue
-   - Failure meaning: queue 重新漂移後，review cadence 與風險排序就失去穩定性
+   - Condition: 定義 `docs/request-shape-priority-workflow/checklist.md` 的共享真值表面時
+   - Required outcome: `checklist.md` 必須包含一個 `surface + API` 級 implementation board
+   - Metric / decision rule: board 至少要有 `surface`、`api`、`status`、`order`、`injection hint`、`notes`
+   - Evidence signal: session 可直接依 board 指定下一個 interface surface、順序、與注入內容
+   - Failure meaning: 多 session 難以共享哪個 concrete surface 先做、哪個 surface 已完成
 
-7. **Observer / Dispatcher role boundary**
-   - Actor: consuming Observer / Dispatcher
-   - Condition: session 開始實際調度時
-   - Required outcome: Observer / Dispatcher 只負責 state check、phase decision、dispatch、triage；不得直接做實作、改檔、commit、push、開 PR、或 release
-   - Metric / decision rule: 若角色自行落手執行而非 dispatch，視為違反基線
-   - Evidence signal: `standards.md` 對 allowed roles、禁止事項、dispatch rules 有明文 contract
-   - Failure meaning: workflow 重新退回單代理混合作業，節奏不可審查
-
-8. **Primary request-shape surface freeze**
+7. **Surface / API queue freeze**
    - Actor: workflow maintainer
-   - Condition: 定義 family request-shape 工作面時
+   - Condition: request-shape `surface + API` 排隊時
+   - Required outcome: queue 必須以明確 base API surface 表示，至少區分：
+     - `modelRepository/models`
+     - `modelRepository/models/content`
+     - `modelRepository/projects`
+     - `modelRepository/projects/champion`
+     - `modelRepository/projects -> tables-link surface`
+     - `jobExecution/jobRequests/jobs`
+     - `jobExecution/jobs`
+     - `jobExecution/jobs/state`
+   - Metric / decision rule: 若在無新人工決策下使用抽象 `tables` 代表多套 surface、調整既定順序、或自動解鎖 blocked surface，視為超出基線
+   - Evidence signal: docs / analysis / plan 皆記錄相同 queue；board 由上而下可讀，且 `tables` 不再被單獨使用
+   - Failure meaning: queue 重新漂移後，review cadence 與注入順序都失去穩定性
+
+8. **Standards must stay implementation-focused**
+   - Actor: workflow maintainer
+   - Condition: 定義 `docs/request-shape-priority-workflow/standards.md` 內容時
+   - Required outcome: `standards.md` 必須是 implementation standards，不得寫成 workflow handoff prompt 或角色扮演腳本
+   - Metric / decision rule: 若文件主體落在 persona、allowed subAgent list、或 prompt-style output guidance，即不合格
+   - Evidence signal: `standards.md` 主體只記錄實作順序、board / step 分工、blocked policy、artifact precedence、與 request-shape scope
+   - Failure meaning: 標準文件會偏成 prompt，而不是可長期維護的 repo-visible contract
+
+9. **Primary request-shape surface freeze**
+   - Actor: workflow maintainer
+   - Condition: 定義 request-shape 工作面時
    - Required outcome: request-shape 主測試面固定為 `tests/unit/request_contract/**`
-   - Metric / decision rule: 若把 `tests/contracts` 升格為 family request-shape 主面，即不合格
+   - Metric / decision rule: 若把 `tests/contracts` 升格為本 workflow 的 request-shape 主面，即不合格
    - Evidence signal: standards 與 technical-spec 明確把 `tests/contracts` 定位為 policy / guard surface
    - Failure meaning: shape implementation 與 policy guard 混淆，會再次增加探索成本
 
@@ -114,34 +128,38 @@ Ownership model：
 1. `analysis/**` / `plan/**` 已是 repo-visible artifact` vs `新 session 不應先從這裡起步`
    - Resolution: 保留它們作為 workflow artifacts，但 session 入口改由 docs trio 固定承擔
 
-2. `checklist` 常被當作 completion gate` vs `這裡需要的是 cross-family queue`
-   - Resolution: 此 topic 的 `checklist.md` 只做 dispatch board；單一 topic 的 completion gate 仍留在 `*.step.md`
+2. `checklist` 常被當作 completion gate` vs `這裡需要的是共享 implementation board`
+   - Resolution: `checklist.md` 分成 template 與 board 兩個共享用途；單一 topic completion gate 仍留在 `*.step.md`
 
-3. `tables` 也屬 model-repository family` vs `目前無法安全放進 request-shape queue`
-   - Resolution: `tables` 維持 `BLOCKED`，不因 queue completeness 而強行納入
+3. `standards.md` 需要規則` vs `不能退化成 prompt`
+   - Resolution: 只保留實作順序、artifact precedence、board / step 邊界、與 blocked policy，不保留 prompt 化 persona
+
+4. `tables` 是既有業務詞` vs `repo 內其實同時存在不同 tables surface`
+   - Resolution: 停止使用抽象 `tables` 當 queue 單位；改成明確區分 `modelRepository/projects -> tables-link surface` 與 `casManagement/.../tables`
 
 ## Extreme-boundary checks
 
 1. **Missing docs**
    - 若 `README.md`、`standards.md`、`checklist.md` 任一缺失，必須先標記 planning insufficiency，而不是用 `analysis/**` / `plan/**` 補位
 
-2. **Wrong entry path**
-   - 若新 session 直接從 `analysis/**` 或 `plan/**` 進場，必須回頭走 docs-first entry order
+2. **Shared-check pollution**
+   - 若共享 `checklist.md` 出現直接勾選的 session resume 狀態，必須改回 template-only
 
 3. **Queue skip**
-   - 若要求在 `models` review / triage 未完成時直接推進 `projects`，視為 workflow drift
+   - 若要求在前一個 API / surface 未完成時直接推進下一列，視為 workflow drift
 
-4. **Blocked family bypass**
-   - 若要求在沒有新人工決策前自動推進 `tables`，必須停在 `human-check`
+4. **Blocked surface bypass**
+   - 若要求在沒有新人工決策前自動推進 `modelRepository/projects -> tables-link surface` 或 `jobExecution/jobs/state`，必須停在 `human-check`
 
-5. **Role collapse**
-   - 若 Observer / Dispatcher 被要求直接實作、修 review comments、或做 publish / release，視為違反角色邊界
+5. **Prompt drift**
+   - 若 `standards.md` 被重新寫成 handoff prompt、persona、或 subAgent 腳本，視為違反本 topic 邊界
 
 ## Assumptions
 
-- `models_request_gate` 已足夠作為 shape-only 模板 family
-- `projects_request_gate` 是自然的下一批
-- `tables` 的阻擋原因仍是 conditional endpoint selection / HATEOAS routing
+- `models_request_gate` 已足夠作為 `modelRepository/models` 的 shape-only 模板
+- `projects_request_gate` 已足夠作為 `modelRepository/projects` 的既有 precedent
+- `modelRepository/projects -> tables-link surface` 的阻擋原因仍是 conditional endpoint selection / HATEOAS routing
+- `casManagement/.../tables` 與 `SASLogon/oauth/token` 雖存在於 repo surface，但本輪維持 `OUT-OF-SCOPE`
 - 本 topic 只處理 workflow governance，不修改 `src/**` 或測試行為
 
 ## Non-goals
@@ -154,7 +172,7 @@ Ownership model：
 
 ## Blockers
 
-本需求在目前範圍內無未決 blocker；若有人要求改 queue、解鎖 `tables`、或繞過 docs-first 入口，即進入 `human-check`
+本需求在目前範圍內無未決 blocker；若有人要求改 queue、重新把 `tables` 當抽象單位、解鎖 blocked surface、把共享 template 當成真值勾選、或把 `standards.md` 重新寫成 prompt，即進入 `human-check`
 
 ## Freeze status
 

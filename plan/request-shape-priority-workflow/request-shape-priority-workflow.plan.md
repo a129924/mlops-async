@@ -5,14 +5,16 @@
 > - Business guardrail:
 >   `analysis/request-shape-priority-workflow/requirements.md`
 > - This plan maps 100% to the technical spec and does not reopen queue, entry hierarchy,
->   role boundary, or blocked-family decisions.
+>   blocked-surface decisions, or request-shape scope.
 
 ## Goal / Outcome
 
-- 建立 `request-shape-priority-workflow` 的 repo-visible execution contract，使新 session 可以從
-  docs-first session-entry surface 進場，並在不回溯歷史對話的前提下，恢復 request-shape
-  family queue、Observer / Dispatcher 邊界、blocked-family policy 與 cross-family dispatch
-  board。
+- 修正 `request-shape-priority-workflow` 的 repo-visible docs / analysis / plan contract，使新
+  session 能從 docs-first session-entry surface 進場，並正確恢復：
+  - template-only session resume checklist
+  - global surface/API implementation board
+  - implementation-focused standards
+  - `checklist.md` 與 `*.step.md` 的責任分界
 - Topic 完成時，repo 應同時具備：
   - `docs/request-shape-priority-workflow/README.md`
   - `docs/request-shape-priority-workflow/standards.md`
@@ -21,6 +23,7 @@
   - `analysis/request-shape-priority-workflow/technical-spec.md`
   - `plan/request-shape-priority-workflow/request-shape-priority-workflow.plan.md`
   - `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`
+  並且這些文件對 `checklist.md` 與 `standards.md` 的角色描述完全一致。
 
 ## Scope
 
@@ -41,7 +44,7 @@
   - `README.md`
   - `VERSION`
   - request-contract tests 內容改寫
-  - `tables` family 解鎖
+  - blocked surface 解鎖
   - release / publish automation
 
 ## Locked Decisions
@@ -57,29 +60,41 @@
   2. `docs/request-shape-priority-workflow/standards.md`
   3. `docs/request-shape-priority-workflow/checklist.md`
 - `analysis/**` 與 `plan/**` 是 workflow artifacts，不是新 session 的 primary entry。
-- `checklist.md` 是跨 family dispatch board，不與任何單一 topic 的 `*.step.md` 混用。
-- family queue 鎖定為：
-  1. `models`
-  2. `projects`
-  3. `tables` = `BLOCKED`
-- Observer / Dispatcher 只負責 state check、phase decision、dispatch、triage；不得直接實作、改檔、commit、push、開 PR、或 release。
+- `checklist.md` 只承擔兩種共享用途：
+  - session resume checklist template
+  - global surface/API implementation board
+- 共享 `checklist.md` 中的 resume checklist 不得直接打勾；需先複製到 session-local artifact。
+- queue 單位固定為明確 `surface + API`，不得使用抽象 family 名稱。
+- 共享 board 至少涵蓋：
+  - `modelRepository/models`
+  - `modelRepository/models/content`
+  - `modelRepository/projects`
+  - `modelRepository/projects/champion`
+  - `modelRepository/projects -> tables-link surface`
+  - `jobExecution/jobRequests/jobs`
+  - `jobExecution/jobs`
+  - `jobExecution/jobs/state`
+- `modelRepository/projects -> tables-link surface` 與 `jobExecution/jobs/state` 維持 `BLOCKED`。
+- `casManagement/.../tables` 與 `SASLogon/oauth/token` 保持 `OUT-OF-SCOPE`，但需在 board 中明確列出。
+- `standards.md` 只承擔 implementation standards，不得寫成 workflow handoff prompt。
 - request-shape 主測試面固定為 `tests/unit/request_contract/**`；`tests/contracts` 只保留 policy / guard surface 角色。
 
 ## Boundaries / Exclusions
 
 - Planning actor 只負責本 topic 的 docs / analysis / plan artifacts。
 - Creator 只可修改本 plan 列出的精確路徑；若工作漂移到 `src/**`、`tests/**` 或 stable-library surfaces，必須停止並回到 `human-check`。
-- Reviewer 只審查 docs-first hierarchy、queue / blocked policy、role boundary、與 artifact-path exactness；不得在 review 中重開 queue 或 architecture decision。
-- Main Agent 負責 draft commit、review routing、fix routing、final gate routing、與 wait-human-check 停點。
-- 本 topic 不處理任何 family 的 request-shape implementation 細節，也不處理 publish / merge / release 執行。
+- Reviewer 只審查 docs-first hierarchy、template-only policy、surface board、implementation standards、與 artifact-path exactness；不得在 review 中重開 queue 或 architecture decision。
+- Main Agent 負責 commit、review routing、final gate routing、與 human-check 停點。
+- 本 topic 不處理任何 surface 的 request-shape implementation 細節，也不處理 publish / merge / release 執行。
 
 ## Status / Allowed Transitions
 
 - **Current**: `review-ready`
-- **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; this topic stops at human check after plan finalization and does not enter implementation or release.
+- **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; this correction pass should stop at `review-ready` until a new independent review verdict exists.
 - **Step-tracker alignment**:
   `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`
-  已建立且 `## Implementation Steps` 已全部完成，因此本輪 creator gate 已完成，可進入獨立 review。
+  會在本輪 correction 完成後把 `## Implementation Steps` 全部標記為 `[X]`，但 `Independent review`
+  應回到未完成，等待新的獨立 review。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -97,17 +112,8 @@
 
 Routing notes:
 
-- 本 topic 的實際執行 workflow 為：
-  - create worktree
-  - create-analysis
-  - create-agent-plan
-  - draft plan commit by topic
-  - independent plan review
-  - plan-creator fix/update when needed
-  - planner final gate
-  - wait human check
-- `wait human check` 是本輪 plan finalization 的停點，不是新的 canonical workflow status。
-- 本 topic 不建立 `review-log`；reviewer verdict 可直接透過 canonical `Reviewer Handoff` JSON 回傳。
+- 本輪 correction 不建立 `review-log`；reviewer verdict 可直接透過 canonical `Reviewer Handoff` JSON 回傳。
+- 本輪 correction 完成後，應由新的獨立 reviewer 重新審查；不可沿用先前針對舊文件形狀的 review 結果。
 
 ## Artifact Paths
 
@@ -115,11 +121,11 @@ Routing notes:
 | --- | --- | --- | --- |
 | Workflow contract | `plan/agent-handoff-workflow.md` | Planning actor | Canonical workflow status model, transitions, and reviewer handoff contract |
 | Shared topic-plan contract | `plan/topic-plan-contract.md` | Planning actor | Shared authority for canonical topic-plan sections and blocking semantics |
-| Session-entry README | `docs/request-shape-priority-workflow/README.md` | Creator | First entry for new sessions; defines read order and artifact hierarchy |
-| Session-entry standards | `docs/request-shape-priority-workflow/standards.md` | Creator | Formal Observer / Dispatcher workflow contract |
-| Cross-family dispatch board | `docs/request-shape-priority-workflow/checklist.md` | Creator | Queue / phase / blocked / next-dispatch board for cross-family workflow |
+| Session-entry README | `docs/request-shape-priority-workflow/README.md` | Creator | First entry for new sessions; defines read order, artifact hierarchy, and shared-file warning |
+| Implementation standards | `docs/request-shape-priority-workflow/standards.md` | Creator | Surface/API sequencing rules, blocked policy, board/step boundary, and request-shape scope |
+| Shared checklist and API board | `docs/request-shape-priority-workflow/checklist.md` | Creator | Session resume checklist template plus global surface/API implementation board |
 | Requirements baseline | `analysis/request-shape-priority-workflow/requirements.md` | Planning actor | Frozen business baseline for docs-first queue workflow |
-| Technical spec | `analysis/request-shape-priority-workflow/technical-spec.md` | Planning actor | Execution-facing source of truth for artifact roles and queue rules |
+| Technical spec | `analysis/request-shape-priority-workflow/technical-spec.md` | Planning actor | Execution-facing source of truth for artifact roles, board schema, and correction rules |
 | Topic plan | `plan/request-shape-priority-workflow/request-shape-priority-workflow.plan.md` | Planning actor | Repo-visible execution contract for this topic |
 | Topic step tracker | `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md` | Creator | Machine-readable completion gate for this topic only |
 
@@ -136,13 +142,19 @@ Artifact path notes:
 
 ## Implementation Steps
 
-1. 建立 `analysis/request-shape-priority-workflow/requirements.md`，凍結 docs-first session-entry、queue、blocked policy、Observer / Dispatcher 邊界、與 request-shape 主測試面定位。
-2. 建立 `analysis/request-shape-priority-workflow/technical-spec.md`，將需求轉成 exact artifact responsibilities、entry precedence、queue contract、dispatch board / step tracker 分工、與 stop rules。
-3. 建立 `docs/request-shape-priority-workflow/README.md`，使其成為新 session 第一入口，明確宣告三份 session-entry docs、固定讀取順序、與 workflow artifact hierarchy。
-4. 建立 `docs/request-shape-priority-workflow/standards.md`，把 Observer / Dispatcher 的 allowed roles、禁止事項、phase / gate、dispatch rules、queue law、與 stop conditions 寫成 repo-visible contract。
-5. 建立 `docs/request-shape-priority-workflow/checklist.md`，使其只承擔跨 family queue / phase / blocked / next dispatch / resume checks，不混用 topic-local completion gate。
-6. 建立 `plan/request-shape-priority-workflow/request-shape-priority-workflow.plan.md`，使用 canonical topic-plan sections，並把本 topic workflow 停點明確寫成 review 後 wait-human-check。
-7. 建立 `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`，只追蹤本 topic artifact 建立與 review readiness；不得把 cross-family dispatch board 抄進 step tracker。
+1. 更新 `analysis/request-shape-priority-workflow/requirements.md`，把 `checklist.md` 的需求改成：
+   - template-only session resume checklist
+   - global surface/API implementation board
+   - implementation-focused `standards.md`
+2. 更新 `analysis/request-shape-priority-workflow/technical-spec.md`，把 drift 重點、artifact responsibilities、board schema、與 correction rules 對齊到新需求，並明寫 `surface + API` 命名規則。
+3. 更新 `docs/request-shape-priority-workflow/README.md`，把 `standards.md` 描述改成 implementation standards，把 `checklist.md` 描述改成 template + board，並補上共享勾選污染警告與 surface-based queue 說明。
+4. 更新 `docs/request-shape-priority-workflow/standards.md`，移除 prompt / persona / allowed-subAgent / output-preference 內容，只保留 implementation sequencing、surface naming、artifact precedence、board / step 邊界、blocked policy、與 request-shape scope。
+5. 更新 `docs/request-shape-priority-workflow/checklist.md`，使其同時承擔：
+   - session resume checklist template
+   - global surface/API implementation board
+   並明寫共享 resume checklist 不可直接勾選、`tables` 不可作為抽象 queue 單位。
+6. 更新 `plan/request-shape-priority-workflow/request-shape-priority-workflow.plan.md`，把 locked decisions、artifact roles、implementation steps、validation wording 對齊 correction 後的文件形狀。
+7. 更新 `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`，使本輪 correction 的 implementation steps 與新 plan 一致，並把 `Independent review` 留為未完成。
 
 ## Validation / Acceptance Checks
 
@@ -152,22 +164,29 @@ Artifact path notes:
   2. `standards.md`
   3. `checklist.md`
 - docs trio、requirements、technical-spec、plan 一致宣告 `analysis/**` / `plan/**` 是 workflow artifacts，不是新 session 的 primary entry。
-- `checklist.md` 僅記錄 queue / phase / blocked / next dispatch / resume checks，不作為任何單一 topic 的 completion gate。
+- `checklist.md` 明確分成：
+  - session resume checklist template
+  - global surface/API implementation board
+- `checklist.md` 沒有共享可直接勾選的 resume checklist。
+- implementation board 至少包含：
+  - `modelRepository/models / list_models`
+  - `modelRepository/models / get_model`
+  - `modelRepository/models/content / get_model_content`
+  - `modelRepository/projects / list_projects`
+  - `modelRepository/projects / get_project`
+  - `modelRepository/projects/champion / get_champion_model`
+  - blocked `modelRepository/projects -> tables-link surface / list_tables`
+  - `jobExecution/jobRequests/jobs / start_job`
+  - `jobExecution/jobs / get_job`
+  - blocked `jobExecution/jobs/state / get_job_state`
+  - out-of-scope `casManagement/.../tables` 列
+  - out-of-scope `SASLogon/oauth/token` 列
+- implementation board 的欄位固定為 `State`、`Surface`、`API`、`Order`、`Injection hint`、`Notes`。
+- docs trio、requirements、technical-spec、plan 一致記錄 `tables` 不得再作為抽象 queue 單位。
+- `standards.md` 不再包含 persona、allowed subAgent roles、或 output-preference prompt wording。
 - `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md` 存在，且只承擔本 topic 自己的 completion gate。
-- family queue 在 docs / analysis / plan 中一致為：
-  - `models`
-  - `projects`
-  - `tables` = `BLOCKED`
-- `standards.md` 明確限制 allowed subAgent roles 為：
-  - `Planner`
-  - `Explorer`
-  - `Plan-Creator`
-  - `Plan-Reviewer`
-  - `Code-Implementer`
-  - `Code-Reviewer`
-- `standards.md` 明確禁止 Observer / Dispatcher 直接實作、改檔、commit、push、開 PR、或 release。
 - `technical-spec.md` 與 `standards.md` 明確把 `tests/unit/request_contract/**` 定位為主 request-shape surface，並把 `tests/contracts` 定位為 policy / guard surface。
-- `Reviewer Handoff` 維持單一 machine-consumable JSON 物件。
+- 本輪 correction 完成後，`step.md` 的 `Independent review` 應為未完成，等待新 reviewer lane。
 
 ## Reviewer Handoff
 
@@ -186,8 +205,8 @@ Artifact path notes:
 ## Post-merge / release actions
 
 - 本 topic 不需要 README 更新、VERSION bump、release notes、或 repository release action。
-- 本 topic 完成 plan finalization 與 planner final gate 後，停在 wait-human-check；後續是否進 implementation 由 human 決定。
-- 若未來 human 決定進 implementation，應另依 docs-first session-entry 重新進場。
+- 本輪 correction 完成後應停在 `review-ready`，等待新的獨立 review。
+- 若未來 human 決定進下一步 implementation，應另依 docs-first session-entry 重新進場。
 
 ## Open Questions / Unresolved Items
 

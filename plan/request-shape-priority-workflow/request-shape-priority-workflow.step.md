@@ -2,13 +2,13 @@
 
 ## Implementation Steps
 
-- [X] 建立 `analysis/request-shape-priority-workflow/requirements.md`，凍結 docs-first session-entry、family queue、blocked policy、Observer / Dispatcher 邊界、與 request-shape 主測試面定位。
-- [X] 建立 `analysis/request-shape-priority-workflow/technical-spec.md`，將需求轉成 exact artifact responsibilities、entry precedence、queue contract、dispatch board / step tracker 分工、與 stop rules。
-- [X] 建立 `docs/request-shape-priority-workflow/README.md`，使其成為新 session 第一入口，明確宣告固定讀取順序與 workflow artifact hierarchy。
-- [X] 建立 `docs/request-shape-priority-workflow/standards.md`，把 Observer / Dispatcher 的角色、allowed subAgent roles、禁止事項、dispatch 規則、queue law、與 stop conditions 寫成 repo-visible contract。
-- [X] 建立 `docs/request-shape-priority-workflow/checklist.md`，使其只承擔跨 family queue / phase / blocked / next dispatch / resume checks，不與任何單一 topic 的 `*.step.md` 混用。
-- [X] 建立 `plan/request-shape-priority-workflow/request-shape-priority-workflow.plan.md`，使用 canonical topic-plan sections，並把本 topic 的 review 後 wait-human-check 停點寫清楚。
-- [X] 建立 `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`，只追蹤本 topic artifact 建立與 review readiness。
+- [X] 更新 `analysis/request-shape-priority-workflow/requirements.md`，把 queue 單位從抽象 family 正規化成 `surface + API`，並明寫 `tables` 不得單獨作為 queue 名稱。
+- [X] 更新 `analysis/request-shape-priority-workflow/technical-spec.md`，把 drift、artifact responsibilities、board schema、與 correction rules 對齊成 surface-based workflow。
+- [X] 更新 `docs/request-shape-priority-workflow/README.md`，把 `standards.md`、`checklist.md` 的描述改成 surface-based implementation workflow，並保留共享勾選污染警告。
+- [X] 更新 `docs/request-shape-priority-workflow/standards.md`，移除 prompt / persona / allowed-subAgent / output-preference 內容，只保留 implementation sequencing、surface naming、artifact precedence、board / step 邊界、blocked policy、與 request-shape scope。
+- [X] 更新 `docs/request-shape-priority-workflow/checklist.md`，使其同時承擔 session resume checklist template 與 global surface/API implementation board，並拆開 `modelRepository` HATEOAS tables 與 `casManagement` tables。
+- [X] 更新 `plan/request-shape-priority-workflow/request-shape-priority-workflow.plan.md`，把 locked decisions、artifact roles、implementation steps、validation wording 對齊 surface-based correction。
+- [X] 更新 `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`，使本輪 correction 的 implementation steps 與新 plan 一致，並把 `Independent review` 留為未完成。
 
 ## Workflow Stages
 
@@ -17,4 +17,4 @@ These stage markers are informational only. Completion gates must read only `## 
 - [X] Create analysis
 - [X] Create agent plan
 - [X] Creator implementation ready
-- [X] Independent review
+- [ ] Independent review
