@@ -89,12 +89,12 @@
 
 ## Status / Allowed Transitions
 
-- **Current**: `review-ready`
-- **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; this correction pass should stop at `review-ready` until a new independent review verdict exists.
+- **Current**: `approved`
+- **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; this correction pass has received a new independent review verdict and now stops at `approved` awaiting human check.
 - **Step-tracker alignment**:
   `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`
-  會在本輪 correction 完成後把 `## Implementation Steps` 全部標記為 `[X]`，但 `Independent review`
-  應回到未完成，等待新的獨立 review。
+  已把 `## Implementation Steps` 全部標記為 `[X]`，且 `Independent review` 已由新的 reviewer lane
+  標記完成。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -113,7 +113,7 @@
 Routing notes:
 
 - 本輪 correction 不建立 `review-log`；reviewer verdict 可直接透過 canonical `Reviewer Handoff` JSON 回傳。
-- 本輪 correction 完成後，應由新的獨立 reviewer 重新審查；不可沿用先前針對舊文件形狀的 review 結果。
+- 本輪 correction 已由新的獨立 reviewer 重新審查；不可沿用先前針對舊文件形狀的 review 結果。
 
 ## Artifact Paths
 
@@ -186,7 +186,7 @@ Artifact path notes:
 - `standards.md` 不再包含 persona、allowed subAgent roles、或 output-preference prompt wording。
 - `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md` 存在，且只承擔本 topic 自己的 completion gate。
 - `technical-spec.md` 與 `standards.md` 明確把 `tests/unit/request_contract/**` 定位為主 request-shape surface，並把 `tests/contracts` 定位為 policy / guard surface。
-- 本輪 correction 完成後，`step.md` 的 `Independent review` 應為未完成，等待新 reviewer lane。
+- 本輪 correction 完成後，`step.md` 的 `Independent review` 應由新的 reviewer lane 核准後標記完成。
 
 ## Reviewer Handoff
 
@@ -205,7 +205,7 @@ Artifact path notes:
 ## Post-merge / release actions
 
 - 本 topic 不需要 README 更新、VERSION bump、release notes、或 repository release action。
-- 本輪 correction 完成後應停在 `review-ready`，等待新的獨立 review。
+- 本輪 correction 已完成獨立 review，並停在 `approved` 等待 human check。
 - 若未來 human 決定進下一步 implementation，應另依 docs-first session-entry 重新進場。
 
 ## Open Questions / Unresolved Items
