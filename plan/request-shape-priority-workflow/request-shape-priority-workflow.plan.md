@@ -154,7 +154,7 @@ Artifact path notes:
    - global surface/API implementation board
    並明寫共享 resume checklist 不可直接勾選、`tables` 不可作為抽象 queue 單位。
 6. 更新 `plan/request-shape-priority-workflow/request-shape-priority-workflow.plan.md`，把 locked decisions、artifact roles、implementation steps、validation wording 對齊 correction 後的文件形狀。
-7. 更新 `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`，使本輪 correction 的 implementation steps 與新 plan 一致，並把 `Independent review` 留為未完成。
+7. 更新 `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`，使本輪 correction 的 implementation steps 與新 plan 一致，並反映 `Independent review` 已完成。
 
 ## Validation / Acceptance Checks
 
@@ -186,7 +186,7 @@ Artifact path notes:
 - `standards.md` 不再包含 persona、allowed subAgent roles、或 output-preference prompt wording。
 - `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md` 存在，且只承擔本 topic 自己的 completion gate。
 - `technical-spec.md` 與 `standards.md` 明確把 `tests/unit/request_contract/**` 定位為主 request-shape surface，並把 `tests/contracts` 定位為 policy / guard surface。
-- 本輪 correction 完成後，`step.md` 的 `Independent review` 應由新的 reviewer lane 核准後標記完成。
+- 本輪 correction 的 `step.md` 已由新的 reviewer lane 標記 `Independent review` 完成，並與目前 `approved` 狀態一致。
 
 ## Reviewer Handoff
 

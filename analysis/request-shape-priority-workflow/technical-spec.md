@@ -76,7 +76,7 @@ session 能在不回溯歷史對話的前提下，恢復實作順序、共享接
 | Fixed entry order | 在 `README.md` 與 `standards.md` 固定相同的 1-2-3 讀取順序 | docs trio | feasible |
 | Workflow artifacts are not primary entry | 在 `README.md`、requirements、technical-spec、plan 中一致聲明 `analysis/**` / `plan/**` 是 secondary workflow artifacts | existing analysis / plan surfaces | feasible |
 | Shared resume checklist must be template-only | 將 resume checklist 改寫為可複製模板，不在共享文件直接勾選 | `checklist.md` | feasible |
-| Global surface/API implementation board | 在 `checklist.md` 新增 API 級 board，固定欄位為 `state`、`surface`、`api`、`order`、`injection hint`、`notes` | current repo surface truth | feasible |
+| Global surface/API implementation board | 在 `checklist.md` 新增 API 級 board，固定欄位為 `State`、`Surface`、`API`、`Order`、`Injection hint`、`Notes` | current repo surface truth | feasible |
 | Surface / API queue freeze | 在 docs / analysis / plan 鎖定具名 surface queue，並把 blocked / out-of-scope surface 明確列入 board | tests, swagger, and plan precedents | feasible |
 | Standards must stay implementation-focused | 把 `standards.md` 改寫成 implementation standards，移除 persona / allowed-subAgent / output-style prompt 語氣 | user correction baseline | feasible |
 | Primary request-shape surface freeze | 在 `standards.md` 與 technical-spec 明確把 `tests/unit/request_contract/**` 定義為主面，`tests/contracts` 定位為 guard surface | current repo test layout | feasible |
@@ -108,7 +108,7 @@ session 能在不回溯歷史對話的前提下，恢復實作順序、共享接
 
 5. **同步修正 plan / step**
    - `plan.md` 與 `step.md` 的 implementation steps、artifact roles、validation wording 必須和修正後的 docs/analysis 一致
-   - 由於本輪修正尚未重新獨立 review，`step.md` 的 `Independent review` 應回到未完成
+   - `step.md` 的 `Independent review` 必須維持已完成狀態，並與目前 `approved` verdict 一致
 
 ## Deferred prerequisites and explicit non-work
 
@@ -177,7 +177,7 @@ session 能在不回溯歷史對話的前提下，恢復實作順序、共享接
 test -f docs/request-shape-priority-workflow/README.md
 test -f docs/request-shape-priority-workflow/standards.md
 test -f docs/request-shape-priority-workflow/checklist.md
-rg -n "subAgent|Observer / Dispatcher|Output preference" docs/request-shape-priority-workflow/standards.md
+! rg -n "subAgent|Observer / Dispatcher|Output preference" docs/request-shape-priority-workflow/standards.md
 ```
 
 ## Stop conditions

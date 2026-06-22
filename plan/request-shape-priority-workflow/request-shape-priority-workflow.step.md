@@ -8,7 +8,7 @@
 - [X] 更新 `docs/request-shape-priority-workflow/standards.md`，移除 prompt / persona / allowed-subAgent / output-preference 內容，只保留 implementation sequencing、surface naming、artifact precedence、board / step 邊界、blocked policy、與 request-shape scope。
 - [X] 更新 `docs/request-shape-priority-workflow/checklist.md`，使其同時承擔 session resume checklist template 與 global surface/API implementation board，並拆開 `modelRepository` HATEOAS tables 與 `casManagement` tables。
 - [X] 更新 `plan/request-shape-priority-workflow/request-shape-priority-workflow.plan.md`，把 locked decisions、artifact roles、implementation steps、validation wording 對齊 surface-based correction。
-- [X] 更新 `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`，使本輪 correction 的 implementation steps 與新 plan 一致，並把 `Independent review` 留為未完成。
+- [X] 更新 `plan/request-shape-priority-workflow/request-shape-priority-workflow.step.md`，使本輪 correction 的 implementation steps 與新 plan 一致，並反映 `Independent review` 已完成。
 
 ## Workflow Stages
 

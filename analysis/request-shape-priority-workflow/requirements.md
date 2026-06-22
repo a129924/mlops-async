@@ -87,7 +87,7 @@ Ownership model：
    - Actor: workflow maintainer
    - Condition: 定義 `docs/request-shape-priority-workflow/checklist.md` 的共享真值表面時
    - Required outcome: `checklist.md` 必須包含一個 `surface + API` 級 implementation board
-   - Metric / decision rule: board 至少要有 `surface`、`api`、`status`、`order`、`injection hint`、`notes`
+   - Metric / decision rule: board 至少要有 `State`、`Surface`、`API`、`Order`、`Injection hint`、`Notes`
    - Evidence signal: session 可直接依 board 指定下一個 interface surface、順序、與注入內容
    - Failure meaning: 多 session 難以共享哪個 concrete surface 先做、哪個 surface 已完成
 
