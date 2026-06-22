@@ -7,4 +7,4 @@
 - [X] 建立 `analysis/request-gate-projects-champion/technical-spec.md`，凍結 request contract draft、legacy evidence gap、與 stop conditions。
 - [X] 建立 `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`，使用 canonical plan contract 與 reviewer handoff JSON。
 - [X] 建立 `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`。
-- [X] 以 topic 名稱建立 draft plan commit，並交由 reviewer 進入獨立審查。
+- [X] 以 topic 名稱建立 draft plan commit，完成 creator 端交接前工件準備。

@@ -102,7 +102,7 @@ Artifact path notes:
 3. 建立 `analysis/request-gate-projects-champion/technical-spec.md`，凍結 endpoint inventory、request contract draft、evidence gap、與 stop conditions。
 4. 建立 `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`，使用 canonical plan contract 與 reviewer handoff JSON。
 5. 建立 `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`，只追蹤本輪 planning creator work。
-6. 以 topic 名稱提交 draft plan commit，並交由 reviewer 進入獨立審查。
+6. 以 topic 名稱提交 draft plan commit，完成 creator 端交接前工件準備。
 
 ## Validation / Acceptance Checks
 
