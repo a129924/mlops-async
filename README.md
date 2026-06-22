@@ -8,6 +8,18 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.4**, the repository closes the `PR #30`
+request-shape-priority-workflow merge: the repo now adds a docs-first
+session-entry trio under `docs/request-shape-priority-workflow/`, normalizes the
+request-shape queue into an explicit `surface + API` board, and aligns the
+analysis / plan artifacts with the new blocked / out-of-scope workflow contract.
+
+v0.11.4 補齊 `PR #30` 的 request-shape-priority-workflow 合併：
+repo 現已新增 `docs/request-shape-priority-workflow/` 下的 docs-first
+session-entry trio，將 request-shape queue 正規化為明確的 `surface + API`
+board，並把相關 analysis / plan artifacts 對齊到新的 blocked /
+out-of-scope workflow contract。
+
 As of **v0.11.0**, the repository closes the `PR #26` same-name skill migration:
 32 frozen agent skills are now materialized under the repo-local `.agents/skills/`
 discovery surface, `AGENTS.md` declares that surface explicitly, and the
