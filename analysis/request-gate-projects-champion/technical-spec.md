@@ -17,7 +17,7 @@
 
 把 `modelRepository/projects/champion` / `get_champion_model` 的 docs-suffice planning baseline 轉成可審查的
 topic-local technical contract，明確凍結 endpoint inventory、request contract draft、allowed write set、未來
-implementation landing path、與 human-check stop conditions，同時避免把 scope 擴到 `projects` family 其他 API。
+implementation landing path、與 reviewer-first workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 
 ## Current state summary
 
@@ -91,10 +91,10 @@ implementation landing path、與 human-check stop conditions，同時避免把 
 
 | Artifact | Responsibility |
 | --- | --- |
-| `requirements.md` | 凍結 bounded endpoint、write set、human-check boundary、與 execution prerequisites |
+| `requirements.md` | 凍結 bounded endpoint、write set、reviewer-first workflow boundary、與 execution prerequisites |
 | `technical-spec.md` | 把 baseline 映射成 endpoint inventory、request contract draft、landing path、與 stop rules |
 | `request-gate-projects-champion.plan.md` | 作為 canonical topic-plan contract，供 downstream reviewer / planner 消費 |
-| `request-gate-projects-champion.step.md` | 只追蹤本輪 creator-owned planning artifact 完成度與 human-check 停點 |
+| `request-gate-projects-champion.step.md` | 只追蹤本輪 creator-owned planning artifact 完成度，不承擔 reviewer、planner final gate、或 human-check 狀態 |
 
 ## Future implementation landing path
 
@@ -111,6 +111,20 @@ implementation landing path、與 human-check stop conditions，同時避免把 
   - 修改既有 `list_projects` / `get_project` request tests
 
 若 execution 證明上述 forbidden set 無法維持，必須回到 human check，而不是在本 topic 內直接放寬。
+
+## Workflow handoff sequence
+
+本 topic 的 workflow handoff 固定為：
+
+1. create managed worktree
+2. 建立四個 topic-local planning artifacts
+3. 建立 draft topic commit
+4. 進入 reviewer flow
+5. reviewer 若回 `needs-rework`，由 creator 在同 topic 內做 bounded fix
+6. reviewer 通過後交由 planner final gate
+7. planner final gate 完成後才進入 human check
+
+`request-gate-projects-champion.step.md` 只覆蓋第 2-3 步的 creator-owned completion gate，不表示第 4-7 步的 workflow state。
 
 ## Planner-ready handoff
 
@@ -142,9 +156,10 @@ implementation landing path、與 human-check stop conditions，同時避免把 
    - topic 只處理 `modelRepository/projects/champion` / `get_champion_model`
    - planning evidence 採 docs-suffice
    - execution/TDD 需 human 補齊 legacy source evidence 才可前進
+   - reviewer flow 與 planner final gate 先於 human check
    - 本輪不得修改 `src/**`、`tests/unit/request_contract/projects_request_gate/**`、`docs/request-shape-priority-workflow/**`
 3. plan 的 `Artifact Paths` 僅列四個允許落地的 topic-local files。
-4. step tracker 的 `## Implementation Steps` 只追蹤本輪 planning work，不混入 reviewer 或 implementation tasks。
+4. step tracker 的 `## Implementation Steps` 只追蹤本輪 planning work，不混入 reviewer、planner final gate、human-check、或 implementation tasks。
 
 ## Stop conditions
 

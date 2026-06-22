@@ -3,7 +3,7 @@
 ## Implementation Steps
 
 - [X] 盤點 `modelRepository/projects/champion` / `get_champion_model` 的 endpoint inventory、queue precedence、與 repo-visible precedent。
-- [X] 建立 `analysis/request-gate-projects-champion/requirements.md`，凍結 bounded write set、human-check boundary、與 future landing path。
+- [X] 建立 `analysis/request-gate-projects-champion/requirements.md`，凍結 bounded write set、reviewer-first workflow boundary、與 future landing path。
 - [X] 建立 `analysis/request-gate-projects-champion/technical-spec.md`，凍結 request contract draft、legacy evidence gap、與 stop conditions。
 - [X] 建立 `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`，使用 canonical plan contract 與 reviewer handoff JSON。
 - [X] 建立 `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`。

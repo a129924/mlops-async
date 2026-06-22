@@ -4,7 +4,7 @@
 
 本文件凍結 `request-gate-projects-champion` 的 planning baseline，讓後續 workflow 只針對單一 bounded endpoint
 `modelRepository/projects/champion` / `get_champion_model` 建立 topic-local planning artifacts，並在缺少 legacy
-source evidence 時停在 human check，而不是直接擴張到 implementation、TDD、或 `modelRepository/projects`
+source evidence 時經過 reviewer flow 與 planner final gate 後再交 human check，而不是直接擴張到 implementation、TDD、或 `modelRepository/projects`
 其他 API。
 
 ## Scope
@@ -19,7 +19,7 @@ source evidence 時停在 human check，而不是直接擴張到 implementation�
 - topic-local plan artifacts：
   - `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`
   - `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`
-- bounded write set、stop conditions、human-check boundary、與未來 implementation landing path 凍結
+- bounded write set、stop conditions、reviewer-first workflow、與未來 implementation landing path 凍結
 
 本 topic 不涵蓋：
 
@@ -30,7 +30,7 @@ source evidence 時停在 human check，而不是直接擴張到 implementation�
 - `modelRepository/projects` 其他 API
 - response / error contract
 - execution / TDD 實作
-- release、PR、或 reviewer 流程執行
+- release、PR、或 reviewer / planner final gate 執行
 
 ## Actors and ownership
 
@@ -40,7 +40,7 @@ source evidence 時停在 human check，而不是直接擴張到 implementation�
 
 Ownership model：
 
-- docs-suffice planning with explicit human gate before execution
+- docs-suffice planning with reviewer-first flow before planner final gate and human check
 
 ## Measurable requirements
 
@@ -93,13 +93,13 @@ Ownership model：
    - Evidence signal: plan 與 technical-spec 一致列出 new champion-only landing path 與 forbidden modification rule
    - Failure meaning: 若後續 topic 直接改既有 artifacts，bounded endpoint 會被 shared harness drift 汙染
 
-6. **Human-check stop boundary**
-   - Actor: Plan-Creator
+6. **Reviewer-first workflow boundary**
+   - Actor: workflow router / downstream planner
    - Condition: 本輪 planning artifacts 建立並 commit 後
-   - Required outcome: 停在 human check，不做 reviewer、implementation、PR、或 release
-   - Metric / decision rule: step tracker 只完成 creator-owned planning work；independent review 維持未完成
-   - Evidence signal: `request-gate-projects-champion.step.md` 明寫 human-check boundary
-   - Failure meaning: 若本輪自動進 reviewer 或 execution，將違反 phase / gate
+   - Required outcome: 先進 reviewer flow；review 完成後由 planner final gate 決定是否交 human check
+   - Metric / decision rule: step tracker 只完成 creator-owned planning work，不承擔 reviewer、planner final gate、或 human-check 狀態
+   - Evidence signal: requirements、technical-spec、plan、step 一致宣告 reviewer-first flow，且 `step.md` 只保留 creator completion gate
+   - Failure meaning: 若 artifacts 仍把 creator commit 直接視為 human-check 終點，workflow phase 會與實際路由衝突
 
 ## Contradictions surfaced and resolved
 
