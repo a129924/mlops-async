@@ -3,9 +3,10 @@
 ## Purpose
 
 本文件凍結 `request-gate-projects-champion` 的 planning baseline，讓後續 workflow 只針對單一 bounded endpoint
-`modelRepository/projects/champion` / `get_champion_model` 建立 topic-local planning artifacts，並在缺少 legacy
-source evidence 時經過 reviewer flow 與 planner final gate 後再交 human check，而不是直接擴張到 implementation、TDD、或 `modelRepository/projects`
-其他 API。
+`modelRepository/projects/champion` / `get_champion_model` 建立 topic-local planning artifacts，並把 reviewer 指出的
+workflow state drift 收斂為 reviewer-first flow、creator bounded fix、planner final gate、最後才 wait human check；
+本輪不得直接把 creator commit 視為 human-check 終點，也不得擴張到 implementation、TDD、或
+`modelRepository/projects` 其他 API。
 
 ## Scope
 
@@ -40,7 +41,7 @@ source evidence 時經過 reviewer flow 與 planner final gate 後再交 human c
 
 Ownership model：
 
-- docs-suffice planning with reviewer-first flow before planner final gate and human check
+- docs-suffice planning with reviewer-first flow；若 reviewer 要求修正，creator 在同 topic 內完成 bounded fix，之後才交 planner final gate 與 human check
 
 ## Measurable requirements
 
@@ -95,11 +96,11 @@ Ownership model：
 
 6. **Reviewer-first workflow boundary**
    - Actor: workflow router / downstream planner
-   - Condition: 本輪 planning artifacts 建立並 commit 後
-   - Required outcome: 先進 reviewer flow；review 完成後由 planner final gate 決定是否交 human check
-   - Metric / decision rule: step tracker 只完成 creator-owned planning work，不承擔 reviewer、planner final gate、或 human-check 狀態
-   - Evidence signal: requirements、technical-spec、plan、step 一致宣告 reviewer-first flow，且 `step.md` 只保留 creator completion gate
-   - Failure meaning: 若 artifacts 仍把 creator commit 直接視為 human-check 終點，workflow phase 會與實際路由衝突
+   - Condition: 本輪 planning artifacts 建立或 bounded rework commit 完成後
+   - Required outcome: 先以 reviewer flow 作為外部前置 gate；若 reviewer 提出 blocking feedback，creator 在同 topic 內完成 bounded fix，之後由 planner final gate 決定是否交 human check
+   - Metric / decision rule: step tracker 只表達 creator-owned completion gate，不承擔 reviewer、planner final gate、或 human-check 狀態
+   - Evidence signal: requirements、technical-spec、plan、step 一致宣告 reviewer-first flow；本輪 creator rework 完成後的下一個外部 gate 是 planner final gate；且 `step.md` 只保留 creator completion gate
+   - Failure meaning: 若 artifacts 仍把本輪 creator rework commit 直接視為 human-check 終點，workflow phase 會與實際路由衝突
 
 ## Contradictions surfaced and resolved
 

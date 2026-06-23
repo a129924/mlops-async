@@ -9,7 +9,7 @@
 
 ## Goal / Outcome
 
-為單一 bounded endpoint `modelRepository/projects/champion` / `get_champion_model` 建立可審查的 topic-local planning contract，包含 requirements、technical spec、plan、與 step tracker，並把 workflow 明確收斂為 reviewer flow -> planner final gate -> human check，且 execution / TDD 仍需 human 補齊 legacy source evidence 後才可前進。
+為單一 bounded endpoint `modelRepository/projects/champion` / `get_champion_model` 維持可審查的 topic-local planning contract，包含 requirements、technical spec、plan、與 step tracker，並把 reviewer 指出的 workflow state drift 同步修正為 reviewer-first flow -> creator bounded fix -> planner final gate -> human check；execution / TDD 仍需 human 補齊 legacy source evidence 後才可前進。
 
 ## Scope
 
@@ -37,7 +37,7 @@
 - planning evidence 採 **docs-suffice**
 - `utils/_api/project.py::fetch_champion_model` 的 repo-visible source evidence 目前缺失；execution/TDD 必須等 human 補件或明確 override 才可前進
 - 本 topic 為 **planning-only** topic；不建立 `spec.md`，不建立 tests-side artifacts
-- workflow 順序固定為：creator artifacts 完成 -> reviewer flow -> planner final gate -> human check
+- workflow 順序固定為：creator artifacts 完成 -> reviewer flow -> creator bounded fix（若 reviewer 要求）-> planner final gate -> human check
 - Stable-library intent 明確為 **absent**：不修改 `src/**`、`README.md`、`VERSION`，不涉及 release timing
 - 未來 implementation landing path 只允許在 `tests/unit/request_contract/projects_request_gate/` 下新增 champion 專屬檔案，例如：
   - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
@@ -55,9 +55,9 @@
 
 ## Status / Allowed Transitions
 
-- **Current**: `reviewer-in-progress`
-- **Execution model**: 使用 canonical creator -> reviewer -> publish -> merge 流程；本 topic 在 reviewer 通過後需先經 planner final gate，之後才進 human check；不包含 release 動作，且 execution / TDD 仍受 legacy source evidence gate 限制
-- **Step-tracker alignment**: `plan/request-gate-projects-champion/request-gate-projects-champion.step.md` 只保留 creator-owned planning completion gate；目前狀態以本章節的 canonical status 為準
+- **Current**: `approved`
+- **Execution model**: 使用 canonical creator -> reviewer -> publish -> merge 流程；本輪 bounded rework 已完成 creator-owned workflow-state sync，下一個外部 gate 是 planner final gate，且 human check 只能發生在 planner final gate 之後；不包含 release 動作，execution / TDD 仍受 legacy source evidence gate 限制
+- **Step-tracker alignment**: `plan/request-gate-projects-champion/request-gate-projects-champion.step.md` 只保留 creator-owned planning / rework completion gate；不表示 planner final gate 或 human-check 狀態
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -75,8 +75,8 @@
 
 Routing notes:
 
-- 本 topic 已送審；後續依 reviewer verdict 進入 `approved` 或 `needs-rework`
-- reviewer 通過後不得直接視為 human check 完成；需先經 planner final gate，再交 human check
+- reviewer-first requirement 已由先前 reviewer pass 滿足；本輪 creator commit 只同步 reviewer feedback 指出的 workflow state drift
+- 本輪 creator sync commit 不得被視為 human-check 完成；下一個外部 gate 是 planner final gate，之後才 wait human check
 - 若 human 要求 execution/TDD，必須先補齊或明確放行 legacy source evidence gap，且另由下游角色處理
 - 若後續工作 drift 到 `src/**`、`tests/**`、或 shared workflow docs，必須先修正 topic routing，而不是在本 topic 內擴 scope
 
@@ -87,7 +87,7 @@ Routing notes:
 | Topic requirements | `analysis/request-gate-projects-champion/requirements.md` | Plan-Creator | 凍結 bounded endpoint、write set、與 reviewer-first business baseline |
 | Topic technical spec | `analysis/request-gate-projects-champion/technical-spec.md` | Plan-Creator | 凍結 endpoint inventory、request contract draft、landing path、與 stop rules |
 | Topic plan | `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md` | Plan-Creator | 本 topic 的 canonical execution contract 與 reviewer handoff contract |
-| Step tracker | `plan/request-gate-projects-champion/request-gate-projects-champion.step.md` | Plan-Creator | 本輪 planning creator steps completion gate，不承擔 reviewer、planner final gate、或 human-check 狀態 |
+| Step tracker | `plan/request-gate-projects-champion/request-gate-projects-champion.step.md` | Plan-Creator | 本輪 planning / bounded rework creator steps completion gate，不承擔 reviewer、planner final gate、或 human-check 狀態 |
 
 Artifact path notes:
 
@@ -99,12 +99,12 @@ Artifact path notes:
 
 ## Implementation Steps
 
-1. 盤點 `modelRepository/projects/champion` / `get_champion_model` 的 repo-visible surface、queue precedence、與 precedent，且不擴張到其他 `projects` APIs。
-2. 建立 `analysis/request-gate-projects-champion/requirements.md`，凍結 bounded write set、execution prerequisite、landing path、與 reviewer-first workflow boundary。
-3. 建立 `analysis/request-gate-projects-champion/technical-spec.md`，凍結 endpoint inventory、request contract draft、evidence gap、與 stop conditions。
-4. 建立 `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`，使用 canonical plan contract 與 reviewer handoff JSON。
-5. 建立 `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`，只追蹤本輪 planning creator work。
-6. 以 topic 名稱提交 draft plan commit，完成 creator 端交接前工件準備。
+1. 對照 reviewer feedback 與 shared workflow contract，確認四個 topic-local artifacts 的 workflow state drift 與 creator-owned 邊界。
+2. 更新 `analysis/request-gate-projects-champion/requirements.md`，移除把 creator commit 視為 human-check 終點的語意，改成 reviewer-first -> planner final gate -> human check。
+3. 更新 `analysis/request-gate-projects-champion/technical-spec.md`，同步 workflow handoff sequence 與 step-tracker boundary。
+4. 更新 `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`，把 canonical current state、routing notes、與 artifact roles 對齊為 planner-final-gate-before-human-check。
+5. 更新 `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`，只保留 creator-owned completion gate，不混入 planner final gate 或 human-check state。
+6. 以新 commit 提交 bounded rework，供 downstream planner final gate 消費。
 
 ## Validation / Acceptance Checks
 
@@ -113,12 +113,12 @@ Artifact path notes:
 - `Artifact Paths` 僅列四個允許落地的 topic-local files
 - 四個 artifacts 一致宣告：
   - planning evidence 採 docs-suffice
-  - reviewer flow 與 planner final gate 先於 human check
+  - reviewer-first flow 存在，且 planner final gate 先於 human check
   - execution/TDD 需 human 補齊 legacy source evidence 才可前進
   - 未來 implementation 只能新增 `tests/unit/request_contract/projects_request_gate/` 下的 champion 專屬檔案
   - 不得修改既有 `projects_request_gate` artifacts
   - 不得修改 `src/**`、`tests/unit/request_contract/projects_request_gate/**`、`docs/request-shape-priority-workflow/**`
-- step tracker 的 `## Implementation Steps` 全部完成，且不額外維護 reviewer、planner final gate、或 human-check state
+- step tracker 的 `## Implementation Steps` 全部完成，且不額外維護 planner final gate、或 human-check state
 
 ## Reviewer Handoff
 
@@ -137,7 +137,7 @@ Artifact path notes:
 ## Post-merge / release actions
 
 - 本 topic 不含 stable-library surface 變更，merge 後不需要 VERSION bump、README 更新、release notes、或 release timing 動作
-- 本輪修正不啟動 publish / release routing；後續 reviewer、planner final gate、與 human-check routing 依 canonical workflow 與 human dispatch 決定
+- 本輪修正不啟動 publish / release routing；下一個外部 gate 是 planner final gate，之後才 wait human check
 - `merged` 為 terminal；本 topic 無 `released` 狀態需求
 
 ## Open Questions / Unresolved Items
