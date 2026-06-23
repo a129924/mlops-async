@@ -125,7 +125,7 @@ handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 6. creator fix 完成後交由 planner final gate
 7. planner final gate 完成後才進入 human check
 
-`request-gate-projects-champion.step.md` 只覆蓋 creator-owned artifact authoring 與 bounded rework completion gate，不表示第 4-7 步的 workflow state。
+`request-gate-projects-champion.step.md` 只覆蓋 creator-owned artifact authoring 與 bounded rework completion gate，不表示 reviewer resubmission，也不表示第 4-7 步的 workflow state。
 
 ## Planner-ready handoff
 

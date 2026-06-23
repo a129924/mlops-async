@@ -99,7 +99,7 @@ Ownership model：
    - Condition: 本輪 planning artifacts 建立或 bounded rework commit 完成後
    - Required outcome: 先以 reviewer flow 作為外部前置 gate；若 reviewer 提出 blocking feedback，creator 在同 topic 內完成 bounded fix，之後由 planner final gate 決定是否交 human check
    - Metric / decision rule: step tracker 只表達 creator-owned completion gate，不承擔 reviewer、planner final gate、或 human-check 狀態
-   - Evidence signal: requirements、technical-spec、plan、step 一致宣告 reviewer-first flow；本輪 creator rework 完成後的下一個外部 gate 是 planner final gate；且 `step.md` 只保留 creator completion gate
+   - Evidence signal: requirements、technical-spec、plan、step 一致宣告 reviewer review 已完成且本輪 creator rework 完成後的下一個外部 gate 是 planner final gate；且 `step.md` 只保留 creator completion gate
    - Failure meaning: 若 artifacts 仍把本輪 creator rework commit 直接視為 human-check 終點，workflow phase 會與實際路由衝突
 
 ## Contradictions surfaced and resolved
