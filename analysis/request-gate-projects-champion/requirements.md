@@ -5,15 +5,15 @@
 本文件凍結 `request-gate-projects-champion` 的 planning baseline，讓後續 workflow 只針對單一 bounded endpoint
 `modelRepository/projects/champion` / `get_champion_model` 建立 topic-local planning artifacts，並把 reviewer 指出的
 workflow state drift 收斂為 reviewer-first flow、creator bounded fix、planner final gate、最後才 wait human check；
-本輪不得直接把 creator commit 視為 human-check 終點，也不得擴張到 implementation、TDD、或
-`modelRepository/projects` 其他 API。
+本輪同步吸收 human-provided legacy source evidence，凍結 request method、path shape、request construction chain，
+但不得擴張到 implementation、TDD、或 `modelRepository/projects` 其他 API。
 
 ## Scope
 
 本 topic 的需求只涵蓋：
 
 - endpoint inventory 與 precedent 盤點
-- docs-suffice planning evidence 凍結
+- docs-suffice planning evidence 與 legacy request evidence 凍結
 - topic-local analysis artifacts：
   - `analysis/request-gate-projects-champion/requirements.md`
   - `analysis/request-gate-projects-champion/technical-spec.md`
@@ -37,7 +37,7 @@ workflow state drift 收斂為 reviewer-first flow、creator bounded fix、plann
 
 - Primary actor：Plan-Creator
 - Downstream actor：Plan-Reviewer
-- Human owner：human check / legacy evidence 補件決策者
+- Human owner：human check / downstream execution routing 決策者
 
 Ownership model：
 
@@ -53,17 +53,20 @@ Ownership model：
    - Evidence signal: requirements、technical-spec、plan、step 四份文件都只描述 champion endpoint
    - Failure meaning: topic 會從 bounded endpoint 漂移成 family-level work
 
-2. **Docs-suffice planning evidence**
+2. **Planning evidence sync**
    - Actor: Plan-Creator
    - Condition: 本 topic author planning contract 時
-   - Required outcome: planning evidence 只依賴 repo-visible docs surfaces，不要求先修改 code 或 tests
+   - Required outcome: planning artifacts 必須同時凍結 docs surfaces 與 human-provided legacy request evidence，不要求先修改 code 或 tests
    - Metric / decision rule: 至少凍結下列 evidence：
      - `docs/request-shape-priority-workflow/checklist.md`
      - `docs/request-shape-priority-workflow/standards.md`
      - `docs/api-endpoints/swagger-spec/projects-spec.yaml`
      - `docs/api-endpoints/swagger-spec/openapi-complete.yaml`
      - `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md`
-   - Evidence signal: technical-spec 內有 endpoint inventory、request contract draft、precedent 與 gap 說明
+     - `<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/utils/_api/project.py`
+     - `<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/api/sas/project/api.py`
+     - `<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/schema/sas_viya/project/champion.py`
+   - Evidence signal: technical-spec 內有 endpoint inventory、request contract draft、legacy call chain、與 schema presence 說明
    - Failure meaning: 若 planning 仍需依賴口頭記憶或未落地 evidence，後續 reviewer 無法判斷 contract 是否完整
 
 3. **Bounded write set freeze**
@@ -81,10 +84,14 @@ Ownership model：
 4. **Execution boundary freeze**
    - Actor: Human reviewer / downstream planner
    - Condition: 未來想把本 topic 推進到 execution/TDD 時
-   - Required outcome: 必須先由 human 補齊或明確放行 legacy source evidence，才可進入 tests-side authoring
-   - Metric / decision rule: 若 repo 仍無 `utils/_api/project.py::fetch_champion_model` 的 repo-visible source evidence，execution/TDD 一律不得自動前進
-   - Evidence signal: plan 與 technical-spec 一致把 `legacy source evidence missing` 列為 stop condition
-   - Failure meaning: 若直接依 docs 推進測試實作，request gate 會混入未驗證的 legacy semantics
+   - Required outcome: 只能依已凍結的 request evidence 規劃後續 execution；若未來需要超出本輪凍結範圍的 semantics，必須先停在 human check
+   - Metric / decision rule: 後續 execution topic 只能直接沿用下列已凍結 evidence：
+     - method: `GET`
+     - path shape: `/modelRepository/projects/{projectId}/champion`
+     - request construction source: `get_project_by_name(...)` -> `get_champion_model_url(project_item.id)` -> `fetch_champion_model(...)`
+     - transport call: `async_web_session.get(url=champion_model_url, headers=headers)`
+   - Evidence signal: plan 與 technical-spec 一致把 request evidence 標為 legacy-source-confirmed，且不擴張到 response / error contract
+   - Failure meaning: 若 execution 需要額外推斷未凍結 semantics，request gate 會再次混入 topic 外假設
 
 5. **Future implementation landing path freeze**
    - Actor: future Code-Implementer
@@ -104,8 +111,8 @@ Ownership model：
 
 ## Contradictions surfaced and resolved
 
-1. `swagger docs 已有 champion endpoint 描述` vs `execution/TDD 需要 source-level legacy evidence`
-   - Resolution: planning 採 docs-suffice；execution/TDD 則必須等 human 補齊 legacy source evidence 才能前進
+1. `swagger docs 已有 champion endpoint 描述` vs `request gate 仍需 source-level request construction evidence`
+   - Resolution: 以 human-provided legacy source evidence 補齊 `get_champion_model_url(...)`、`fetch_champion_model(...)`、上層呼叫鏈與 schema surface；本 topic 因此可凍結 request evidence，但不延伸到 response / error contract
 
 2. `champion endpoint 使用場景依賴 list_projects 先找 projectId` vs `本 topic 只允許單一 bounded endpoint`
    - Resolution: planning 只把 `projectId` 視為既有前提，不把 `list_projects` 取回流程納入本 topic
@@ -128,7 +135,7 @@ Ownership model：
    - 若文件開始把 `modelRepository/projects/champion` 擴成 `modelRepository/projects` family，立即停止
 
 4. **Evidence drift**
-   - 若後續要求用缺失的 legacy source 細節直接推斷 request contract，立即停止並交 human
+   - 若後續要求用本輪未凍結的 semantics 直接擴寫 request / response contract，立即停止並交 human
 
 5. **Shared-artifact drift**
    - 若後續 implementation 需要修改既有 `projects_request_gate` artifacts、shared workflow board、或 shared contract，立即停止並另開決策
@@ -138,7 +145,7 @@ Ownership model：
 - `docs/request-shape-priority-workflow/checklist.md` 將 `modelRepository/projects/champion / get_champion_model` 排在 queue order `06`
 - `docs/api-endpoints/swagger-spec/projects-spec.yaml` 與 `openapi-complete.yaml` 已提供 `GET /modelRepository/projects/{projectId}/champion` 的 repo-visible request evidence
 - `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md` 已確認 `sasctl` 無直接取得 Champion Model 的方法
-- repo 目前沒有可直接讀取的 `utils/_api/project.py` legacy source file，因此 execution/TDD 仍需 human 補件或明確 override
+- human 提供的 legacy source evidence 可用於凍結 request method、path shape、request construction chain、與 champion schema surface，但不因此放大本 topic scope
 
 ## Non-goals
 
@@ -152,7 +159,6 @@ Ownership model：
 
 ## Blockers
 
-- `legacy source evidence missing`：repo-visible docs 雖足以支撐 planning，但不足以自動放行 execution/TDD；human 必須先補齊或明確放行 `utils/_api/project.py::fetch_champion_model` 與相關 URL / branch semantics evidence
 - `shared-artifact mutation forbidden`：若未來 execution 需要修改既有 `projects_request_gate` artifacts、shared workflow docs、或其他 endpoint topic artifacts，必須先停在 human check
 
 ## Freeze status

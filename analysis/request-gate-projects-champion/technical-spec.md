@@ -15,10 +15,10 @@
 
 ## Goal
 
-把 `modelRepository/projects/champion` / `get_champion_model` 的 docs-suffice planning baseline 轉成可審查的
-topic-local technical contract，並同步修正 reviewer 指出的 workflow state drift，明確凍結 endpoint inventory、
-request contract draft、allowed write set、未來 implementation landing path、與 reviewer-first workflow
-handoff，同時避免把 scope 擴到 `projects` family 其他 API。
+把 `modelRepository/projects/champion` / `get_champion_model` 的 docs-suffice planning baseline 與新增 legacy request
+evidence 轉成可審查的 topic-local technical contract，並同步修正 reviewer 指出的 workflow state drift，明確凍結
+endpoint inventory、request contract draft、allowed write set、未來 implementation landing path、與 reviewer-first
+workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 
 ## Current state summary
 
@@ -34,9 +34,17 @@ handoff，同時避免把 scope 擴到 `projects` family 其他 API。
   - 記錄使用場景為先取得 `projectId` 再查 champion model
 - `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md`
   - 明確標示 `sasctl` 沒有直接取得 Champion Model 的方法，需保留 direct REST endpoint
-- repo 目前找不到 `utils/_api/project.py` 或等價 legacy source file
+- human-provided legacy source：`<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/utils/_api/project.py`
+  - `get_champion_model_url`（line 76-77）回傳 `f"{BASE_PROJECT_URL}/{project_item.id}/champion"`
+  - `fetch_champion_model`（line 80-92）執行 `async_web_session.get(url=champion_model_url, headers=headers)`
+- human-provided legacy source：`<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/api/sas/project/api.py`
+  - `get_champion_model`（line 169-184）先呼叫 `get_project_by_name(...)`
+  - 再以 `get_champion_model_url(user_response.data)` 組出 champion endpoint
+  - 接著呼叫 `fetch_champion_model(...)`
+- human-provided legacy source：`<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/schema/sas_viya/project/champion.py`
+  - 存在 champion response 相關模型，證明上游 schema surface 已 materialize
 
-因此本 topic 可以完成 planning，但 execution/TDD 仍缺少 source-level legacy evidence。
+因此本 topic 的 request evidence 已可凍結到 legacy-source-confirmed；execution/TDD 仍維持 out-of-scope，response / error contract 也不在本 topic 內擴寫。
 
 ## Allowed file scope
 
@@ -64,7 +72,10 @@ handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 | Surface order | `docs/request-shape-priority-workflow/standards.md` | 不得跳過 queue，也不得擴張到 tables-link surface |
 | REST path | `GET /modelRepository/projects/{projectId}/champion` | 只規劃 direct champion endpoint |
 | Upstream alignment | `sasctl` 無 direct champion getter | execution 不得假設有 upstream facade 可直接沿用 |
-| Legacy source | docs 引用 `utils/_api/project.py::fetch_champion_model`，但 repo 無原始檔 | human 必須補件或明確 override，execution/TDD 才能前進 |
+| Legacy URL helper | `get_champion_model_url(project_item)` 回傳 `"{BASE_PROJECT_URL}/{project_item.id}/champion"` | path shape 與 `project_item.id` 來源已 source-confirmed |
+| Legacy transport | `fetch_champion_model(...)` 執行 `async_web_session.get(url=champion_model_url, headers=headers)` | method 為 `GET`，且 request body 為空 |
+| Legacy call chain | `get_champion_model(...)` 先 `get_project_by_name(...)`，再 `get_champion_model_url(user_response.data)`，最後 `fetch_champion_model(...)` | `projectId` 前提與 request construction chain 已 source-confirmed |
+| Legacy schema surface | `schema/sas_viya/project/champion.py` 存在 champion response 相關模型 | 上游存在對應 response schema，但本 topic 不擴張 response contract |
 
 ## Request contract draft
 
@@ -77,8 +88,10 @@ handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 | Required headers | `Authorization`, `Accept` |
 | Query semantics | 無 repo-visible required query params |
 | Body shape | no body |
-| Usage precondition | `projectId` 需由既有流程先取得；本 topic 不負責該流程 |
-| Evidence status | docs-confirmed / source-not-confirmed |
+| Request construction source | `get_project_by_name(...)` -> `get_champion_model_url(user_response.data)` -> `fetch_champion_model(...)` |
+| Transport call | `async_web_session.get(url=champion_model_url, headers=headers)` |
+| Usage precondition | `projectId` 需由既有流程先取得；本 topic 只凍結此前提，不負責該流程 |
+| Evidence status | docs-confirmed / legacy-source-confirmed |
 
 ### Excluded semantics in this topic
 
@@ -134,14 +147,16 @@ handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 - endpoint surface 與 API 名稱
 - queue precedence 與 bounded topic 位置
 - method / path / required header subset
+- `project_item.id` 經 `get_champion_model_url(...)` 組成 `/modelRepository/projects/{projectId}/champion`
+- 上層 request construction chain：`get_project_by_name(...)` -> `get_champion_model_url(...)` -> `fetch_champion_model(...)`
+- transport call：`async_web_session.get(url=champion_model_url, headers=headers)`
 - `sasctl` 無 direct champion getter
-- planning 可以 docs-suffice 完成
+- champion response schema surface 已在 legacy source materialize
+- planning 可以完成 evidence sync，且 request evidence 已 frozen
 
 ### Still unresolved
 
-- `utils/_api/project.py::fetch_champion_model` 的 repo-visible原始實作
-- URL helper `get_champion_model_url` 的完整 source context
-- legacy source 是否含額外 header/query/body semantics
+- `sas_viya_get_headers(...)` 展開後是否還含 `Authorization` / `Accept` 之外的 shared header semantics，不在本 topic 內追溯
 - execution 是否真的可在不碰既有 `projects_request_gate` harness 的前提下完成
 
 ## Validation
@@ -155,8 +170,8 @@ handoff，同時避免把 scope 擴到 `projects` family 其他 API。
    - `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`
 2. 四個 artifacts 一致宣告：
    - topic 只處理 `modelRepository/projects/champion` / `get_champion_model`
-   - planning evidence 採 docs-suffice
-   - execution/TDD 需 human 補齊 legacy source evidence 才可前進
+   - planning evidence 已同步 docs surfaces 與 human-provided legacy request evidence
+   - request evidence 至少凍結 method、path shape、request construction source、與 transport call
    - reviewer flow 先於 planner final gate，且 planner final gate 先於 human check
    - 本輪不得修改 `src/**`、`tests/unit/request_contract/projects_request_gate/**`、`docs/request-shape-priority-workflow/**`
 3. plan 的 `Artifact Paths` 僅列四個允許落地的 topic-local files。
@@ -171,5 +186,5 @@ handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 - 需要修改 `docs/request-shape-priority-workflow/**` 或 shared workflow contract
 - 需要把 `modelRepository/projects/champion` 擴張成 `modelRepository/projects` family-level topic
 - 需要建立或修改其他 endpoint 的 fixtures / topic artifacts
-- 需要在缺少 legacy source evidence 的情況下直接 author execution/TDD files
+- 需要擴寫超出本輪 frozen request evidence 的 semantics，例如追 header helper 細節、response contract、或 error contract
 - 需要調整既有 `projects_request_gate` harness / fixtures / tests 才能支援 champion endpoint

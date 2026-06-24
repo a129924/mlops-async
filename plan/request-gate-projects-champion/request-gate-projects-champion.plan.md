@@ -9,7 +9,7 @@
 
 ## Goal / Outcome
 
-為單一 bounded endpoint `modelRepository/projects/champion` / `get_champion_model` 維持可審查的 topic-local planning contract，包含 requirements、technical spec、plan、與 step tracker，並把 reviewer 指出的 workflow state drift 同步修正為 reviewer-first flow -> creator bounded fix -> planner final gate -> human check；execution / TDD 仍需 human 補齊 legacy source evidence 後才可前進。
+為單一 bounded endpoint `modelRepository/projects/champion` / `get_champion_model` 維持可審查的 topic-local planning contract，包含 requirements、technical spec、plan、與 step tracker，並把 reviewer 指出的 workflow state drift 同步修正為 reviewer-first flow -> creator bounded fix -> planner final gate -> human check；同時把新增 legacy source evidence 寫回 topic-local artifacts，凍結 request method、path shape、request construction chain，但不推進 execution / TDD。
 
 ## Scope
 
@@ -18,7 +18,7 @@
   - `analysis/request-gate-projects-champion/technical-spec.md`
   - `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`
   - `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`
-  - endpoint inventory、docs-suffice evidence、bounded write set、stop conditions、reviewer-first workflow boundary
+  - endpoint inventory、docs-suffice evidence、legacy request evidence sync、bounded write set、stop conditions、reviewer-first workflow boundary
 
 - **Out of scope**:
   - `src/**`
@@ -34,8 +34,9 @@
 ## Locked Decisions
 
 - 本 topic 只處理 `modelRepository/projects/champion` / `get_champion_model`，不得順手擴到 `list_projects`、`get_project`、或 `tables-link surface`
-- planning evidence 採 **docs-suffice**
-- `utils/_api/project.py::fetch_champion_model` 的 repo-visible source evidence 目前缺失；execution/TDD 必須等 human 補件或明確 override 才可前進
+- planning evidence 採 **docs-suffice baseline**，並同步寫回 human-provided legacy request evidence
+- human-provided legacy source evidence 已凍結 request contract 的 method / path / construction chain：`get_project_by_name(...)` -> `get_champion_model_url(user_response.data)` -> `fetch_champion_model(...)`
+- `get_champion_model_url(project_item)` 以 `project_item.id` 組出 `"{BASE_PROJECT_URL}/{project_item.id}/champion"`；`fetch_champion_model(...)` 以 `async_web_session.get(url=champion_model_url, headers=headers)` 發送 request
 - 本 topic 為 **planning-only** topic；不建立 `spec.md`，不建立 tests-side artifacts
 - workflow 順序固定為：creator artifacts 完成 -> reviewer flow -> creator bounded fix（若 reviewer 要求）-> planner final gate -> human check
 - Stable-library intent 明確為 **absent**：不修改 `src/**`、`README.md`、`VERSION`，不涉及 release timing
@@ -49,14 +50,14 @@
 
 - Plan-Creator 本輪只能建立 topic-local planning artifacts，不得執行 reviewer、implementation、PR、或 release 工作
 - Reviewer 必須獨立進行；creator 不得自行宣告 `approved`
-- Main Agent / human 負責 reviewer routing、planner final gate routing、是否放行 execution、以及是否接受 legacy source evidence gap 的補件方式
+- Main Agent / human 負責 reviewer routing、planner final gate routing、是否另開 execution topic、以及是否要求補充超出 frozen request evidence 的語意
 - 本 topic 不得重開 queue order、surface naming、或 shared workflow contract
 - 本 topic 不得把 `projectId` 取得流程、`files` payload 驗證、或 `_get_model_type` 邏輯混入 champion request-gate planning
 
 ## Status / Allowed Transitions
 
 - **Current**: `approved`
-- **Execution model**: 使用 canonical creator -> reviewer -> publish -> merge 流程；本 topic 依 locked user workflow 已完成 reviewer review 與本輪 creator bounded rework，當前 handoff state 直接等待 planner final gate；human check 只能發生在 planner final gate 完成之後；不包含 release 動作，execution / TDD 仍受 legacy source evidence gate 限制
+- **Execution model**: 使用 canonical creator -> reviewer -> publish -> merge 流程；本 topic 依 locked user workflow 已完成 reviewer review 與本輪 creator bounded rework，當前 handoff state 直接等待 planner final gate；human check 只能發生在 planner final gate 完成之後；不包含 release 動作，execution / TDD 仍不在本 topic scope
 - **Step-tracker alignment**: `plan/request-gate-projects-champion/request-gate-projects-champion.step.md` 的 creator-owned planning / rework steps 已全部完成；step tracker 只表達 creator completion gate，不表示 reviewer resubmission、planner final gate、或 human-check 狀態
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
@@ -77,7 +78,7 @@ Routing notes:
 
 - reviewer review 已在本輪 bounded rework 之前完成；本輪 creator fix 完成後不重新送 reviewer，而是依 locked workflow 直接交 planner final gate
 - 當前 `approved` 僅表達 reviewer lane 已完成且 post-rework handoff 已移交到 planner final gate 前置等待；不得把它解讀成 human-check 完成
-- 若 human 要求 execution/TDD，必須先補齊或明確放行 legacy source evidence gap，且另由下游角色處理
+- 若 human 要求 execution/TDD，僅可沿用本輪已凍結的 request evidence；若需要超出該範圍的語意，必須另行停在 human check
 - 若後續工作 drift 到 `src/**`、`tests/**`、或 shared workflow docs，必須先修正 topic routing，而不是在本 topic 內擴 scope
 
 ## Artifact Paths
@@ -99,11 +100,11 @@ Artifact path notes:
 
 ## Implementation Steps
 
-1. 對照 reviewer feedback 與 shared workflow contract，確認四個 topic-local artifacts 的 workflow state drift 與 creator-owned 邊界。
-2. 更新 `analysis/request-gate-projects-champion/requirements.md`，移除把 creator commit 視為 human-check 終點的語意，改成 reviewer-first -> planner final gate -> human check。
-3. 更新 `analysis/request-gate-projects-champion/technical-spec.md`，同步 workflow handoff sequence 與 step-tracker boundary。
-4. 更新 `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`，把 canonical current state、routing notes、與 artifact roles 對齊為 planner-final-gate-before-human-check。
-5. 更新 `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`，只保留 creator-owned completion gate，不混入 planner final gate 或 human-check state。
+1. 對照 reviewer feedback、shared workflow contract、與 human-provided legacy source evidence，確認四個 topic-local artifacts 的 bounded update 範圍。
+2. 更新 `analysis/request-gate-projects-champion/requirements.md`，把 request evidence 改寫成 legacy-source-confirmed，並移除 `legacy source evidence missing` gate。
+3. 更新 `analysis/request-gate-projects-champion/technical-spec.md`，同步 method、path shape、request construction chain、transport call、與 schema presence。
+4. 更新 `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`，把 current state、routing notes、與 locked decisions 對齊為 evidence-synced planner-final-gate-before-human-check。
+5. 更新 `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`，只保留 creator-owned evidence sync completion gate，不混入 planner final gate 或 human-check state。
 6. 以新 commit 提交 bounded rework，供 downstream planner final gate 消費。
 
 ## Validation / Acceptance Checks
@@ -113,8 +114,8 @@ Artifact path notes:
 - `Artifact Paths` 僅列四個允許落地的 topic-local files
 - 四個 artifacts 一致宣告：
   - planning evidence 採 docs-suffice
+  - human-provided legacy source evidence 已同步寫回 request method、path shape、request construction source、與 transport call
   - reviewer-first flow 存在，且 post-rework 下一步為 planner final gate，planner final gate 再先於 human check
-  - execution/TDD 需 human 補齊 legacy source evidence 才可前進
   - 未來 implementation 只能新增 `tests/unit/request_contract/projects_request_gate/` 下的 champion 專屬檔案
   - 不得修改既有 `projects_request_gate` artifacts
   - 不得修改 `src/**`、`tests/unit/request_contract/projects_request_gate/**`、`docs/request-shape-priority-workflow/**`
@@ -142,5 +143,5 @@ Artifact path notes:
 
 ## Open Questions / Unresolved Items
 
-- [BLOCKED] `utils/_api/project.py::fetch_champion_model` 與 `get_champion_model_url` 的 repo-visible legacy source evidence 仍缺失；human 需決定補件來源或明確 override，execution/TDD 才可前進
+- [OPEN] `sas_viya_get_headers(...)` 的 shared helper 展開細節未在本 topic 追溯；本輪只凍結 docs-confirmed 的 required header subset `Authorization`、`Accept`
 - [BLOCKED] 未來 champion request gate 是否能在完全不修改既有 `projects_request_gate` harness / fixtures / tests 的前提下完成，尚未有 repo-visible proof；若答案是否定，必須先回到 human check
