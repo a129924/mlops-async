@@ -125,7 +125,7 @@ Boundary rule：
 | Queue / boundary freeze | `technical-spec.md` 的 family map、risk、stop flags、validation |
 | Bounded write set 精確 | `technical-spec.md` 的 allowed file scope 與 `plan.md` artifact paths |
 | Future test landing 命名固定 | `requirements.md`、`technical-spec.md`、`plan.md` 一致使用 `tests/unit/request_contract/job_execution_jobs_request_gate/` |
-| Completion gate 停在 human-check | `plan.md` routing notes 與 `step.md` 的 workflow stage wording |
+| Completion gate 停在 human-check | `plan.md` 只把 `human-check` 保留為 routing boundary；workflow completion 只依 `step.md` 的 `## Implementation Steps` 勾選語意判定，全部為 `[X]` 時才可對齊 `review-ready` |
 
 ## Required technical tasks
 

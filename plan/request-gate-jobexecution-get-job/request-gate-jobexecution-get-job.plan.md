@@ -52,7 +52,7 @@ STRICT MODE
 
 ## Status / Allowed Transitions
 
-- **Current**: `planned`
+- **Current**: `review-ready`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path；本 topic 本輪只完成 planning artifacts，並在 human boundary 停止，不含 release。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
@@ -71,7 +71,8 @@ STRICT MODE
 
 Routing notes:
 
-- 本 topic 在四個 planning artifacts 建立完成後停在 `human-check`；不得自動進入 implementation。
+- 本 topic 的 creator rework 已完成，下一步只允許進入獨立 reviewer phase。
+- `human-check` 只作為本 topic 的外部 routing boundary；它不是 workflow status，也不是 allowed transition。
 - shared workflow spec-and-plan-finalization 的後續 phase 可包含 commit / review / final gate，但本文件不授權本 pass 跨越人工作業邊界。
 
 ## Artifact Paths
@@ -109,7 +110,7 @@ Artifact path notes:
 - `requirements.md` 包含 endpoint inventory、bounded write set、與 `jobExecution/jobs/state` 邊界。
 - `technical-spec.md` 包含 `GET /jobExecution/jobs/{jobId}` request contract draft、risk、stop flags、與 forbidden paths。
 - `request-gate-jobexecution-get-job.plan.md` 使用 canonical required sections，且未加入 `Stable library metadata`。
-- `request-gate-jobexecution-get-job.step.md` 只承擔 topic-local completion gate，不接管 shared workflow board。
+- `request-gate-jobexecution-get-job.step.md` 只承擔 topic-local completion gate，不接管 shared workflow board，且 `## Implementation Steps` 勾選狀態與本 plan 的 `Current` 對齊。
 - topic 內未建立 `spec.md`。
 - topic 內未修改 `src/**`、`tests/**`、或 `docs/request-shape-priority-workflow/**`。
 
