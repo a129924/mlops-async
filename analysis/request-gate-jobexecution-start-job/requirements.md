@@ -34,14 +34,12 @@ request-only gate 的 planning handoff。完成條件是 topic-local planning ar
 
 - `jobExecution/jobs/state` 仍受 shared workflow 的 `BLOCKED` policy 約束；沒有新的人類決策前不得納入
 - `jobExecution/jobs` detail surface 與本 topic 分離，必須保留給獨立 topic
-- 任何超出四個 planning artifacts 的檔案變更都屬 plan-alignment drift，必須停止並回到 human-check
-- legacy `job_execution.py` source file 不在 repo 內，不能把該檔案視為已驗證證據
+- 任何超出四個 planning artifacts 的檔案變更都屬 plan-alignment drift，必須停止並回到人類決策
+- legacy `start_job` source 已由人類確認存在，且足以作為 request-shape baseline；其實體路徑不得進入 repo artifacts
 
 ## Human-check Boundary
 
-- implementation 前必須由人類確認：repo-local swagger/reference 與
-  `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md` 是否足以作為
-  `start_job` request gate 的 surrogate evidence
-- implementation 前必須由人類確認：缺失的 legacy `job_execution.py` 是否接受以
-  repo-local swagger/reference 取代，且不要求補驗原始 source
-- 本 topic 完成後固定停在 human-check；不得直接前進到 execution topic
+- 人類已確認 legacy `start_job` source exists，且足以作為 request-shape baseline
+- 這份確認現在視為 `human-confirmed external source evidence`
+- repo artifacts 只能記錄上述抽象證據結論；不得寫入任何實體 legacy source path 或 local filesystem path
+- 本 topic 完成後只進入 planner final gate；此確認不構成 implementation 授權

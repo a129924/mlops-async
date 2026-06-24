@@ -57,11 +57,9 @@
 
 ## External Evidence Boundary
 
-- 使用者指定的 installed precedent 路徑
-  `.venv/lib/python3.10/site-packages/sasctl/_services/score_execution.py`
-  在本 worktree 無法解析，因此本次 planning 不把該檔案內容當成已驗證證據
-- legacy `job_execution.py` source file 不在 repo，必須明寫為 human-check boundary，
-  不得假裝已驗證
+- 人類已確認 legacy `start_job` source exists，且足以作為 request-shape baseline；
+  repo artifacts 只能將此事實記錄為 `human-confirmed external source evidence`
+- 任何 physical legacy source path 或 local filesystem path 都不得寫入 repo artifacts
 - 在目前可見證據下，只能把 `SASCTL_ALIGNMENT.md` 中對
   `ScoreExecution.create_score_execution(...)` /
   `poll_score_execution_state(...)` /
@@ -81,15 +79,15 @@
 - 若後續工作企圖把 polling / state gate 一併納入，必須停止
 - 若後續工作企圖修改 `docs/request-shape-priority-workflow/checklist.md` 的 shared board，
   必須停止
-- 若後續工作要求以缺失的 legacy source 當成已驗證事實，必須停止
-- 若後續工作在沒有人工接受的情況下，直接以未驗證的 installed `sasctl` 檔案內容驅動
+- 若後續工作企圖把 human-confirmed external source evidence 寫成實體路徑或 repo-local
+  已驗證檔案，必須停止
+- 若後續工作企圖以未記錄的人類確認擴張 request-shape baseline 以外的 source 依據驅動
   implementation，必須停止
 - 若後續工作漂移到四個 planning artifacts 以外，必須停止
 
 ## Human-check Handoff Condition
 
-本 topic 的 planning handoff 完成後，固定停在 human-check。人類需要確認的唯一開放項是：
-
-- 是否接受缺失的 legacy source 與不可解析的 installed `sasctl` 路徑，由 repo-local
-  swagger/reference 加上 `SASCTL_ALIGNMENT.md` 作為 `start_job` request-only gate 的
-  充分 surrogate evidence
+本 topic 的 human-check 已完成記錄。legacy source 的 surrogate evidence acceptability
+blocker 已解除；後續只能以 `human-confirmed external source evidence` 的抽象表述保留此結論，
+不得把 physical path 帶入 repo artifacts。本 topic 因此可進入 planner final gate，但仍不進入
+implementation。

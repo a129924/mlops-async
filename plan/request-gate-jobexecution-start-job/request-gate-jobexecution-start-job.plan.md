@@ -12,18 +12,16 @@
   是 business-intent guardrail。
 - 本 plan 100% 依據本 topic 的 technical spec 與 requirements 撰寫，不擴張到聊天脈絡
   之外的相鄰 surfaces。
-- Semantic warning：repo 內不存在 legacy `job_execution.py` source file，且使用者指定的
-  installed precedent 路徑
-  `.venv/lib/python3.10/site-packages/sasctl/_services/score_execution.py`
-  在此 worktree 無法解析；兩者都只能作為 human-check boundary，不能當成本次已驗證的
-  source evidence。
+- human confirmation recorded：legacy `start_job` source 已由人類確認存在且足以作為
+  request-shape baseline；repo artifacts 只能以 `human-confirmed external source evidence`
+  抽象記錄此結論，不得寫入 physical path。
 
 ## Goal / Outcome
 
 建立 `request-gate-jobexecution-start-job` 的 repo-visible planning handoff，使後續執行者只會
 針對 `jobExecution/jobRequests/jobs` / `start_job` 的 future request-only gate 工作，並在
-human-check 前不擴到 `jobExecution/jobs`、`jobExecution/jobs/state`、polling / state gate、
-shared workflow board、或任何 implementation surface。
+planner final gate 前不擴到 `jobExecution/jobs`、`jobExecution/jobs/state`、
+polling / state gate、shared workflow board、或任何 implementation surface。
 
 ## Scope
 
@@ -36,7 +34,8 @@ shared workflow board、或任何 implementation surface。
   - 凍結 `POST /jobExecution/jobRequests/{jobRequestId}/jobs` 的 planning boundary
   - 凍結 future request-contract test directory 名稱：
     `tests/unit/request_contract/job_requests_jobs_request_gate/`
-  - 明寫 human-check boundary：legacy source 缺失與 installed `sasctl` precedent 路徑未解析
+  - 記錄 human confirmation：legacy `start_job` source 可作為 request-shape baseline，
+    但其 physical path 不進入 repo artifacts
 
 - **Out of scope**:
   - `src/**` 與 `tests/**` 的 implementation
@@ -57,10 +56,11 @@ shared workflow board、或任何 implementation surface。
 - future test directory name 固定為
   `tests/unit/request_contract/job_requests_jobs_request_gate/`
 - 規劃證據以 repo-local swagger/reference 與
-  `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md` 的 installed precedent 摘要為主；
-  缺失的 legacy `job_execution.py` source file 不在 repo，必須保留 human-check boundary
+  `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md` 的 precedent 摘要為主；
+  legacy `start_job` source 的存在與 sufficiency 已記錄為
+  `human-confirmed external source evidence`，不得把 physical path 寫入 repo artifacts
 - 本 topic 不影響 stable-library surfaces；不修改 `README.md`、`VERSION` 或 release notes
-- 本 topic 完成後停在 human-check
+- 本 topic 完成後進入 planner final gate，不進入 implementation
 
 ## Boundaries / Exclusions
 
@@ -69,13 +69,14 @@ shared workflow board、或任何 implementation surface。
 - Reviewer 只負責獨立評估 topic plan / 後續 draft，不負責重定義 scope
 - Main Agent 才擁有 publish、PR、merge 與 post-merge orchestration；這些工作不屬於本 topic
 - 若後續發現需要 `jobExecution/jobs` 或 `jobExecution/jobs/state`，必須開新 topic，不得回填到本 topic
-- 若後續需要驗證缺失的 legacy source 或 installed `sasctl` 檔案，必須先經 human-check 接受其替代證據策略
+- 若後續工作企圖把 human-confirmed external source evidence 具體化為 physical path 或
+  擴張為其他 surface 的 implementation 依據，必須先回到人類決策
 
 ## Status / Allowed Transitions
 
 - **Current**: `planned`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path；本 topic
-  在 planning handoff 完成後停在 human-check，且不包含 release phase
+  在 planning handoff 完成後進入 planner final gate，且不包含 release phase
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -96,8 +97,8 @@ Routing notes:
 - 本 topic 採用 standard Phase 4.5 rule，topic-local completion gate 只讀
   `plan/request-gate-jobexecution-start-job/request-gate-jobexecution-start-job.step.md`
   的 `## Implementation Steps` 核取方塊
-- 即使四個 planning artifacts 已建立，若 human-check 尚未接受 legacy source surrogate
-  策略，也不得把本 topic 解讀成可直接進入 execution
+- 即使 human confirmation 已記錄完成，本 topic 仍只授權 planning handoff，不得被解讀成
+  可直接進入 execution
 - 本 topic 不宣告 round cap，亦不修改 shared workflow queue 順序
 
 ## Artifact Paths
@@ -122,8 +123,9 @@ Artifact path notes:
    future test directory 名稱，以及不得觸及 `jobExecution/jobs` / `jobExecution/jobs/state`
    的邊界。
 3. 在 topic step tracker 中建立未完成的 planning handoff completion gate。
-4. 將缺失的 legacy source 與不可解析的 installed `sasctl` precedent 路徑記錄為 human-check
-   邊界，然後停止，不進入 implementation。
+4. 將 legacy `start_job` source 的人類確認記錄為
+   `human-confirmed external source evidence`，排除 physical path，然後停在 planner final
+   gate，不進入 implementation。
 
 ## Validation / Acceptance Checks
 
@@ -138,7 +140,8 @@ Artifact path notes:
   `tests/unit/request_contract/job_requests_jobs_request_gate/`
 - plan 明確禁止 scope 漂移到 `jobExecution/jobs`、`jobExecution/jobs/state`、polling/state gate、
   shared workflow board 或其他 topic artifacts
-- human-check 邊界已明寫：legacy source 不在 repo，installed `sasctl` precedent 路徑未解析
+- human confirmation 已明寫：legacy source baseline 以
+  `human-confirmed external source evidence` 記錄，且不寫入 physical path
 
 ## Reviewer Handoff
 
@@ -162,7 +165,5 @@ Artifact path notes:
 
 ## Open Questions / Unresolved Items
 
-- human-check：是否接受缺失的 legacy `job_execution.py` source 與不可解析的 installed
-  `sasctl` 路徑，由 repo-local swagger/reference 加上
-  `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md` 作為
-  `start_job` request-only gate 的充分 surrogate evidence
+- 無新的未解 human-check blocker；僅保留 boundary：physical legacy path 不進入 repo artifacts，
+  且本 topic 不授權 implementation
