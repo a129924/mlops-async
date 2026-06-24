@@ -1,0 +1,51 @@
+{
+  "source": {
+    "sdk": "sas-api legacy source",
+    "function": "get_champion_model",
+    "allowed_branch": "direct-project-identifier-only",
+    "evidence": [
+      "<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/utils/_api/project.py:76-92",
+      "<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/api/sas/project/api.py:169-184",
+      "<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/schema/sas_viya/project/champion.py"
+    ]
+  },
+  "cases": {
+    "direct_project_identifier": {
+      "capture_run_id": "get-champion-model-direct-project-identifier",
+      "comparison_scope": "target-api-only",
+      "full_observed_flow": [
+        {
+          "purpose": "target-api",
+          "request": {
+            "method": "GET",
+            "path": "/modelRepository/projects/123e4567-e89b-12d3-a456-426614174001/champion",
+            "required_header_subset": {
+              "Authorization": {
+                "scheme": "Bearer"
+              },
+              "Accept": {
+                "present": true
+              }
+            },
+            "query": {},
+            "body": null
+          }
+        }
+      ]
+    }
+  },
+  "assertion_layer": "layer1-source-observed-request-shape",
+  "reviewer_boundary": {
+    "claims": [
+      "source-observed prepared request semantics only"
+    ],
+    "does_not_prove": [
+      "project lookup proof",
+      "auth proof",
+      "session proof",
+      "real transport proof",
+      "target runtime behavior proof"
+    ],
+    "accept_header_note": "Accept is asserted only at the source-observed layer represented by this harness. Any stricter target media-type policy belongs in divergence or intent metadata, not this fixture."
+  }
+}
