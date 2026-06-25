@@ -49,6 +49,51 @@ def _load_case(filename: str, case_name: str) -> Mapping[str, object]:
     return case
 
 
+def _split_fixture_locator(locator: str) -> tuple[Path, str | None]:
+    raw_path, _, raw_case_name = locator.partition("#")
+    candidate = Path(raw_path)
+    if candidate.is_absolute():
+        raise AssertionError(
+            "Fixture locator path must be relative to the topic fixture directory."
+        )
+
+    resolved_path = (FIXTURE_DIR / candidate).resolve(strict=False)
+    fixture_root = FIXTURE_DIR.resolve()
+    if not resolved_path.is_relative_to(fixture_root):
+        raise AssertionError("Fixture locator path must stay within the topic fixture directory.")
+
+    return resolved_path, raw_case_name or None
+
+
+def _load_json_fixture_from_path(path: Path) -> dict[str, object]:
+    loaded = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(loaded, dict):
+        raise TypeError(f"Fixture {path} must be a JSON object.")
+    return loaded
+
+
+def _load_case_from_locator(locator: str) -> Mapping[str, object]:
+    fixture_path, case_name = _split_fixture_locator(locator)
+    payload = _load_json_fixture_from_path(fixture_path)
+    cases = payload.get("cases")
+    if not isinstance(cases, dict):
+        raise TypeError(f"Fixture {fixture_path} must define a cases object.")
+    if case_name is None:
+        if len(cases) != 1:
+            raise AssertionError(
+                f"Fixture {fixture_path} requires an explicit #case locator "
+                "when multiple cases exist."
+            )
+        only_case = next(iter(cases.values()))
+        if not isinstance(only_case, dict):
+            raise TypeError(f"Fixture {fixture_path} case must be a JSON object.")
+        return only_case
+    case = cases.get(case_name)
+    if not isinstance(case, dict):
+        raise KeyError(f"Case {case_name} was not found in {fixture_path}.")
+    return case
+
+
 def _expected_request_from_case(case: Mapping[str, object]) -> Mapping[str, object]:
     flow = case.get("full_observed_flow")
     if not isinstance(flow, list) or len(flow) != 1:
@@ -234,7 +279,7 @@ class SasctlContractHarness:
             _assert_request_shape_matches_source_observed(
                 case.expected,
                 _expected_request_from_case(
-                    _load_case("start_job.request-flow.json", "empty_json_body")
+                    _load_case_from_locator(case.source_observed.request_path)
                 ),
             )
 

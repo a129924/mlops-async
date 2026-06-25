@@ -1,4 +1,4 @@
-"""Readable request-contract tests for start_job."""
+"""`start_job` 的可讀式請求合約測試。"""
 
 from __future__ import annotations
 
