@@ -8,6 +8,21 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.5**, the repository closes `PR #31`, `PR #32`, and `PR #33`:
+the repo now includes request-only / shape-only request gates for
+`jobExecution/jobRequests/jobs` (`start_job`),
+`modelRepository/projects/champion` (`get_champion_model`), and
+`jobExecution/jobs` (`get_job`), while the shared
+`request-shape-priority-workflow` board is synchronized to that merged current
+truth.
+
+v0.11.5 補齊 `PR #31`、`PR #32`、`PR #33` 的 final release：
+repo 現已納入 `jobExecution/jobRequests/jobs` (`start_job`)、
+`modelRepository/projects/champion` (`get_champion_model`) 與
+`jobExecution/jobs` (`get_job`) 的 request-only / shape-only request gates，
+並將 shared `request-shape-priority-workflow` board 同步到 merged current
+truth。
+
 As of **v0.11.4**, the repository closes the `PR #30`
 request-shape-priority-workflow merge: the repo now adds a docs-first
 session-entry trio under `docs/request-shape-priority-workflow/`, normalizes the

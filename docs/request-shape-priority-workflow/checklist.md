@@ -38,10 +38,10 @@
 | `[ ]` | `modelRepository/models/content` | `get_model_content` | `03` | 先凍結 `modelId + fileId` 直接內容下載 shape，再判斷檔案類型是否留在同 topic | repo surface 已存在，尚未進 queue |
 | `[X]` | `modelRepository/projects` | `list_projects` | `04` | 沿用 models oracle，聚焦 `bare_get` / `limit_1000` | request-only gate 已存在 |
 | `[X]` | `modelRepository/projects` | `get_project` | `05` | 注入 `direct_identifier` branch 與 blocked variants | request-only gate 已存在 |
-| `[ ]` | `modelRepository/projects/champion` | `get_champion_model` | `06` | 注入 project identifier -> champion model 取回語意，避免混入 files payload 驗證 | repo surface 已存在，尚未進 queue |
+| `[X]` | `modelRepository/projects/champion` | `get_champion_model` | `06` | 注入 project identifier -> champion model 取回語意，避免混入 files payload 驗證 | request-only gate 已存在 |
 | `[BLOCKED]` | `modelRepository/projects -> tables-link surface` | `list_tables` | `07` | 不得自動注入；需先人工決策 HATEOAS link resolution / fixed-path 替代策略 | 與 CAS tables 不是同一 surface |
-| `[ ]` | `jobExecution/jobRequests/jobs` | `start_job` | `08` | 先凍結 `jobRequestId -> POST jobs` 的 request shape，不預設輪詢策略 | repo surface 已存在，尚未進 queue |
-| `[ ]` | `jobExecution/jobs` | `get_job` | `09` | 聚焦單次 GET job detail shape，不混入 state polling contract | repo surface 已存在，尚未進 queue |
+| `[X]` | `jobExecution/jobRequests/jobs` | `start_job` | `08` | 先凍結 `jobRequestId -> POST jobs` 的 request shape，不預設輪詢策略 | request-only gate 已存在 |
+| `[X]` | `jobExecution/jobs` | `get_job` | `09` | 聚焦單次 GET job detail shape，不混入 state polling contract | request-only gate 已存在 |
 | `[BLOCKED]` | `jobExecution/jobs/state` | `get_job_state` | `10` | 需先人工決策 polling / state gate 是否納入同 workflow | 輕量 state polling 與一般 detail surface 分離 |
 | `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `list_tables` | `--` | 不注入到目前 queue | concrete CAS tables surface；不是 `modelRepository` HATEOAS tables |
 | `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `get_table` | `--` | 不注入到目前 queue | concrete CAS tables surface；不是 `modelRepository` HATEOAS tables |
