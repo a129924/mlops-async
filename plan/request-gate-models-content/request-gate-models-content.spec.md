@@ -12,7 +12,7 @@
    required sections，並將 topic 定義為 `non-stable`、`request-only`、`single-endpoint`
    implement lane，且本輪 workflow 只推進到 `human-check` 前。
 4. `plan/request-gate-models-content/request-gate-models-content.step.md` 鏡像 `plan.md` 的
-   implement-plan workflow steps，並明確表達：
+   creator-owned implement-plan completion gate，並在獨立 `Workflow Stages` 明確表達：
    `plan-authoring`、`draft-plan-commit`、`plan-review`、`plan-review-fix-loop`、
    `human-check`。
 5. 所有 topic-local artifacts 都明確寫出 future implementation 只驗：
@@ -22,6 +22,8 @@
    headers、timeout、auth proof、retries。
 7. 所有 topic-local artifacts 都明確寫出：
    draft-plan commit 是下一個 workflow step，但本輪不自動 commit。
+8. reviewer re-entry 通過後，topic 合法停在 `human-check`，且仍不建立
+   `tests/unit/request_contract/models_content_request_gate/**`。
 
 ## Behavioral Scenarios
 
@@ -73,6 +75,8 @@
 - 若 reviewer 回 `needs-rework` 後企圖修改 5 個 topic-local artifacts 之外的檔案，
   topic 必須標記為 `blocked`。
 - 若 reviewer 通過後企圖直接進 implementation，topic 必須停在 `human-check`。
+- 若 step tracker 把 reviewer、`needs-rework` loop、或 `human-check` 混進
+  `## Implementation Steps` completion gate，topic 必須標記為 `needs-rework`。
 - 若 future implementation 需要修改 `docs/request-shape-priority-workflow/**`、`src/**`、
   `pyproject.toml`、`uv.lock`、或既有 `models_request_gate/**` / `projects_request_gate/**`，
   topic 必須標記為 `blocked`。

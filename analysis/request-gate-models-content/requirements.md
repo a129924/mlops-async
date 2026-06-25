@@ -104,7 +104,9 @@ Ownership model：
 
 7. **Workflow boundary 必須清楚**
    - 本 topic 是 `non-stable`、`request-only`、`single-endpoint` 的 implement lane
-   - shared workflow docs 與 shared board 只作為 queue/background authority
+   - `plan/agent-handoff-workflow.md` 與 `plan/topic-plan-contract.md` 維持 reusable shared
+     workflow contract authority
+   - shared board 與 shared workflow docs 只作為 queue/background authority
    - 本 topic 不修改 shared workflow files，也不重開 shared workflow semantics
    - 本輪節奏固定為：
      - 完成 implement-plan artifacts
@@ -196,3 +198,6 @@ write set 以外路徑，或 direct GET 不能獨立成立，必須升級為 `bl
 ## Freeze status
 
 Status: `FROZEN`
+
+Current workflow state: reviewer 已通過 implement-plan re-review，topic 合法停在
+`human-check`，等待下一輪明確授權才可進 implementation。

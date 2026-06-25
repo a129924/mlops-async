@@ -7,21 +7,23 @@ created: 2026-06-25
 # request-gate-models-content — Step Tracking
 
 > **Executor**: Mark each step `[X]` when complete.
-> 這個 step tracker 先追蹤 implement-plan workflow，reviewer 通過後停在 `human-check`。
+> `## Implementation Steps` 只追蹤 creator-owned implement-plan completion gate。
+> review / `needs-rework` / `human-check` 由 `## Workflow Stages` 表達。
+> `## Workflow Stages` 反映目前所在或下一個外部 gate；已發生的歷史輪次若已被 fix loop 吸收，
+> 不單獨保留為完成狀態。
 > Update this file at: `plan/request-gate-models-content/request-gate-models-content.step.md`
 
 ## Workflow Stages
 
 - [X] plan-authoring
-- [ ] draft-plan-commit
-- [ ] plan-review
-- [ ] plan-review-fix-loop
-- [ ] human-check
+- [X] draft-plan-commit
+- [X] plan-review
+- [X] plan-review-fix-loop
+- [X] human-check
 
 ## Implementation Steps
 
-- [X] 1. 完成 topic-local implement-plan artifacts：`requirements.md`、`technical-spec.md`、`plan.md`、`spec.md`、`step.md`，並使它們對 implement lane、frozen write set、與 direct-path-only rule 的語意一致。
-- [ ] 2. 將 draft-plan commit 作為下一個 workflow step；本輪不自行 commit，但進 reviewer gate 前必須先完成 draft-plan commit。
-- [ ] 3. 進入 reviewer gate；reviewer 只審這個 topic 的 plan artifacts 是否存在 scope drift、contract drift、或 workflow drift。
-- [ ] 4. 若 reviewer 回 `needs-rework`，只允許在這 5 個 topic-local plan artifacts 內修正，形成 `plan-review-fix-loop`；不得提前進 implementation。
-- [ ] 5. reviewer 通過後停在 `human-check`；不得自動建立 `tests/unit/request_contract/models_content_request_gate/**`，後續 implementation 需等待下一輪明確授權。
+- [X] 1. 完成 topic-local implement-plan artifacts：`requirements.md`、`technical-spec.md`、`plan.md`、`spec.md`、`step.md`，並使它們對 implement lane、frozen write set、direct-path-only rule、與 shared workflow contract authority 的語意一致。
+- [X] 2. 完成 draft-plan commit 前的 creator-owned artifact freeze，確保這 5 個 topic-local files 已可作為 reviewer gate 的 bounded review target。
+- [X] 3. reviewer 首輪回 `needs-rework` 後，只在這 5 個 topic-local plan artifacts 內完成 bounded fix，未提前進 implementation，也未擴到 shared workflow files、`src/**`、或 future implementation files。
+- [X] 4. 完成 review fix loop 後，已將最新版 topic-local artifacts 重新對齊為可再次進 reviewer gate 的 `review-ready` draft。

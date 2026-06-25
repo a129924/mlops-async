@@ -29,14 +29,15 @@ frozen write set 內落地
 - `plan/request-gate-models-content/request-gate-models-content.step.md`
 - future implementation root：
   `tests/unit/request_contract/models_content_request_gate/**`
+- shared workflow contract authority：
+  - `plan/agent-handoff-workflow.md`
+  - `plan/topic-plan-contract.md`
 
-下列 shared surfaces 只可作為背景參照，不得作為 current scope、status、或 completion gate
-的 active authority：
+下列 shared surfaces 只可作為背景參照，不得作為 topic-local scope payload 的 active
+source：
 
 - `docs/request-shape-priority-workflow/**`
 - shared workflow board
-- `plan/agent-handoff-workflow.md`
-- `plan/topic-plan-contract.md`
 
 ## Current state summary
 
@@ -49,8 +50,11 @@ frozen write set 內落地
   `tests/unit/request_contract/job_requests_jobs_request_gate/**` 作為 precedent
 - local `sasctl` source inventory 證明 `ModelRepository.get_model_contents()` 走 `/contents`
   list-follow path，而非 direct content GET
-- implement lane 已有 topic-local implement-plan artifacts 初稿，但尚未進 draft-plan commit /
-  reviewer gate
+- implement lane 已完成 topic-local implement-plan artifacts 初稿與 draft-plan commit
+- 首輪 reviewer 已回 `needs-rework`
+- bounded review fix loop 已完成，且修正仍限制在這 5 個 topic-local plan artifacts 內
+- reviewer re-entry 已通過
+- 當前 topic 狀態已合法停在 `human-check`，implementation 仍未開始
 
 目前 repo / worktree 尚未有：
 
@@ -93,7 +97,7 @@ frozen write set 內落地
 | `technical-spec.md` | 把需求映射為 implement lane 的 workflow contract、allowed scope、evidence boundary、risk、stop flags |
 | `plan.md` | 提供 canonical execution workflow contract、review loop、與 exact artifact paths |
 | `spec.md` | 凍結 implement-plan workflow acceptance criteria、behavioral scenarios、error / edge handling boundaries |
-| `step.md` | 提供 implement-plan workflow 與後續 implementation handoff 的 topic-local completion gate |
+| `step.md` | 提供 creator-owned implement-plan completion gate，並以獨立 Workflow Stages 記錄 review / human-check state |
 
 ## Evidence inventory
 
@@ -220,8 +224,8 @@ Boundary rule：
 4. author `plan/request-gate-models-content/request-gate-models-content.spec.md`，凍結
    implement-plan workflow 的 acceptance criteria、behavioral scenarios、與 edge-case boundaries
 5. author `plan/request-gate-models-content/request-gate-models-content.step.md`，建立後續
-   implement-plan workflow 的 pending completion gate，並在 reviewer 通過後停在
-   `human-check`
+   creator-owned implement-plan completion gate，並以 Workflow Stages 表達 draft-plan
+   commit、plan review、review fix loop、與 reviewer 通過後的 `human-check`
 
 ## Deferred prerequisites and explicit non-work
 
@@ -256,20 +260,24 @@ Boundary rule：
    - `plan/request-gate-models-content/request-gate-models-content.step.md`
 2. `plan.md` 使用 canonical required sections，且不加入 `Stable library metadata`
 3. `spec.md` 只定義 request-only acceptance，不混入 response payload semantics
-4. `step.md` 的 `## Implementation Steps` 與 `plan.md` 一一對齊，且初始化為 pending
+4. `step.md` 的 `## Implementation Steps` 與 `plan.md` 一一對齊，且只追蹤 creator-owned
+   implement-plan completion gate，不把 reviewer、`needs-rework` loop、或 `human-check`
+   混入 completion gate
 5. 所有 artifacts 都明確寫出：
    - 不得把 `ModelRepository.get_model_contents()` 當正向入口
    - future implementation root 只限
      `tests/unit/request_contract/models_content_request_gate/**`
    - `docs/request-shape-priority-workflow/**`、`src/**`、`pyproject.toml`、`uv.lock`、
      `models_request_gate/**`、`projects_request_gate/**` 均不在可寫範圍內
-6. `step.md` 明確表達：
+6. `step.md` 的 Workflow Stages 明確表達：
    - `plan-authoring`
    - `draft-plan-commit`
    - `plan-review`
    - `plan-review-fix-loop`
    - `human-check`
 7. `plan.md`、`spec.md`、`requirements.md`、`technical-spec.md` 對 review fix loop 的語意一致
+8. re-review 通過後，topic current state 與 step stages 一致停在 `human-check`，且仍未建立
+   `tests/unit/request_contract/models_content_request_gate/**`
 
 ## Stop conditions
 

@@ -110,14 +110,14 @@
 
 ## Status / Allowed Transitions
 
-- **Current**: `creator-in-progress`
+- **Current**: `approved`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; this
   topic is an implement lane, but the current pass stops at `human-check` before implementation
 - **Step-tracker alignment**:
   `plan/request-gate-models-content/request-gate-models-content.step.md` 的
-  `## Implementation Steps` 先表達 implement-plan workflow：
-  implement-plan artifact completion、draft-plan commit、plan review、review fix loop、
-  reviewer 通過後停在 `human-check`；不表達 request-contract implementation 已開始
+  `## Implementation Steps` 只表達 creator-owned implement-plan completion gate；
+  `draft-plan-commit`、`plan-review`、`plan-review-fix-loop`、與 `human-check`
+  由同檔的 `## Workflow Stages` 表達，不得混入 completion gate
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -139,6 +139,10 @@ Routing notes:
 - draft-plan commit 是本 topic 在進 reviewer gate 前的必要 workflow step，但本輪不自動 commit
 - `plan-review-fix-loop` 發生時，只允許在 topic-local plan artifacts 內修正
 - reviewer 通過後，本 topic 停在 `human-check`，不自動進 implementation
+- 本輪 draft-plan commit 已完成，且第一輪 reviewer 已回 `needs-rework`
+- 最新 bounded fix 已限制在這 5 個 topic-local artifacts 內，且 reviewer re-entry 已通過
+- 當前 topic 已合法停在 `human-check`，不自動建立
+  `tests/unit/request_contract/models_content_request_gate/**`
 - 若 future implementation 需要碰 write set 以外路徑，topic 必須停在 `blocked`
 - 若 reviewer 指出 scope drift / contract drift / workflow drift，topic 必須回到
   `needs-rework`
@@ -175,17 +179,15 @@ Artifact path notes:
 
 1. 完成 topic-local implement-plan artifacts：
    `requirements.md`、`technical-spec.md`、`plan.md`、`spec.md`、`step.md`，並使其對
-   implement lane、frozen write set、與 direct-path-only rule 的語意一致
-2. 將 draft-plan commit 明確記錄為下一個 workflow step；本輪不自行 commit，但後續進 reviewer
-   gate 前必須先完成 draft-plan commit
-3. 進入 reviewer gate；reviewer 只審 topic-local plan artifacts 的 scope、contract、與
-   workflow drift
-4. 若 reviewer 回 `needs-rework`，只允許在 topic-local plan artifacts 內修正，形成
-   `plan-review-fix-loop`；不得提前進 implementation，也不得擴到 shared workflow files、
-   `src/**`、或 future implementation files
-5. reviewer 通過後停在 `human-check`；不得自動建立
-   `tests/unit/request_contract/models_content_request_gate/**`，後續 implementation 需等待
-   下一輪明確授權
+   implement lane、frozen write set、direct-path-only rule、與 shared workflow contract
+   authority 的語意一致
+2. 完成 draft-plan commit 前的 creator-owned artifact freeze，確保這 5 個 topic-local files
+   已可作為 reviewer gate 的 bounded review target
+3. 若 reviewer 回 `needs-rework`，只允許在這 5 個 topic-local plan artifacts 內修正，
+   不得提前進 implementation，也不得擴到 shared workflow files、`src/**`、或 future
+   implementation files
+4. 完成 review fix loop 後，將最新版 topic-local artifacts 重新對齊為可再次進 reviewer gate
+   的 `review-ready` draft
 
 ## Validation / Acceptance Checks
 
@@ -196,7 +198,8 @@ Artifact path notes:
 - `request-gate-models-content.spec.md` 只定義 request-only acceptance，不混入 response
   payload semantics
 - `request-gate-models-content.step.md` 的 `## Implementation Steps` 與本 plan 一一對齊，且在
-  reviewer 通過前正確表達 implement-plan workflow，而不是 request-contract implementation
+  reviewer 通過前只表達 creator-owned implement-plan completion gate，而不是 reviewer /
+  human-check state
 - 所有 artifacts 都明確寫出：
   - `ModelRepository.get_model_contents()` 不得作為正向入口
   - future implementation files 只限：
@@ -220,7 +223,7 @@ Artifact path notes:
 
 ```json
 {
-  "verdict": "approved|needs-rework",
+  "verdict": "approved",
   "blocking_issues": [],
   "copilot_feedback_triage": {
     "ADDRESS": [],
@@ -235,7 +238,7 @@ Artifact path notes:
 - 本 topic merge 後不需要 README 更新、VERSION bump、release notes、或 repository release
   action
 - push / PR / merge orchestration 仍屬 Main Agent 工作，不屬於本 topic-local authoring pass
-- 本輪 implement-plan workflow 在 reviewer 通過後先停在 `human-check`；是否繼續進
+- 本輪 implement-plan workflow 已在 reviewer 通過後停在 `human-check`；是否繼續進
   implementation 由後續明確授權決定
 
 ## Open Questions / Unresolved Items
