@@ -8,6 +8,17 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.6**, the repository closes `PR #34`: the repo now includes the
+request-only / shape-only request gate for
+`modelRepository/models/content` (`get_model_content`), and the shared
+`request-shape-priority-workflow` board is synchronized to that merged current
+truth.
+
+v0.11.6 補齊 `PR #34` 的 final release：
+repo 現已納入 `modelRepository/models/content` (`get_model_content`) 的
+request-only / shape-only request gate，並將 shared
+`request-shape-priority-workflow` board 同步到 merged current truth。
+
 As of **v0.11.5**, the repository closes `PR #31`, `PR #32`, and `PR #33`:
 the repo now includes request-only / shape-only request gates for
 `jobExecution/jobRequests/jobs` (`start_job`),
