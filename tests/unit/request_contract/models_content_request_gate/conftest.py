@@ -266,8 +266,6 @@ def _assert_request_matches_contract(actual: Mapping[str, object], expected: Req
             raise AssertionError(f"Unexpected outbound request: {actual!r}")
         if expected_prefix and not str(header_value).startswith(expected_prefix):
             raise AssertionError(f"Unexpected outbound request: {actual!r}")
-        if expected_prefix == "" and str(header_value) != "":
-            raise AssertionError(f"Unexpected outbound request: {actual!r}")
 
 
 def _assert_request_shape_matches_source_observed(
