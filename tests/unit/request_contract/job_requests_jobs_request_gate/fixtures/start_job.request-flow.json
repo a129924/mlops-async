@@ -1,0 +1,53 @@
+{
+  "source": {
+    "kind": "abstract repository evidence",
+    "evidence": [
+      "repository swagger request definition",
+      "repository endpoint alignment summary",
+      "human-confirmed external source evidence"
+    ]
+  },
+  "cases": {
+    "empty_json_body": {
+      "capture_run_id": "start-job-empty-json-body",
+      "comparison_scope": "target-api-only",
+      "full_observed_flow": [
+        {
+          "purpose": "target-api",
+          "request": {
+            "method": "POST",
+            "path": "/jobExecution/jobRequests/job-request-abc-123/jobs",
+            "required_header_subset": {
+              "Authorization": {
+                "scheme": "Bearer"
+              },
+              "Accept": {
+                "equals": "application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json"
+              },
+              "Content-Type": {
+                "equals": "application/json"
+              },
+              "Delegate-Domain": {
+                "equals": ""
+              }
+            },
+            "query": {},
+            "body": "{}"
+          }
+        }
+      ]
+    }
+  },
+  "assertion_layer": "layer1-source-observed-request-shape",
+  "reviewer_boundary": {
+    "claims": [
+      "source-observed prepared request semantics only"
+    ],
+    "does_not_prove": [
+      "auth proof",
+      "session or refresh proof",
+      "real transport proof",
+      "target runtime behavior proof"
+    ]
+  }
+}

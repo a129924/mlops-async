@@ -64,7 +64,7 @@
 
 ## Status / Allowed Transitions
 
-- **Current**: `planned`
+- **Current**: `review-ready`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path；
   本 topic 是 execution topic，但不包含 release action
 - **Allowed transitions**:
@@ -115,7 +115,8 @@ Artifact path notes:
    `start_job` request-only gate 所需的 tests、fixtures、或 helper artifacts。
 3. 僅對 `POST /jobExecution/jobRequests/{jobRequestId}/jobs` 的 `start_job`
    request semantics 建立 assertions；不得延伸到 `jobExecution/jobs`、
-   `jobExecution/jobs/state`、polling、或 state gate。
+   `jobExecution/jobs/state`、polling、或 state gate，也不得把 `timeout`
+   值當成 hard gate 或 oracle。
 4. 若 implementation 需要 `src/**` 變更、shared workflow board 修改、或超出既有抽象證據邊界，
    立即停止並標記 blocker，要求 separate re-plan。
 5. 完成後確認 topic-local artifacts 與 implementation reality 一致，再移到 `review-ready`。
@@ -127,6 +128,8 @@ Artifact path notes:
   `tests/unit/request_contract/job_requests_jobs_request_gate/`
 - `Locked Decisions`、`Scope`、`Boundaries / Exclusions` 沒有擴張到
   `jobExecution/jobs`、`jobExecution/jobs/state`、polling、state gate、或 shared board
+- request-only gate 不以 `timeout` 值、response status、或 response payload
+  作為 completion oracle
 - `src/**` touch 明確被定義為 blocker，而非可接受例外
 - `Reviewer Handoff` 是單一 machine-consumable JSON 物件
 
