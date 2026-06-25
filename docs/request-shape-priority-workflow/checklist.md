@@ -35,7 +35,7 @@
 | --- | --- | --- | --- | --- | --- |
 | `[X]` | `modelRepository/models` | `list_models` | `01` | 注入 `models_request_gate` baseline 與 `bare_get` / `filter_project_id` 語意 | shape-only 模板已存在 |
 | `[X]` | `modelRepository/models` | `get_model` | `02` | 注入 `direct_identifier` branch 與 blocked variants | shape-only 模板已存在 |
-| `[ ]` | `modelRepository/models/content` | `get_model_content` | `03` | 先凍結 `modelId + fileId` 直接內容下載 shape，再判斷檔案類型是否留在同 topic | repo surface 已存在，尚未進 queue |
+| `[X]` | `modelRepository/models/content` | `get_model_content` | `03` | 先凍結 `modelId + fileId` 直接內容下載 shape，再判斷檔案類型是否留在同 topic | repo surface 已存在，尚未進 queue |
 | `[X]` | `modelRepository/projects` | `list_projects` | `04` | 沿用 models oracle，聚焦 `bare_get` / `limit_1000` | request-only gate 已存在 |
 | `[X]` | `modelRepository/projects` | `get_project` | `05` | 注入 `direct_identifier` branch 與 blocked variants | request-only gate 已存在 |
 | `[X]` | `modelRepository/projects/champion` | `get_champion_model` | `06` | 注入 project identifier -> champion model 取回語意，避免混入 files payload 驗證 | request-only gate 已存在 |
