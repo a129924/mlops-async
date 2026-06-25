@@ -1,0 +1,24 @@
+{
+  "cases": {
+    "direct_identifiers": {
+      "capture_run_id": "get-model-content-direct-identifiers",
+      "responses": [
+        {
+          "match": {
+            "method": "GET",
+            "path": "/modelRepository/models/model-id-abc-123/contents/file-001/content",
+            "query": {},
+            "body": null
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/octet-stream"
+            },
+            "json_body": null
+          }
+        }
+      ]
+    }
+  }
+}
