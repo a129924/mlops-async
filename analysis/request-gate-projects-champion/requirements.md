@@ -2,11 +2,12 @@
 
 ## Purpose
 
-本文件凍結 `request-gate-projects-champion` 的 planning baseline，讓後續 workflow 只針對單一 bounded endpoint
-`modelRepository/projects/champion` / `get_champion_model` 建立 topic-local planning artifacts，並把 reviewer 指出的
-workflow state drift 收斂為 reviewer-first flow、creator bounded fix、planner final gate、最後才 wait human check；
-本輪同步吸收 human-provided legacy source evidence，凍結 request method、path shape、request construction chain，
-但不得擴張到 implementation、TDD、或 `modelRepository/projects` 其他 API。
+本文件凍結 `request-gate-projects-champion` 的 topic baseline，讓後續 workflow 只針對單一 bounded endpoint
+`modelRepository/projects/champion` / `get_champion_model` 對齊 topic-local planning artifacts 與 PR 已提交的
+champion-only request-contract test / fixture deliverables，並把 reviewer 指出的 workflow state drift 收斂為
+reviewer-first flow、creator bounded fix、planner final gate、最後才 wait human check；本輪同步吸收
+human-provided legacy source evidence，凍結 request method、path shape、request construction chain，但不得擴張到
+`src/**`、response / error contract、或 `modelRepository/projects` 其他 API。
 
 ## Scope
 
@@ -20,17 +21,21 @@ workflow state drift 收斂為 reviewer-first flow、creator bounded fix、plann
 - topic-local plan artifacts：
   - `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`
   - `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`
+- champion-only request-contract deliverables：
+  - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
 - bounded write set、stop conditions、reviewer-first workflow、與未來 implementation landing path 凍結
 
 本 topic 不涵蓋：
 
 - `src/**`
-- `tests/unit/request_contract/projects_request_gate/**`
+- 本輪對已提交 execution artifact content 的再修改
 - `docs/request-shape-priority-workflow/**`
 - shared workflow contract 或 shared board 改寫
 - `modelRepository/projects` 其他 API
 - response / error contract
-- execution / TDD 實作
+- 新的 execution / TDD 擴 scope
 - release、PR、或 reviewer / planner final gate 執行
 
 ## Actors and ownership
@@ -72,14 +77,17 @@ Ownership model：
 3. **Bounded write set freeze**
    - Actor: Plan-Creator
    - Condition: 本 topic 落地 planning artifacts 時
-   - Required outcome: 只允許四個 topic-local files 被建立或修改
-   - Metric / decision rule: 允許寫入只限：
+   - Required outcome: PR topic 的 bounded write set 必須同時涵蓋四個 planning artifacts 與已提交 champion-only request-contract artifacts；本次 review-comment bounded fix 只允許再修改四個 planning artifacts，execution artifacts 視為 frozen deliverables
+   - Metric / decision rule: topic deliverable set 固定為：
      - `analysis/request-gate-projects-champion/requirements.md`
      - `analysis/request-gate-projects-champion/technical-spec.md`
      - `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`
      - `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`
-   - Evidence signal: `git status` 只出現上述四檔
-   - Failure meaning: 若變更漂移到其他檔案，topic contract 已失真
+     - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+     - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+     - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
+   - Evidence signal: topic artifacts 明確承認上述七檔為 PR deliverables，且本次 bounded fix 的 `git status` 只出現四個 planning artifacts
+   - Failure meaning: 若 artifacts 仍否認已提交 champion-only deliverables，或本次 fix 漂移到其他檔案，topic contract 已失真
 
 4. **Execution boundary freeze**
    - Actor: Human reviewer / downstream planner
@@ -96,10 +104,14 @@ Ownership model：
 5. **Future implementation landing path freeze**
    - Actor: future Code-Implementer
    - Condition: human 之後放行 execution topic 時
-   - Required outcome: 實作只能新增 `tests/unit/request_contract/projects_request_gate/` 下的 champion 專屬檔案
-   - Metric / decision rule: 不得修改既有 `projects_request_gate` artifacts；若需要修改既有 `conftest.py`、fixtures、或 tests，必須重新停在 human check
-   - Evidence signal: plan 與 technical-spec 一致列出 new champion-only landing path 與 forbidden modification rule
-   - Failure meaning: 若後續 topic 直接改既有 artifacts，bounded endpoint 會被 shared harness drift 汙染
+   - Required outcome: 本 topic 已交付的 champion-only request-contract artifacts 必須被視為 execution baseline；後續 topic 不得把 shared artifact mutation 視為預設可行路徑
+   - Metric / decision rule: 已交付 baseline 固定為：
+     - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+     - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+     - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
+     - 不得修改既有 `projects_request_gate` shared artifacts；若需要修改 `conftest.py`、既有 fixtures / tests、或上述已交付 champion-only artifacts，必須重新停在 human check
+   - Evidence signal: plan 與 technical-spec 一致列出 committed champion-only baseline 與 forbidden modification rule
+   - Failure meaning: 若後續 topic 直接改 shared / existing artifacts，bounded endpoint 會被 shared harness drift 汙染
 
 6. **Reviewer-first workflow boundary**
    - Actor: workflow router / downstream planner
@@ -117,8 +129,8 @@ Ownership model：
 2. `champion endpoint 使用場景依賴 list_projects 先找 projectId` vs `本 topic 只允許單一 bounded endpoint`
    - Resolution: planning 只把 `projectId` 視為既有前提，不把 `list_projects` 取回流程納入本 topic
 
-3. `未來可能需要新增 tests` vs `本輪不得修改 tests/**`
-   - Resolution: 只在 planning artifacts 凍結 future landing path；本輪不建立任何 test files
+3. `PR 已提交 champion-only request-contract artifacts` vs `本輪 bounded fix 不得修改 execution artifacts`
+   - Resolution: planning artifacts 必須承認 `test_get_champion_model_request_contract.py` 與兩個 champion fixtures 是本 topic deliverables；但本輪 fix 只更新四份 planning artifacts，execution artifact content 維持 frozen
 
 4. `projects_request_gate 可能需要 shared harness 支援` vs `不得修改既有 artifacts`
    - Resolution: 一律先視為 forbidden；若 execution 發現必須調整 shared harness，立即回到 human check
@@ -150,10 +162,13 @@ Ownership model：
 ## Non-goals
 
 - 不在此 topic 中修改 `src/**`
-- 不在此 topic 中修改 `tests/unit/request_contract/projects_request_gate/**`
+- 不在此 bounded fix 中修改已提交的 champion-only request-contract artifacts 內容：
+  - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
+- 不在此 bounded fix 中修改既有 `tests/unit/request_contract/projects_request_gate/**` shared artifacts
 - 不在此 topic 中修改 `docs/request-shape-priority-workflow/**`
 - 不在此 topic 中建立 `spec.md`
-- 不在此 topic 中建立 request-flow fixture、mock-response fixture、或 request tests
 - 不在此 topic 中處理 response / error contract
 - 不在此 topic 中重排 shared queue 或解鎖其他 blocked surface
 

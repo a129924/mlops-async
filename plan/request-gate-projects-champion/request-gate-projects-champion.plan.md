@@ -9,7 +9,7 @@
 
 ## Goal / Outcome
 
-為單一 bounded endpoint `modelRepository/projects/champion` / `get_champion_model` 維持可審查的 topic-local planning contract，包含 requirements、technical spec、plan、與 step tracker，並把 reviewer 指出的 workflow state drift 同步修正為 reviewer-first flow -> creator bounded fix -> planner final gate -> human check；同時把新增 legacy source evidence 寫回 topic-local artifacts，凍結 request method、path shape、request construction chain，但不推進 execution / TDD。
+為單一 bounded endpoint `modelRepository/projects/champion` / `get_champion_model` 維持可審查的 topic-local contract，包含 requirements、technical spec、plan、step tracker，與 PR 已提交的 champion-only request-contract test / fixture deliverables；並把 reviewer 指出的 workflow state drift 同步修正為 reviewer-first flow -> creator bounded fix -> planner final gate -> human check，同時凍結 request method、path shape、request construction chain，且不擴張到 `src/**`、response / error contract、或 `projects` family 其他 API。
 
 ## Scope
 
@@ -18,11 +18,15 @@
   - `analysis/request-gate-projects-champion/technical-spec.md`
   - `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`
   - `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`
+  - 已提交的 champion-only request-contract deliverables：
+    - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+    - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+    - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
   - endpoint inventory、docs-suffice evidence、legacy request evidence sync、bounded write set、stop conditions、reviewer-first workflow boundary
 
 - **Out of scope**:
   - `src/**`
-  - `tests/unit/request_contract/projects_request_gate/**`
+  - 本輪對任何 execution artifact content 的再修改
   - `docs/request-shape-priority-workflow/**`
   - shared workflow contract
   - `plan/request-gate-projects-champion/request-gate-projects-champion.spec.md`
@@ -37,14 +41,14 @@
 - planning evidence 採 **docs-suffice baseline**，並同步寫回 human-provided legacy request evidence
 - human-provided legacy source evidence 已凍結 request contract 的 method / path / construction chain：`get_champion_model(...)` -> `get_project_by_name(...)` -> `get_champion_model_url(user_response.data)` -> `fetch_champion_model(...)`
 - `get_champion_model_url(project_item)` 以 `project_item.id` 組出 `"{BASE_PROJECT_URL}/{project_item.id}/champion"`；`fetch_champion_model(...)` 以 `async_web_session.get(url=champion_model_url, headers=headers)` 發送 request
-- 本 topic 為 **planning-only** topic；不建立 `spec.md`，不建立 tests-side artifacts
+- 本 topic contract 必須與 PR 已提交的 champion-only request-contract artifacts 對齊；本輪 bounded fix 只允許更新四份 planning/analysis/step artifacts，既有 execution artifact 內容維持 frozen
 - workflow 順序固定為：creator artifacts 完成 -> reviewer flow -> creator bounded fix（若 reviewer 要求）-> planner final gate -> human check
 - Stable-library intent 明確為 **absent**：不修改 `src/**`、`README.md`、`VERSION`，不涉及 release timing
-- 未來 implementation landing path 只允許在 `tests/unit/request_contract/projects_request_gate/` 下新增 champion 專屬檔案，例如：
+- 本 topic 已交付的 champion-only request-contract artifacts 固定為：
   - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
   - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
   - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
-- 若未來 execution 需要修改既有 `projects_request_gate` artifacts、shared workflow docs、或其他 endpoint artifacts，必須停止並交還 human check
+- 後續 forbidden modification set 固定為：既有 `projects_request_gate` shared artifacts、上述 champion-only artifacts 的內容、shared workflow docs、與其他 endpoint artifacts；若 execution 需要突破此集合，必須停止並交還 human check
 
 ## Boundaries / Exclusions
 
@@ -88,12 +92,15 @@ Routing notes:
 | Topic requirements | `analysis/request-gate-projects-champion/requirements.md` | Plan-Creator | 凍結 bounded endpoint、write set、與 reviewer-first business baseline |
 | Topic technical spec | `analysis/request-gate-projects-champion/technical-spec.md` | Plan-Creator | 凍結 endpoint inventory、request contract draft、landing path、與 stop rules |
 | Topic plan | `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md` | Plan-Creator | 本 topic 的 canonical execution contract 與 reviewer handoff contract |
-| Step tracker | `plan/request-gate-projects-champion/request-gate-projects-champion.step.md` | Plan-Creator | 本輪 planning / bounded rework creator steps completion gate，不承擔 reviewer、planner final gate、或 human-check 狀態 |
+| Step tracker | `plan/request-gate-projects-champion/request-gate-projects-champion.step.md` | Plan-Creator | 本輪 creator completion gate，需同時對齊四份 planning artifacts 與已提交 champion-only request-contract deliverables，但不承擔 reviewer、planner final gate、或 human-check 狀態 |
 
 Artifact path notes:
 
 - `src/**`：本 topic 不修改
-- `tests/unit/request_contract/projects_request_gate/**`：本 topic 不修改
+- `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`：屬於本 topic 已提交 deliverable；本輪 bounded fix 不修改內容
+- `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`：屬於本 topic 已提交 deliverable；本輪 bounded fix 不修改內容
+- `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`：屬於本 topic 已提交 deliverable；本輪 bounded fix 不修改內容
+- 其餘 `tests/unit/request_contract/projects_request_gate/**`：shared / existing artifacts，不在本 topic 修改範圍
 - `docs/request-shape-priority-workflow/**`：本 topic 不修改
 - `README.md` / `VERSION`：本 topic 不修改
 - 若出現未列路徑的變更，視為 plan drift，必須停止並先回到 canonical reviewer / planner routing
@@ -104,8 +111,7 @@ Artifact path notes:
 2. 更新 `analysis/request-gate-projects-champion/requirements.md`，把 request evidence 改寫成 legacy-source-confirmed，並移除 `legacy source evidence missing` gate。
 3. 更新 `analysis/request-gate-projects-champion/technical-spec.md`，同步 method、path shape、request construction chain、transport call、與 schema presence。
 4. 更新 `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`，把 current state、routing notes、與 locked decisions 對齊為 evidence-synced `review-ready` handoff state。
-5. 更新 `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`，只保留 creator-owned evidence sync completion gate，不混入 planner final gate 或 human-check state。
-6. 以新 commit 提交 bounded rework，供 downstream planner final gate 消費。
+5. 更新 `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`，把 creator-owned completion gate 明確擴至四份 planning artifacts 與已提交 champion-only request-contract deliverables，不混入 planner final gate 或 human-check state。
 
 ## Validation / Acceptance Checks
 
@@ -116,10 +122,13 @@ Artifact path notes:
   - planning evidence 採 docs-suffice
   - human-provided legacy source evidence 已同步寫回 request method、path shape、request construction source、與 transport call
   - reviewer-first flow 存在，且本輪 post-rework 下一步為 reviewer acceptance；只有 reviewer 接受後才進入 planner final gate，planner final gate 再先於 human check
-  - 未來 implementation 只能新增 `tests/unit/request_contract/projects_request_gate/` 下的 champion 專屬檔案
-  - 不得修改既有 `projects_request_gate` artifacts
-  - 不得修改 `src/**`、`tests/unit/request_contract/projects_request_gate/**`、`docs/request-shape-priority-workflow/**`
-- step tracker 的 `## Implementation Steps` 全部完成，且不額外維護 planner final gate、或 human-check state
+  - topic scope 已承認下列已提交 deliverables：
+    - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+    - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+    - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
+  - 本輪 bounded fix 不得修改任何 execution artifact content，且 downstream forbidden modification set 不得放寬為 shared artifact mutation
+  - 不得修改 `src/**`、`docs/request-shape-priority-workflow/**`
+- step tracker 的 `## Implementation Steps` 全部完成，且 creator completion gate 明確涵蓋已提交 champion-only request-contract deliverables，但不額外維護 planner final gate、或 human-check state
 
 ## Reviewer Handoff
 

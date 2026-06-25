@@ -44,7 +44,7 @@ workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 - human-provided legacy source：`sas-api/src/sas_api/schema/sas_viya/project/champion.py`
   - 存在 champion response 相關模型，證明上游 schema surface 已 materialize
 
-因此本 topic 的 request evidence 已可凍結到 legacy-source-confirmed；execution/TDD 仍維持 out-of-scope，response / error contract 也不在本 topic 內擴寫。
+因此本 topic 的 request evidence 已可凍結到 legacy-source-confirmed；同一個 PR 也已提交 champion-only request-contract test / fixture artifacts。這份 technical spec 只把該 deliverable set 與後續 forbidden modification set 寫清楚，不把 scope 擴張到 `src/**`、response / error contract、或 `projects` family 其他 API。
 
 ## Allowed file scope
 
@@ -54,11 +54,19 @@ workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 - `analysis/request-gate-projects-champion/technical-spec.md`
 - `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`
 - `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`
+- topic 已提交的 champion-only request-contract artifacts：
+  - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
 
 ### Forbidden
 
 - `src/**`
-- `tests/unit/request_contract/projects_request_gate/**`
+- 對任何既有 request-contract artifact 的內容修改，包含：
+  - `tests/unit/request_contract/projects_request_gate/conftest.py`
+  - `tests/unit/request_contract/projects_request_gate/__init__.py`
+  - 既有 `list_projects` / `get_project` request tests 與 fixtures
+  - 上述已提交的 champion-only request-contract artifacts（本輪 bounded fix 內視為 frozen）
 - `docs/request-shape-priority-workflow/**`
 - shared workflow contract
 - `plan/request-gate-projects-champion/request-gate-projects-champion.spec.md`
@@ -112,17 +120,21 @@ workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 
 ## Future implementation landing path
 
-本 topic 不建立 tests，但已凍結 downstream landing rule：
+本 topic 已新增並交付下列 champion-only request-contract artifacts：
 
-- future execution topic 只能在 `tests/unit/request_contract/projects_request_gate/` 下新增 champion 專屬檔案
-- permitted shape 僅限 new champion-only files，例如：
-  - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
-  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
-  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
-- forbidden：
-  - 修改既有 `tests/unit/request_contract/projects_request_gate/conftest.py`
-  - 修改既有 `list_projects` / `get_project` fixtures
-  - 修改既有 `list_projects` / `get_project` request tests
+- `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+- `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+- `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
+
+後續 frozen rule：
+
+- 本次 bounded fix 只允許更新四份 planning artifacts；上述 champion-only files 在本輪不再修改
+- downstream forbidden modification set 固定包含：
+  - `tests/unit/request_contract/projects_request_gate/conftest.py`
+  - `tests/unit/request_contract/projects_request_gate/__init__.py`
+  - 既有 `list_projects` / `get_project` fixtures
+  - 既有 `list_projects` / `get_project` request tests
+  - 上述已交付 champion-only request-contract artifacts，除非 human 另開新 topic 明確放行
 
 若 execution 證明上述 forbidden set 無法維持，必須回到 human check，而不是在本 topic 內直接放寬。
 
@@ -174,16 +186,16 @@ workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
    - planning evidence 已同步 docs surfaces 與 human-provided legacy request evidence
    - request evidence 至少凍結 method、path shape、request construction source、與 transport call
    - 本輪 creator rework 完成後先回到 reviewer acceptance；只有 reviewer 接受後才進入 planner final gate，且 planner final gate 先於 human check
-   - 本輪不得修改 `src/**`、`tests/unit/request_contract/projects_request_gate/**`、`docs/request-shape-priority-workflow/**`
+   - 本輪不得修改 `src/**`、任何 `tests/unit/request_contract/projects_request_gate/**` execution artifact content、或 `docs/request-shape-priority-workflow/**`
 3. plan 的 `Artifact Paths` 僅列四個允許落地的 topic-local files。
-4. step tracker 的 `## Implementation Steps` 只追蹤本輪 creator-owned planning / rework work，不混入 reviewer、planner final gate、human-check、或 implementation tasks。
+4. step tracker 的 `## Implementation Steps` 只追蹤本輪 creator-owned completion gate，不混入 reviewer、planner final gate、human-check、或新的 implementation tasks；但必須明確承認已提交 champion-only request-contract artifacts 也是本 PR deliverables。
 
 ## Stop conditions
 
 若出現以下情況，必須停止並回到 human check：
 
 - 需要修改 `src/**`
-- 需要修改 `tests/unit/request_contract/projects_request_gate/**`
+- 需要修改任何 `tests/unit/request_contract/projects_request_gate/**` execution artifact
 - 需要修改 `docs/request-shape-priority-workflow/**` 或 shared workflow contract
 - 需要把 `modelRepository/projects/champion` 擴張成 `modelRepository/projects` family-level topic
 - 需要建立或修改其他 endpoint 的 fixtures / topic artifacts
