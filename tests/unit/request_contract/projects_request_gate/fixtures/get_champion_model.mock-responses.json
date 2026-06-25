@@ -1,0 +1,29 @@
+{
+  "cases": {
+    "direct_project_identifier": {
+      "capture_run_id": "get-champion-model-direct-project-identifier",
+      "responses": [
+        {
+          "match": {
+            "method": "GET",
+            "path": "/modelRepository/projects/123e4567-e89b-12d3-a456-426614174001/champion",
+            "query": {},
+            "body": null
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "json_body": {
+              "id": "123e4567-e89b-12d3-a456-426614174099",
+              "name": "demo-champion-model",
+              "projectId": "123e4567-e89b-12d3-a456-426614174001",
+              "links": []
+            }
+          }
+        }
+      ]
+    }
+  }
+}

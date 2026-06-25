@@ -1,0 +1,181 @@
+# Request-Gate Projects Champion Requirements
+
+## Purpose
+
+本文件凍結 `request-gate-projects-champion` 的 topic baseline，讓後續 workflow 只針對單一 bounded endpoint
+`modelRepository/projects/champion` / `get_champion_model` 對齊 topic-local planning artifacts 與 PR 已提交的
+champion-only request-contract test / fixture deliverables，並把 reviewer 指出的 workflow state drift 收斂為
+reviewer-first flow、creator bounded fix、planner final gate、最後才 wait human check；本輪同步吸收
+human-provided legacy source evidence，凍結 request method、path shape、request construction chain，但不得擴張到
+`src/**`、response / error contract、或 `modelRepository/projects` 其他 API。
+
+## Scope
+
+本 topic 的需求只涵蓋：
+
+- endpoint inventory 與 precedent 盤點
+- docs-suffice planning evidence 與 legacy request evidence 凍結
+- topic-local analysis artifacts：
+  - `analysis/request-gate-projects-champion/requirements.md`
+  - `analysis/request-gate-projects-champion/technical-spec.md`
+- topic-local plan artifacts：
+  - `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`
+  - `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`
+- champion-only request-contract deliverables：
+  - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
+- bounded write set、stop conditions、reviewer-first workflow、與未來 implementation landing path 凍結
+
+本 topic 不涵蓋：
+
+- `src/**`
+- 本輪對已提交 execution artifact content 的再修改
+- `docs/request-shape-priority-workflow/**`
+- shared workflow contract 或 shared board 改寫
+- `modelRepository/projects` 其他 API
+- response / error contract
+- 新的 execution / TDD 擴 scope
+- release、PR、或 reviewer / planner final gate 執行
+
+## Actors and ownership
+
+- Primary actor：Plan-Creator
+- Downstream actor：Plan-Reviewer
+- Human owner：human check / downstream execution routing 決策者
+
+Ownership model：
+
+- docs-suffice planning with reviewer-first flow；若 reviewer 要求修正，creator 在同 topic 內完成 bounded fix，之後才交 planner final gate 與 human check
+
+## Measurable requirements
+
+1. **Bounded endpoint freeze**
+   - Actor: Plan-Creator
+   - Condition: 建立 topic-local planning artifacts 時
+   - Required outcome: scope 只允許 `modelRepository/projects/champion` / `get_champion_model`
+   - Metric / decision rule: 若 artifact 提到 `list_projects`、`get_project`、`tables`、或其他 `projects` family API 的實作延伸，視為超出基線
+   - Evidence signal: requirements、technical-spec、plan、step 四份文件都只描述 champion endpoint
+   - Failure meaning: topic 會從 bounded endpoint 漂移成 family-level work
+
+2. **Planning evidence sync**
+   - Actor: Plan-Creator
+   - Condition: 本 topic author planning contract 時
+   - Required outcome: planning artifacts 必須同時凍結 docs surfaces 與 human-provided legacy request evidence，不要求先修改 code 或 tests
+   - Metric / decision rule: 至少凍結下列 evidence：
+     - `docs/request-shape-priority-workflow/checklist.md`
+     - `docs/request-shape-priority-workflow/standards.md`
+     - `docs/api-endpoints/swagger-spec/projects-spec.yaml`
+     - `docs/api-endpoints/swagger-spec/openapi-complete.yaml`
+     - `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md`
+     - `sas-api/src/sas_api/utils/_api/project.py`
+     - `sas-api/src/sas_api/api/sas/project/api.py`
+     - `sas-api/src/sas_api/schema/sas_viya/project/champion.py`
+   - Evidence signal: technical-spec 內有 endpoint inventory、request contract draft、legacy call chain、與 schema presence 說明
+   - Failure meaning: 若 planning 仍需依賴口頭記憶或未落地 evidence，後續 reviewer 無法判斷 contract 是否完整
+
+3. **Bounded write set freeze**
+   - Actor: Plan-Creator
+   - Condition: 本 topic 落地 planning artifacts 時
+   - Required outcome: PR topic 的 bounded write set 必須同時涵蓋四個 planning artifacts 與已提交 champion-only request-contract artifacts；本次 review-comment bounded fix 只允許再修改四個 planning artifacts，execution artifacts 視為 frozen deliverables
+   - Metric / decision rule: topic deliverable set 固定為：
+     - `analysis/request-gate-projects-champion/requirements.md`
+     - `analysis/request-gate-projects-champion/technical-spec.md`
+     - `plan/request-gate-projects-champion/request-gate-projects-champion.plan.md`
+     - `plan/request-gate-projects-champion/request-gate-projects-champion.step.md`
+     - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+     - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+     - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
+   - Evidence signal: topic artifacts 明確承認上述七檔為 PR deliverables，且本次 bounded fix 的 `git status` 只出現四個 planning artifacts
+   - Failure meaning: 若 artifacts 仍否認已提交 champion-only deliverables，或本次 fix 漂移到其他檔案，topic contract 已失真
+
+4. **Execution boundary freeze**
+   - Actor: Human reviewer / downstream planner
+   - Condition: 未來想把本 topic 推進到 execution/TDD 時
+   - Required outcome: 只能依已凍結的 request evidence 規劃後續 execution；若未來需要超出本輪凍結範圍的 semantics，必須先停在 human check
+   - Metric / decision rule: 後續 execution topic 只能直接沿用下列已凍結 evidence：
+     - method: `GET`
+     - path shape: `/modelRepository/projects/{projectId}/champion`
+     - request construction source: `get_champion_model(...)` -> `get_project_by_name(...)` -> `get_champion_model_url(user_response.data)` -> `fetch_champion_model(...)`
+     - transport call: `async_web_session.get(url=champion_model_url, headers=headers)`
+   - Evidence signal: plan 與 technical-spec 一致把 request evidence 標為 legacy-source-confirmed，且不擴張到 response / error contract
+   - Failure meaning: 若 execution 需要額外推斷未凍結 semantics，request gate 會再次混入 topic 外假設
+
+5. **Future implementation landing path freeze**
+   - Actor: future Code-Implementer
+   - Condition: human 之後放行 execution topic 時
+   - Required outcome: 本 topic 已交付的 champion-only request-contract artifacts 必須被視為 execution baseline；後續 topic 不得把 shared artifact mutation 視為預設可行路徑
+   - Metric / decision rule: 已交付 baseline 固定為：
+     - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+     - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+     - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
+     - 不得修改既有 `projects_request_gate` shared artifacts；若需要修改 `conftest.py`、既有 fixtures / tests、或上述已交付 champion-only artifacts，必須重新停在 human check
+   - Evidence signal: plan 與 technical-spec 一致列出 committed champion-only baseline 與 forbidden modification rule
+   - Failure meaning: 若後續 topic 直接改 shared / existing artifacts，bounded endpoint 會被 shared harness drift 汙染
+
+6. **Reviewer-first workflow boundary**
+   - Actor: workflow router / downstream planner
+   - Condition: 本輪 planning artifacts 建立或 bounded rework commit 完成後
+   - Required outcome: 先以 reviewer flow 作為外部前置 gate；若 reviewer 提出 blocking feedback，creator 在同 topic 內完成 bounded fix，fix 完成後回到 reviewer acceptance，只有 reviewer 接受後才進入 planner final gate 與 human check
+   - Metric / decision rule: step tracker 只表達 creator-owned completion gate，不承擔 reviewer、planner final gate、或 human-check 狀態
+   - Evidence signal: requirements、technical-spec、plan、step 一致宣告本輪 creator rework 完成後的下一個外部 gate 是 reviewer acceptance；且 `step.md` 只保留 creator completion gate
+   - Failure meaning: 若 artifacts 仍把本輪 draft 誤標成 `approved` 或直接視為 human-check 終點，workflow phase 會與實際路由衝突
+
+## Contradictions surfaced and resolved
+
+1. `swagger docs 已有 champion endpoint 描述` vs `request gate 仍需 source-level request construction evidence`
+   - Resolution: 以 human-provided legacy source evidence 補齊 `get_champion_model_url(...)`、`fetch_champion_model(...)`、上層呼叫鏈與 schema surface；本 topic 因此可凍結 request evidence，但不延伸到 response / error contract
+
+2. `champion endpoint 使用場景依賴 list_projects 先找 projectId` vs `本 topic 只允許單一 bounded endpoint`
+   - Resolution: planning 只把 `projectId` 視為既有前提，不把 `list_projects` 取回流程納入本 topic
+
+3. `PR 已提交 champion-only request-contract artifacts` vs `本輪 bounded fix 不得修改 execution artifacts`
+   - Resolution: planning artifacts 必須承認 `test_get_champion_model_request_contract.py` 與兩個 champion fixtures 是本 topic deliverables；但本輪 fix 只更新四份 planning artifacts，execution artifact content 維持 frozen
+
+4. `projects_request_gate 可能需要 shared harness 支援` vs `不得修改既有 artifacts`
+   - Resolution: 一律先視為 forbidden；若 execution 發現必須調整 shared harness，立即回到 human check
+
+## Extreme-boundary checks
+
+1. **Branch / worktree drift**
+   - 若 planning artifacts 不是落在外部 managed worktree，而是直接落在 `dev`，視為違反本 topic 前提
+
+2. **Scope drift**
+   - 若 topic 開始觸碰 `src/**`、`tests/**`、或 shared workflow docs，立即停止
+
+3. **Surface drift**
+   - 若文件開始把 `modelRepository/projects/champion` 擴成 `modelRepository/projects` family，立即停止
+
+4. **Evidence drift**
+   - 若後續要求用本輪未凍結的 semantics 直接擴寫 request / response contract，立即停止並交 human
+
+5. **Shared-artifact drift**
+   - 若後續 implementation 需要修改既有 `projects_request_gate` artifacts、shared workflow board、或 shared contract，立即停止並另開決策
+
+## Assumptions
+
+- `docs/request-shape-priority-workflow/checklist.md` 將 `modelRepository/projects/champion / get_champion_model` 排在 queue order `06`
+- `docs/api-endpoints/swagger-spec/projects-spec.yaml` 與 `openapi-complete.yaml` 已提供 `GET /modelRepository/projects/{projectId}/champion` 的 repo-visible request evidence
+- `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md` 已確認 `sasctl` 無直接取得 Champion Model 的方法
+- human 提供的 legacy source evidence 可用於凍結 request method、path shape、request construction chain、與 champion schema surface，但不因此放大本 topic scope
+
+## Non-goals
+
+- 不在此 topic 中修改 `src/**`
+- 不在此 bounded fix 中修改已提交的 champion-only request-contract artifacts 內容：
+  - `tests/unit/request_contract/projects_request_gate/test_get_champion_model_request_contract.py`
+  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.request-flow.json`
+  - `tests/unit/request_contract/projects_request_gate/fixtures/get_champion_model.mock-responses.json`
+- 不在此 bounded fix 中修改既有 `tests/unit/request_contract/projects_request_gate/**` shared artifacts
+- 不在此 topic 中修改 `docs/request-shape-priority-workflow/**`
+- 不在此 topic 中建立 `spec.md`
+- 不在此 topic 中處理 response / error contract
+- 不在此 topic 中重排 shared queue 或解鎖其他 blocked surface
+
+## Blockers
+
+- `shared-artifact mutation forbidden`：若未來 execution 需要修改既有 `projects_request_gate` artifacts、shared workflow docs、或其他 endpoint topic artifacts，必須先停在 human check
+
+## Freeze status
+
+Status: `FROZEN`
