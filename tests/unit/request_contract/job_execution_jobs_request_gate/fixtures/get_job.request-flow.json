@@ -1,0 +1,16 @@
+{
+  "cases": {
+    "direct_identifier": {
+      "full_observed_flow": [
+        {
+          "request": {
+            "method": "GET",
+            "path": "/jobExecution/jobs/job-id-abc-123",
+            "query": {},
+            "body": null
+          }
+        }
+      ]
+    }
+  }
+}

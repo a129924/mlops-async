@@ -1,0 +1,28 @@
+{
+  "cases": {
+    "direct_identifier": {
+      "responses": [
+        {
+          "match": {
+            "method": "GET",
+            "path": "/jobExecution/jobs/job-id-abc-123",
+            "query": {},
+            "body": null
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "json_body": {
+              "id": "job-id-abc-123",
+              "state": "running",
+              "creationTimeStamp": "2024-01-15T10:30:00.000Z",
+              "elapsedTime": 5.2
+            }
+          }
+        }
+      ]
+    }
+  }
+}

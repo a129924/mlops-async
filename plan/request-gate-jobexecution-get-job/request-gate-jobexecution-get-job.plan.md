@@ -1,14 +1,27 @@
-STRICT MODE
-
-- execution-facing source of truth: `analysis/request-gate-jobexecution-get-job/technical-spec.md`
-- business-intent guardrail: `analysis/request-gate-jobexecution-get-job/requirements.md`
-- 本 plan 100% 對齊 analysis layer；未經 human `override` 不採用對話中的替代 scope
+> **Analysis-layer routing: STRICT MODE**
+>
+> - Execution-facing source of truth:
+>   `analysis/request-gate-jobexecution-get-job/technical-spec.md`
+> - Business-intent guardrail:
+>   `analysis/request-gate-jobexecution-get-job/requirements.md`
+> - 本 plan 100% 對齊最新 shape-only analysis layer，不重開 `start_job`、
+>   `jobExecution/jobs/state`、polling/state gate、shared workflow board、或 shared
+>   workflow contract。
+> - 最新 staged reality 已包含 request-contract test surface；本次 repair pass 只修補
+>   topic-local artifacts，讓 repo-visible contract 與既有 staged shape-only work 對齊。
+> - shared workflow / queue surfaces 只保留背景脈絡，不作為本 topic current scope、
+>   status、或 completion gate 的 active authority。
 
 ## Goal / Outcome
 
-建立 `request-gate-jobexecution-get-job` 的四個 topic-local planning artifacts，凍結
-`jobExecution/jobs / get_job` 的 bounded planning contract，並在 artifact authoring 完成後停在
-`human-check`。
+- 讓 `request-gate-jobexecution-get-job` 回到可執行的 `request-shape / shape-only`
+  topic contract
+- 讓 creator 後續工作只聚焦於
+  `tests/unit/request_contract/job_execution_jobs_request_gate/**`
+- 讓 reviewer 可依本 plan 與 analysis artifacts 驗證：
+  - scope 只涵蓋 `GET /jobExecution/jobs/{jobId}` 的 request shape
+  - `src/**` 與 `tests/unit/test_job_execution_jobs_api.py` 明確維持 out of scope
+  - `tests/contracts/**` 只維持 reference-only
 
 ## Scope
 
@@ -17,43 +30,82 @@ STRICT MODE
   - `analysis/request-gate-jobexecution-get-job/technical-spec.md`
   - `plan/request-gate-jobexecution-get-job/request-gate-jobexecution-get-job.plan.md`
   - `plan/request-gate-jobexecution-get-job/request-gate-jobexecution-get-job.step.md`
+  - `tests/unit/request_contract/job_execution_jobs_request_gate/__init__.py`
+  - `tests/unit/request_contract/job_execution_jobs_request_gate/conftest.py`
+  - `tests/unit/request_contract/job_execution_jobs_request_gate/test_get_job_request_contract.py`
+  - `tests/unit/request_contract/job_execution_jobs_request_gate/fixtures/get_job.request-flow.json`
+  - `tests/unit/request_contract/job_execution_jobs_request_gate/fixtures/get_job.mock-responses.json`
 
 - **Out of scope**:
+  - `src/**`
+  - `tests/unit/test_job_execution_jobs_api.py`
+  - 把 `tests/contracts/**` 當成 primary implementation surface
   - `start_job`
   - `jobExecution/jobs/state`
   - polling / state gate
-  - `src/**`
-  - `tests/**`
   - `docs/request-shape-priority-workflow/**`
   - shared workflow board edits
-  - commit / review / publish / PR / release
+  - shared workflow contract edits
+  - package-root re-export
+  - release / push / PR actions
+  - 任何未列出的 `tests/**`
 
 ## Locked Decisions
 
-- 本 topic 是 non-stable planning topic，不影響 stable-library surfaces。
-- 本 topic 只處理 `jobExecution/jobs / get_job`；不得順手擴到 `start_job` 或
-  `jobExecution/jobs/state / get_job_state`。
-- `jobExecution/jobs/state / get_job_state` 只可作為 boundary reference，不屬於本 topic deliverable。
-- bounded write set 固定為：
-  - `analysis/request-gate-jobexecution-get-job/**`
-  - `plan/request-gate-jobexecution-get-job/**`
-- future implementation 測試目錄名稱固定為：
-  - `tests/unit/request_contract/job_execution_jobs_request_gate/`
-- future implementation 若要處理 `src/**` 或 `tests/**`，必須另開 implementation topic。
+- 本 topic 是 **request-shape / shape-only topic with no stable-library surfaces**；
+  stable-library intent 明確 absent，不需要 `## Stable library metadata`
+- primary implementation surface 鎖定為：
+  - `tests/unit/request_contract/job_execution_jobs_request_gate/__init__.py`
+  - `tests/unit/request_contract/job_execution_jobs_request_gate/conftest.py`
+  - `tests/unit/request_contract/job_execution_jobs_request_gate/test_get_job_request_contract.py`
+  - `tests/unit/request_contract/job_execution_jobs_request_gate/fixtures/get_job.request-flow.json`
+  - `tests/unit/request_contract/job_execution_jobs_request_gate/fixtures/get_job.mock-responses.json`
+- `tests/contracts/__init__.py` 與
+  `tests/contracts/test_import_contract_http_client_module_path.py`
+  只可作為 reference，不可升格為 primary gate
+- `src/**` 與 `tests/unit/test_job_execution_jobs_api.py` 明確不屬於本 topic
+- endpoint 邊界鎖定為 `jobExecution/jobs / get_job`；不得順手擴到 `start_job` 或
+  `jobExecution/jobs/state / get_job_state`
+- request contract 鎖定為：
+  - method `GET`
+  - path `/jobExecution/jobs/{jobId}`
+  - no query params
+  - no request body
+  - required header subset only `Authorization` and `Accept`
+- latest staged shape-only gate 另明確鎖定 outbound request headers：
+  - `Delegate-Domain` 不出現
+  - `Content-Type` 不出現
+- `get_job.mock-responses.json` 只作為 request-shape harness fixture，不代表 typed-response
+  gate
+- latest staged request-contract test 只保留最小 decoded-result 驗證：
+  - `result.id`
+  - `result.state`
+- staged request-contract 測試若為了讓 harness 可執行而讀取 mock response 欄位，也不代表
+  本 topic 重新承擔 typed-response behavior validation
+- shared workflow / queue surfaces 不作為本 topic active contract basis；topic contract
+  只由 topic-local artifacts 與最新 staged request-contract surface 決定
 
 ## Boundaries / Exclusions
 
-- Planning actor 只負責撰寫 topic-local analysis / plan artifacts。
-- Creator 只可在未來 implementation topic 內處理 bounded code / test work。
-- Reviewer 只負責獨立審查 planning artifacts，不在本 pass 內修改內容。
-- Main Agent 負責後續 phase routing、commit / publish / PR orchestration。
-- shared workflow board 不得作為本 topic completion gate。
-- 若後續工作漂移到未列 path，視為 plan drift，必須先回到 human decision。
+- Planning actor 在本次 pass 只負責 topic-local analysis / plan contract 修補
+- Creator 的後續工作只限於本 plan `Scope` 與 `Artifact Paths` 列出的 request-contract
+  surface
+- Reviewer 只負責獨立驗證 request-shape 與 contract alignment，不得在審查期間重開 topic
+  邊界
+- Main Agent 負責後續 routing、publish、PR、merge orchestration
+- shared workflow board 與 shared workflow contract 不得作為本 topic 的編輯目標，也不得
+  被引用成 active topic-contract basis
+- 若後續工作漂移到未列 path，視為 plan-alignment failure，必須先回到 `human-check`
 
 ## Status / Allowed Transitions
 
 - **Current**: `review-ready`
-- **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path；本 topic 本輪只完成 planning artifacts，並在 human boundary 停止，不含 release。
+- **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; this
+  topic stops at `merged` and does not declare a release action
+- **Step-tracker alignment**:
+  `plan/request-gate-jobexecution-get-job/request-gate-jobexecution-get-job.step.md` 的
+  `## Implementation Steps` 對齊 shape-only request gate；latest staged request-contract
+  surface 與本次 topic-local artifact repair 已完成，因此目前可再次送交 reviewer
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -71,48 +123,78 @@ STRICT MODE
 
 Routing notes:
 
-- 本 topic 的 creator rework 已完成，下一步只允許進入獨立 reviewer phase。
-- `human-check` 只作為本 topic 的外部 routing boundary；它不是 workflow status，也不是 allowed transition。
-- shared workflow spec-and-plan-finalization 的後續 phase 可包含 commit / review / final gate，但本文件不授權本 pass 跨越人工作業邊界。
+- `human-check` 只作為 topic 外部 stop boundary；它不是 workflow status，也不是 allowed
+  transition
+- 本次 repair pass 僅修補 4 個 topic-local artifacts；request-contract test surface 代表
+  最新 staged implementation reality，但不屬於本次 edit boundary
+- 本 topic 不建立 `review-log`；單輪 reviewer verdict 可直接透過 canonical
+  `Reviewer Handoff` JSON 路由
+- 本 topic 不宣告 round cap
 
 ## Artifact Paths
 
 | Artifact | Path | Owner | Role |
 | --- | --- | --- | --- |
-| Workflow contract | `plan/agent-handoff-workflow.md` | Planning actor | Canonical workflow lifecycle and status model reference |
-| Shared topic-plan contract | `plan/topic-plan-contract.md` | Planning actor | Canonical required sections and contract-blocking baseline |
-| Topic requirements | `analysis/request-gate-jobexecution-get-job/requirements.md` | Planning actor | Endpoint inventory, scope / non-goals, and boundary baseline |
-| Topic technical spec | `analysis/request-gate-jobexecution-get-job/technical-spec.md` | Planning actor | Execution-facing planning contract and stop rules |
-| Topic plan | `plan/request-gate-jobexecution-get-job/request-gate-jobexecution-get-job.plan.md` | Planning actor | Repo-visible execution contract for this planning topic |
-| Step tracker | `plan/request-gate-jobexecution-get-job/request-gate-jobexecution-get-job.step.md` | Planning actor | Topic-local completion gate for planning artifact authoring |
+| Topic requirements | `analysis/request-gate-jobexecution-get-job/requirements.md` | Planning actor | Business-intent guardrail and shape-only boundary baseline |
+| Topic technical spec | `analysis/request-gate-jobexecution-get-job/technical-spec.md` | Planning actor | Execution-facing source of truth for this topic |
+| Topic plan | `plan/request-gate-jobexecution-get-job/request-gate-jobexecution-get-job.plan.md` | Planning actor | Repo-visible workflow contract for this topic |
+| Topic step tracker | `plan/request-gate-jobexecution-get-job/request-gate-jobexecution-get-job.step.md` | Creator | Machine-readable completion gate for shape-only work |
+| Request gate package marker | `tests/unit/request_contract/job_execution_jobs_request_gate/__init__.py` | Creator | Package anchor for the topic-local request-contract surface |
+| Request gate harness | `tests/unit/request_contract/job_execution_jobs_request_gate/conftest.py` | Creator | Request capture and request-shape assertion harness |
+| Request gate test | `tests/unit/request_contract/job_execution_jobs_request_gate/test_get_job_request_contract.py` | Creator | Request-only gate for method, path, header subset, query, and body semantics |
+| Request-flow evidence | `tests/unit/request_contract/job_execution_jobs_request_gate/fixtures/get_job.request-flow.json` | Creator | Source-observed request evidence for direct identifier `get_job` |
+| Mock-response fixture | `tests/unit/request_contract/job_execution_jobs_request_gate/fixtures/get_job.mock-responses.json` | Creator | Harness fixture that supports request-shape execution without reopening typed-response scope |
+| Reference-only contract package | `tests/contracts/__init__.py` | Creator | Reference-only contract surface; not a primary gate in this topic |
+| Reference-only import contract | `tests/contracts/test_import_contract_http_client_module_path.py` | Creator | Reference-only precedent; not a primary gate in this topic |
 
 Artifact path notes:
 
-- `README.md`：no change
-- `VERSION`：no change
-- `.github/copilot-instructions.md`：no change
-- `docs/request-shape-priority-workflow/**`：no change
-- `src/**`：no change
-- `tests/**`：no change
-- 若出現未列路徑的變更，視為 plan-alignment problem，必須先停止並回到 human-check。
+- `README.md`: no change in this topic
+- `VERSION`: no change in this topic
+- `.github/copilot-instructions.md`: no change in this topic
+- `src/**`: out of scope for this topic
+- `tests/unit/test_job_execution_jobs_api.py`: out of scope for this topic
+- `docs/request-shape-priority-workflow/**`: no change in this topic
+- 若出現未列路徑的變更，視為 plan-alignment problem，必須先停止並回到 `human-check`
 
 ## Implementation Steps
 
-1. 建立 `analysis/request-gate-jobexecution-get-job/requirements.md`，完成 endpoint inventory、scope、non-goals、boundary、與 human-check 規則。
-2. 建立 `analysis/request-gate-jobexecution-get-job/technical-spec.md`，完成 request contract draft、risk、stop flags、allowed file scope、與 deferred work。
-3. 建立 `plan/request-gate-jobexecution-get-job/request-gate-jobexecution-get-job.plan.md`，完成 canonical workflow contract、locked decisions、artifact paths、與 reviewer handoff JSON。
-4. 建立 `plan/request-gate-jobexecution-get-job/request-gate-jobexecution-get-job.step.md`，並與本 plan 的 implementation steps 對齊。
-5. 驗證四個 artifacts 只落在 bounded write set，且本 topic 明確停在 `human-check`。
+1. 將 `tests/unit/request_contract/job_execution_jobs_request_gate/` 維持為唯一 primary
+   implementation surface，只驗證 `GET /jobExecution/jobs/{jobId}` 的 method、path、
+   required header subset、query、與 body semantics，並保留 `Delegate-Domain` /
+   `Content-Type` 不出現在 outbound request headers 的 negative shape constraints
+2. 維持
+   `tests/unit/request_contract/job_execution_jobs_request_gate/fixtures/get_job.request-flow.json`
+   與 `get_job.mock-responses.json` 為 request-shape evidence / harness fixture；只保留
+   `result.id` / `result.state` 的最小 decoded-result 驗證，不擴張為 typed-response gate
+3. 維持 topic-local analysis / plan artifacts 與 shape-only scope 一致，明確把 `src/**`、
+   `tests/unit/test_job_execution_jobs_api.py`、與 `tests/contracts/**` primary gate 排除在外
+4. 驗證本 topic 未重開 `start_job`、`get_job_state`、polling/state gate、shared workflow
+   board、shared workflow contract、或其他未列出的路徑
 
 ## Validation / Acceptance Checks
 
-- 四個 topic-local artifacts 全部存在。
-- `requirements.md` 包含 endpoint inventory、bounded write set、與 `jobExecution/jobs/state` 邊界。
-- `technical-spec.md` 包含 `GET /jobExecution/jobs/{jobId}` request contract draft、risk、stop flags、與 forbidden paths。
-- `request-gate-jobexecution-get-job.plan.md` 使用 canonical required sections，且未加入 `Stable library metadata`。
-- `request-gate-jobexecution-get-job.step.md` 只承擔 topic-local completion gate，不接管 shared workflow board，且 `## Implementation Steps` 勾選狀態與本 plan 的 `Current` 對齊。
-- topic 內未建立 `spec.md`。
-- topic 內未修改 `src/**`、`tests/**`、或 `docs/request-shape-priority-workflow/**`。
+- `analysis/request-gate-jobexecution-get-job/requirements.md` 與
+  `analysis/request-gate-jobexecution-get-job/technical-spec.md` 明確宣告 shape-only mode
+- `request-gate-jobexecution-get-job.plan.md` 使用 canonical required sections，且未加入
+  `Stable library metadata`
+- `request-gate-jobexecution-get-job.step.md` 的 `## Implementation Steps` 與本 plan 一一對齊，
+  且完成標記反映 latest staged shape-only reality，而非過時的 pending 狀態
+- `tests/unit/request_contract/job_execution_jobs_request_gate/` 仍是唯一 primary
+  implementation surface
+- topic-local artifacts 明確寫出 latest staged gate 已包含：
+  - `Delegate-Domain` / `Content-Type` 不出現在 outbound request headers
+  - `result.id` / `result.state` 的最小 decoded-result 驗證
+- `tests/contracts/__init__.py` 與
+  `tests/contracts/test_import_contract_http_client_module_path.py`
+  只被宣告為 reference-only
+- `src/**` 與 `tests/unit/test_job_execution_jobs_api.py` 在所有 topic-local artifacts 中均為
+  out of scope
+- topic-local artifacts 明確寫出：本 topic 不以 typed-response behavior 作為驗收範圍或
+  completion gate
+- shared workflow / queue surfaces 未被用作本 topic 的 active acceptance basis
+- topic 內未把 scope 擴到 `start_job`、`jobExecution/jobs/state`、polling/state gate、
+  shared workflow board、shared workflow contract、或未列出的路徑
 
 ## Reviewer Handoff
 
@@ -130,9 +212,11 @@ Artifact path notes:
 
 ## Post-merge / release actions
 
-- 本 topic 不含 stable-library surface 變更，不需要 VERSION bump、README 更新、release notes、或 release timing 動作。
-- 本 topic 的自動流程邊界停在 `human-check`；本 pass 不執行 commit、publish、PR、或 merge。
+- 本 topic merge 後不需要 README 更新、VERSION bump、release notes、或 repository
+  release action
+- push / PR / merge orchestration 仍屬 Main Agent 工作，不屬於本 topic-local repair pass
+- 本 topic 在 `merged` 時即為 terminal
 
 ## Open Questions / Unresolved Items
 
-- 若後續 implementation topic 要求 direct source file evidence 取代 swagger / markdown evidence，是否需先補 legacy `utils/_api/job_execution.py` 的 provenance，待 human reviewer 決定。
+- None
