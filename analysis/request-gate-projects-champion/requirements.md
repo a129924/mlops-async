@@ -63,9 +63,9 @@ Ownership model：
      - `docs/api-endpoints/swagger-spec/projects-spec.yaml`
      - `docs/api-endpoints/swagger-spec/openapi-complete.yaml`
      - `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md`
-     - `<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/utils/_api/project.py`
-     - `<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/api/sas/project/api.py`
-     - `<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/schema/sas_viya/project/champion.py`
+     - `sas-api/src/sas_api/utils/_api/project.py`
+     - `sas-api/src/sas_api/api/sas/project/api.py`
+     - `sas-api/src/sas_api/schema/sas_viya/project/champion.py`
    - Evidence signal: technical-spec 內有 endpoint inventory、request contract draft、legacy call chain、與 schema presence 說明
    - Failure meaning: 若 planning 仍需依賴口頭記憶或未落地 evidence，後續 reviewer 無法判斷 contract 是否完整
 
@@ -88,7 +88,7 @@ Ownership model：
    - Metric / decision rule: 後續 execution topic 只能直接沿用下列已凍結 evidence：
      - method: `GET`
      - path shape: `/modelRepository/projects/{projectId}/champion`
-     - request construction source: `get_project_by_name(...)` -> `get_champion_model_url(project_item.id)` -> `fetch_champion_model(...)`
+     - request construction source: `get_champion_model(...)` -> `get_project_by_name(...)` -> `get_champion_model_url(user_response.data)` -> `fetch_champion_model(...)`
      - transport call: `async_web_session.get(url=champion_model_url, headers=headers)`
    - Evidence signal: plan 與 technical-spec 一致把 request evidence 標為 legacy-source-confirmed，且不擴張到 response / error contract
    - Failure meaning: 若 execution 需要額外推斷未凍結 semantics，request gate 會再次混入 topic 外假設
@@ -104,10 +104,10 @@ Ownership model：
 6. **Reviewer-first workflow boundary**
    - Actor: workflow router / downstream planner
    - Condition: 本輪 planning artifacts 建立或 bounded rework commit 完成後
-   - Required outcome: 先以 reviewer flow 作為外部前置 gate；若 reviewer 提出 blocking feedback，creator 在同 topic 內完成 bounded fix，之後由 planner final gate 決定是否交 human check
+   - Required outcome: 先以 reviewer flow 作為外部前置 gate；若 reviewer 提出 blocking feedback，creator 在同 topic 內完成 bounded fix，fix 完成後回到 reviewer acceptance，只有 reviewer 接受後才進入 planner final gate 與 human check
    - Metric / decision rule: step tracker 只表達 creator-owned completion gate，不承擔 reviewer、planner final gate、或 human-check 狀態
-   - Evidence signal: requirements、technical-spec、plan、step 一致宣告 reviewer review 已完成且本輪 creator rework 完成後的下一個外部 gate 是 planner final gate；且 `step.md` 只保留 creator completion gate
-   - Failure meaning: 若 artifacts 仍把本輪 creator rework commit 直接視為 human-check 終點，workflow phase 會與實際路由衝突
+   - Evidence signal: requirements、technical-spec、plan、step 一致宣告本輪 creator rework 完成後的下一個外部 gate 是 reviewer acceptance；且 `step.md` 只保留 creator completion gate
+   - Failure meaning: 若 artifacts 仍把本輪 draft 誤標成 `approved` 或直接視為 human-check 終點，workflow phase 會與實際路由衝突
 
 ## Contradictions surfaced and resolved
 

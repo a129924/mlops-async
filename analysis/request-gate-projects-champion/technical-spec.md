@@ -34,14 +34,14 @@ workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
   - 記錄使用場景為先取得 `projectId` 再查 champion model
 - `docs/api-endpoints/markdown-reference/SASCTL_ALIGNMENT.md`
   - 明確標示 `sasctl` 沒有直接取得 Champion Model 的方法，需保留 direct REST endpoint
-- human-provided legacy source：`<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/utils/_api/project.py`
+- human-provided legacy source：`sas-api/src/sas_api/utils/_api/project.py`
   - `get_champion_model_url`（line 76-77）回傳 `f"{BASE_PROJECT_URL}/{project_item.id}/champion"`
   - `fetch_champion_model`（line 80-92）執行 `async_web_session.get(url=champion_model_url, headers=headers)`
-- human-provided legacy source：`<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/api/sas/project/api.py`
+- human-provided legacy source：`sas-api/src/sas_api/api/sas/project/api.py`
   - `get_champion_model`（line 169-184）先呼叫 `get_project_by_name(...)`
   - 再以 `get_champion_model_url(user_response.data)` 組出 champion endpoint
   - 接著呼叫 `fetch_champion_model(...)`
-- human-provided legacy source：`<LOCAL_LEGACY_SERVICE_CODE_PATH>/src/sas_api/schema/sas_viya/project/champion.py`
+- human-provided legacy source：`sas-api/src/sas_api/schema/sas_viya/project/champion.py`
   - 存在 champion response 相關模型，證明上游 schema surface 已 materialize
 
 因此本 topic 的 request evidence 已可凍結到 legacy-source-confirmed；execution/TDD 仍維持 out-of-scope，response / error contract 也不在本 topic 內擴寫。
@@ -74,7 +74,7 @@ workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 | Upstream alignment | `sasctl` 無 direct champion getter | execution 不得假設有 upstream facade 可直接沿用 |
 | Legacy URL helper | `get_champion_model_url(project_item)` 回傳 `"{BASE_PROJECT_URL}/{project_item.id}/champion"` | path shape 與 `project_item.id` 來源已 source-confirmed |
 | Legacy transport | `fetch_champion_model(...)` 執行 `async_web_session.get(url=champion_model_url, headers=headers)` | method 為 `GET`，且 request body 為空 |
-| Legacy call chain | `get_champion_model(...)` 先 `get_project_by_name(...)`，再 `get_champion_model_url(user_response.data)`，最後 `fetch_champion_model(...)` | `projectId` 前提與 request construction chain 已 source-confirmed |
+| Legacy call chain | `get_champion_model(...)` -> `get_project_by_name(...)` -> `get_champion_model_url(user_response.data)` -> `fetch_champion_model(...)` | `projectId` 前提與 request construction chain 已 source-confirmed |
 | Legacy schema surface | `schema/sas_viya/project/champion.py` 存在 champion response 相關模型 | 上游存在對應 response schema，但本 topic 不擴張 response contract |
 
 ## Request contract draft
@@ -88,7 +88,7 @@ workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 | Required headers | `Authorization`, `Accept` |
 | Query semantics | 無 repo-visible required query params |
 | Body shape | no body |
-| Request construction source | `get_project_by_name(...)` -> `get_champion_model_url(user_response.data)` -> `fetch_champion_model(...)` |
+| Request construction source | `get_champion_model(...)` -> `get_project_by_name(...)` -> `get_champion_model_url(user_response.data)` -> `fetch_champion_model(...)` |
 | Transport call | `async_web_session.get(url=champion_model_url, headers=headers)` |
 | Usage precondition | `projectId` 需由既有流程先取得；本 topic 只凍結此前提，不負責該流程 |
 | Evidence status | docs-confirmed / legacy-source-confirmed |
@@ -135,10 +135,11 @@ workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 3. 建立 draft topic commit
 4. 進入 reviewer flow
 5. reviewer 若指出 workflow-state blocking issue，由 creator 在同 topic 內做 bounded fix
-6. creator fix 完成後交由 planner final gate
-7. planner final gate 完成後才進入 human check
+6. creator fix 完成後回到 reviewer acceptance
+7. reviewer 接受後才交由 planner final gate
+8. planner final gate 完成後才進入 human check
 
-`request-gate-projects-champion.step.md` 只覆蓋 creator-owned artifact authoring 與 bounded rework completion gate，不表示 reviewer resubmission，也不表示第 4-7 步的 workflow state。
+`request-gate-projects-champion.step.md` 只覆蓋 creator-owned artifact authoring 與 bounded rework completion gate，不表示 reviewer acceptance，也不表示第 4-8 步的 workflow state。
 
 ## Planner-ready handoff
 
@@ -148,7 +149,7 @@ workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
 - queue precedence 與 bounded topic 位置
 - method / path / required header subset
 - `project_item.id` 經 `get_champion_model_url(...)` 組成 `/modelRepository/projects/{projectId}/champion`
-- 上層 request construction chain：`get_project_by_name(...)` -> `get_champion_model_url(...)` -> `fetch_champion_model(...)`
+- 上層 request construction chain：`get_champion_model(...)` -> `get_project_by_name(...)` -> `get_champion_model_url(user_response.data)` -> `fetch_champion_model(...)`
 - transport call：`async_web_session.get(url=champion_model_url, headers=headers)`
 - `sasctl` 無 direct champion getter
 - champion response schema surface 已在 legacy source materialize
@@ -172,7 +173,7 @@ workflow handoff，同時避免把 scope 擴到 `projects` family 其他 API。
    - topic 只處理 `modelRepository/projects/champion` / `get_champion_model`
    - planning evidence 已同步 docs surfaces 與 human-provided legacy request evidence
    - request evidence 至少凍結 method、path shape、request construction source、與 transport call
-   - reviewer flow 先於 planner final gate，且 planner final gate 先於 human check
+   - 本輪 creator rework 完成後先回到 reviewer acceptance；只有 reviewer 接受後才進入 planner final gate，且 planner final gate 先於 human check
    - 本輪不得修改 `src/**`、`tests/unit/request_contract/projects_request_gate/**`、`docs/request-shape-priority-workflow/**`
 3. plan 的 `Artifact Paths` 僅列四個允許落地的 topic-local files。
 4. step tracker 的 `## Implementation Steps` 只追蹤本輪 creator-owned planning / rework work，不混入 reviewer、planner final gate、human-check、或 implementation tasks。
