@@ -81,17 +81,17 @@ API 級順序與建議注入內容以 `docs/request-shape-priority-workflow/chec
 
 ### Blocked policy
 
-下列 surface 在沒有新的人類決策前維持 `BLOCKED`：
+Blocked surfaces remain `BLOCKED` until a new human decision is recorded:
 
 - `modelRepository/projects -> tables-link surface`
-- `jobExecution/jobs/state`
 
-不得自動：
+Do not automatically:
 
-- 解鎖 blocked surface
-- 改寫 `modelRepository/projects -> tables-link surface` 的 HATEOAS / fixed-path 策略
-- 自行決定 `jobExecution/jobs/state` 的 polling / state gate 邊界
-- 把 blocked surface 併回一般 ready queue
+- unlock a blocked surface
+- rewrite the HATEOAS / fixed-path strategy for `modelRepository/projects -> tables-link surface`
+- expand `jobExecution/jobs/state` from its bounded request-only / shape-only lane into a polling / state-machine gate
+- treat the completed `jobExecution/jobs/state` request gate as permission to redefine broader polling semantics
+- move a blocked surface back into the general ready queue
 
 下列 surface 必須保留為 `OUT-OF-SCOPE`，除非人類重新定義 workflow 範圍：
 
@@ -156,7 +156,7 @@ request-shape 主測試面固定為：
 - session-entry docs 缺件
 - `surface + API` queue 被要求跳步
 - `modelRepository/projects -> tables-link surface` 被要求在無人工決策下直接推進
-- `jobExecution/jobs/state` 被要求在無人工決策下直接推進
+- `jobExecution/jobs/state` is expanded into polling / state-machine workflow without a new human decision
 - `tests/contracts` 被要求升格成主 request-shape surface
 - `checklist.md` 被要求改成 topic-local gate
 - 工作漂移到 `src/**`、request-contract tests 內容、或 release surface

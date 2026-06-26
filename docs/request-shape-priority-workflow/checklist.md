@@ -42,7 +42,7 @@
 | `[BLOCKED]` | `modelRepository/projects -> tables-link surface` | `list_tables` | `07` | 不得自動注入；需先人工決策 HATEOAS link resolution / fixed-path 替代策略 | 與 CAS tables 不是同一 surface |
 | `[X]` | `jobExecution/jobRequests/jobs` | `start_job` | `08` | 先凍結 `jobRequestId -> POST jobs` 的 request shape，不預設輪詢策略 | request-only gate 已存在 |
 | `[X]` | `jobExecution/jobs` | `get_job` | `09` | 聚焦單次 GET job detail shape，不混入 state polling contract | request-only gate 已存在 |
-| `[BLOCKED]` | `jobExecution/jobs/state` | `get_job_state` | `10` | 需先人工決策 polling / state gate 是否納入同 workflow | 輕量 state polling 與一般 detail surface 分離 |
+| `[X]` | `jobExecution/jobs/state` | `get_job_state` | `10` | bounded request-only / shape-only gate completed; do not auto-expand this row into polling / state-machine workflow | state request gate landed; broader polling semantics remain separate from the detail surface |
 | `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `list_tables` | `--` | 不注入到目前 queue | concrete CAS tables surface；不是 `modelRepository` HATEOAS tables |
 | `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `get_table` | `--` | 不注入到目前 queue | concrete CAS tables surface；不是 `modelRepository` HATEOAS tables |
 | `[OUT-OF-SCOPE]` | `casManagement/caslibs/tables/state` | `change_table_state` | `--` | 不注入到目前 queue | mutation surface，不屬目前 request-shape priority workflow |
