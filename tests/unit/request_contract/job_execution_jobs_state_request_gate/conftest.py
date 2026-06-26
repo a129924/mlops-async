@@ -32,15 +32,12 @@ TOPIC_PACKAGE_DIR = Path(__file__).resolve().parent
 
 
 def _is_topic_scoped_pytest_run(config: pytest.Config) -> bool:
-    requested_args = tuple(config.invocation_params.args)
-    if not requested_args:
+    requested_targets = tuple(str(arg) for arg in config.args)
+    if not requested_targets:
         return False
 
-    for raw_arg in requested_args:
-        if raw_arg.startswith('-'):
-            continue
-
-        candidate = Path(raw_arg)
+    for raw_target in requested_targets:
+        candidate = Path(raw_target)
         if not candidate.is_absolute():
             candidate = (config.rootpath / candidate).resolve()
         else:

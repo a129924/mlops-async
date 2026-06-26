@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from tests.unit.request_contract.contract_case import (
@@ -12,7 +14,9 @@ from tests.unit.request_contract.contract_case import (
 )
 from tests.unit.request_contract.job_execution_jobs_state_request_gate.conftest import (
     GET_JOB_STATE_ACCEPT_HEADER,
+    TOPIC_PACKAGE_DIR,
     JobExecutionStateContractHarness,
+    _is_topic_scoped_pytest_run,
 )
 
 FIXTURE_ROOT = "tests/unit/request_contract/job_execution_jobs_state_request_gate/fixtures"
@@ -119,3 +123,18 @@ async def test_get_job_state_interceptor_fails_fast_on_unregistered_request(
 
     with pytest.raises(AssertionError, match="Unexpected outbound request"):
         await job_execution_state_contract.run(mismatched_case)
+
+def test_topic_scoped_pytest_run_detects_topic_target_after_option_parsing() -> None:
+    config = SimpleNamespace(
+        args=["tests/unit/request_contract/job_execution_jobs_state_request_gate"],
+        rootpath=TOPIC_PACKAGE_DIR.parents[3],
+    )
+
+    assert _is_topic_scoped_pytest_run(config) is True
+
+
+def test_topic_scoped_pytest_run_rejects_full_suite_collection_target() -> None:
+    config = SimpleNamespace(args=["tests"], rootpath=TOPIC_PACKAGE_DIR.parents[3])
+
+    assert _is_topic_scoped_pytest_run(config) is False
+
