@@ -1,0 +1,40 @@
+{
+  "source": {
+    "sdk": "implementation-facing draft",
+    "function": "list_tables",
+    "contract_status": "implementation-facing draft",
+    "classification": "fixed-path MVP",
+    "divergence_label": "intentionally_changed"
+  },
+  "cases": {
+    "direct_project_identifier": {
+      "capture_run_id": "list-tables-fixed-path-direct-project-identifier",
+      "comparison_scope": "target-api-only",
+      "full_observed_flow": [
+        {
+          "purpose": "target-api",
+          "request": {
+            "method": "GET",
+            "path": "/modelRepository/projects/project-id-abc-123/tables",
+            "required_header_subset": {},
+            "query": {},
+            "body": null
+          }
+        }
+      ]
+    }
+  },
+  "assertion_layer": "implementation-facing-fixed-path-request-shape",
+  "reviewer_boundary": {
+    "claims": [
+      "fixed-path MVP request-shape only"
+    ],
+    "does_not_prove": [
+      "HATEOAS endpoint discovery",
+      "project pre-fetch behavior",
+      "response schema",
+      "real transport proof",
+      "target runtime behavior proof"
+    ]
+  }
+}
