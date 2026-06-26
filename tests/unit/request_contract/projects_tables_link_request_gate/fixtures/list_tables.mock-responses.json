@@ -1,0 +1,26 @@
+{
+  "cases": {
+    "direct_project_identifier": {
+      "capture_run_id": "list-tables-fixed-path-direct-project-identifier",
+      "responses": [
+        {
+          "match": {
+            "method": "GET",
+            "path": "/modelRepository/projects/project-id-abc-123/tables",
+            "query": {},
+            "body": null
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "json_body": {
+              "items": []
+            }
+          }
+        }
+      ]
+    }
+  }
+}
