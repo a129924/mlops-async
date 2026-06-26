@@ -111,7 +111,6 @@ baseline，供未來 implementation topic 使用。
   - path `/modelRepository/projects/project-id-abc-123/tables`
   - query `{}`
   - body `null`
-  - path_params `{ "project_id": "project-id-abc-123" }`
 
 ### Mock-response fixture
 

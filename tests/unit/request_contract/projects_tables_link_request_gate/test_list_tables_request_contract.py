@@ -90,6 +90,41 @@ def test_list_tables_blocks_blank_project_id_variants(
         projects_tables_link_contract.client.list_tables(project_id)
 
 
+def test_list_tables_percent_encodes_reserved_project_id_characters(
+    projects_tables_link_contract: ProjectsTablesLinkContractHarness,
+) -> None:
+    reserved_project_id = "project/id?draft=yes"
+    encoded_project_id = "project%2Fid%3Fdraft%3Dyes"
+
+    case_list_tables_reserved_project_identifier = EndpointContractCase(
+        name="model_repository_projects_tables_link.list_tables.percent_encoded_project_identifier",
+        invoke=lambda: projects_tables_link_contract.client.list_tables(reserved_project_id),
+        expected=RequestShape(
+            method="GET",
+            path=f"/modelRepository/projects/{encoded_project_id}/tables",
+            query={},
+            body=None,
+            required_headers={},
+        ),
+        response=FakeResponse(
+            status_code=200,
+            json_body={"items": []},
+            headers={"Content-Type": "application/json"},
+        ),
+        source_observed=None,
+    )
+
+    result = projects_tables_link_contract.run(case_list_tables_reserved_project_identifier)
+
+    assert getattr(result, "items", None) == []
+    assert projects_tables_link_contract.last_request is not None
+    assert (
+        projects_tables_link_contract.last_request["path"]
+        == f"/modelRepository/projects/{encoded_project_id}/tables"
+    )
+    assert projects_tables_link_contract.last_request["query"] == {}
+
+
 def test_list_tables_interceptor_fails_fast_on_unregistered_request(
     projects_tables_link_contract: ProjectsTablesLinkContractHarness,
 ) -> None:

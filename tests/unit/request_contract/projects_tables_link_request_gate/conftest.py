@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 
 import pytest
 import requests
@@ -237,9 +237,10 @@ class ProjectsTablesLinkClient:
 
     def list_tables(self, project_id: object) -> object:
         normalized_project_id = _normalize_project_id(project_id)
+        encoded_project_id = quote(normalized_project_id, safe="")
         response = self._session.request(
             "GET",
-            f"{BASE_URL}/modelRepository/projects/{normalized_project_id}/tables",
+            f"{BASE_URL}/modelRepository/projects/{encoded_project_id}/tables",
             headers={"Authorization": f"Bearer {DUMMY_TOKEN}"},
         )
         if not response.content:

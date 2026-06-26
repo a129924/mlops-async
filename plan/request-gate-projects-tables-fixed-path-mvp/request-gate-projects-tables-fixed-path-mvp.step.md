@@ -1,4 +1,4 @@
-﻿# Request-Gate Projects Tables Fixed-Path MVP Workflow Steps
+# Request-Gate Projects Tables Fixed-Path MVP Workflow Steps
 
 本 step tracker 只追蹤這個 topic 的 implementation completion gate。
 目前 implementation 與 bounded validation 已完成，所以所有 steps 均標記為 `[X]`。
