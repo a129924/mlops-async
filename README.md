@@ -8,6 +8,16 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.7**, the repository closes `PR #35`: the repo now includes the
+`jobExecution/jobs/{jobId}/state` (`get_job_state`) bounded request-only /
+shape-only request gate, while the broader polling / state-machine workflow
+remains intentionally separated from this release surface.
+
+v0.11.7 補齊 `PR #35` 的 final release：
+repo 現已納入 `jobExecution/jobs/{jobId}/state` (`get_job_state`) 的 bounded
+request-only / shape-only request gate；較大的 polling / state-machine
+workflow 仍維持為獨立邊界，不併入本次 release surface。
+
 As of **v0.11.6**, the repository closes `PR #34`: the repo now includes the
 request-only / shape-only request gate for
 `modelRepository/models/content` (`get_model_content`), and the shared
