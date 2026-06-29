@@ -8,6 +8,17 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.8**, the repository closes `PR #36`: the repo now includes the
+fixed-path MVP request gate for
+`modelRepository/projects/{project_id}/tables` (`list_tables`), with the
+intentional divergence from upstream HATEOAS link following kept explicit and
+outside this release surface.
+
+v0.11.8 補齊 `PR #36` 的 final release：repo 現在納入
+`modelRepository/projects/{project_id}/tables` (`list_tables`) 的 fixed-path
+MVP request gate，並明確保留與 upstream HATEOAS link-following 行為的
+intentional divergence；該差異不在本次 release surface 內回補。
+
 As of **v0.11.7**, the repository closes `PR #35`: the repo now includes the
 `jobExecution/jobs/{jobId}/state` (`get_job_state`) bounded request-only /
 shape-only request gate, while the broader polling / state-machine workflow
