@@ -39,7 +39,7 @@
 | `[X]` | `modelRepository/projects` | `list_projects` | `04` | 沿用 models oracle，聚焦 `bare_get` / `limit_1000` | request-only gate 已存在 |
 | `[X]` | `modelRepository/projects` | `get_project` | `05` | 注入 `direct_identifier` branch 與 blocked variants | request-only gate 已存在 |
 | `[X]` | `modelRepository/projects/champion` | `get_champion_model` | `06` | 注入 project identifier -> champion model 取回語意，避免混入 files payload 驗證 | request-only gate 已存在 |
-| `[BLOCKED]` | `modelRepository/projects -> tables-link surface` | `list_tables` | `07` | 不得自動注入；需先人工決策 HATEOAS link resolution / fixed-path 替代策略 | 與 CAS tables 不是同一 surface |
+| `[X]` | `modelRepository/projects -> tables-link surface` | `list_tables` | `07` | 注入 fixed-path MVP gate：`GET /modelRepository/projects/{project_id}/tables`，避免混回 HATEOAS-only blocker | fixed-path MVP request-only gate 已存在；與 CAS tables 仍是不同 surface |
 | `[X]` | `jobExecution/jobRequests/jobs` | `start_job` | `08` | 先凍結 `jobRequestId -> POST jobs` 的 request shape，不預設輪詢策略 | request-only gate 已存在 |
 | `[X]` | `jobExecution/jobs` | `get_job` | `09` | 聚焦單次 GET job detail shape，不混入 state polling contract | request-only gate 已存在 |
 | `[X]` | `jobExecution/jobs/state` | `get_job_state` | `10` | bounded request-only / shape-only gate completed; do not auto-expand this row into polling / state-machine workflow | state request gate landed; broader polling semantics remain separate from the detail surface |
@@ -52,6 +52,7 @@
 ## Board usage rules
 
 - 若多個 session 同時工作，應以本 board 作為共享排序與接口狀態來源
+- 本 board 必須與 merged repo truth 對齊，不得保留過期的 pending / blocked 狀態
 - 若人類要指定下一個實作接口，可直接點名 `surface + API`
 - 若 session 只需要決定注入內容，應優先使用 `Injection hint`
 - `tables` 一詞不得單獨拿來排隊；必須先指明是 `modelRepository/projects -> tables-link surface` 或 `casManagement/.../tables`
@@ -61,7 +62,7 @@
 
 以下情況直接停在 `human-check`：
 
-- `modelRepository/projects -> tables-link surface` 要求解鎖
+- 已完成的 `modelRepository/projects -> tables-link surface / list_tables` 被要求改回未解鎖狀態
 - surface / API queue 被要求改序
 - `tests/contracts` 被要求升格成主 request-shape surface
 - 需要重開已凍結的 path / contract / architecture decision

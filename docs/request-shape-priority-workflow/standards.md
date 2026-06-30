@@ -8,7 +8,7 @@
 
 - session-entry 後的 artifact precedence
 - `surface + API` 實作順序
-- blocked surface policy
+- current-truth 與 blocked surface policy
 - `checklist.md` 與 `*.step.md` 的責任分界
 - request-shape 主測試面
 
@@ -79,19 +79,26 @@ API 級順序與建議注入內容以 `docs/request-shape-priority-workflow/chec
 - 若前一列仍未完成、仍 blocked、或仍待人工決策，不得任意跳到下一列
 - 若需要把 queue 切得更細，應在 board 新增 API 列，而不是繞過既有順序
 
-### Blocked policy
+### Current-truth and blocked policy
 
-Blocked surfaces remain `BLOCKED` until a new human decision is recorded:
+shared board 必須反映 merged repo truth，不得把已合併的 request-gate 實作保留在過期的
+`[ ]` 或 `[BLOCKED]` 狀態。
 
-- `modelRepository/projects -> tables-link surface`
+目前 queue 內沒有 active blocked surface。
+
+- `modelRepository/projects -> tables-link surface / list_tables`
+  已在 `request-gate-projects-tables-fixed-path-mvp` topic 以 fixed-path MVP 完成，
+  shared board 應視為 completed gate。
+- `modelRepository/projects -> tables-link surface` 與 `casManagement/.../tables`
+  仍然是不同 surface；承認前者已完成，不代表後者進入 queue。
+- 先前的 HATEOAS / fixed-path 分歧屬於已記錄並已落地的歷史決策，不再是 current blocker。
 
 Do not automatically:
 
-- unlock a blocked surface
-- rewrite the HATEOAS / fixed-path strategy for `modelRepository/projects -> tables-link surface`
+- rewrite the completed `modelRepository/projects -> tables-link surface / list_tables`
+  gate back into a HATEOAS-only blocker
 - expand `jobExecution/jobs/state` from its bounded request-only / shape-only lane into a polling / state-machine gate
 - treat the completed `jobExecution/jobs/state` request gate as permission to redefine broader polling semantics
-- move a blocked surface back into the general ready queue
 
 下列 surface 必須保留為 `OUT-OF-SCOPE`，除非人類重新定義 workflow 範圍：
 
@@ -113,6 +120,7 @@ Do not automatically:
 - shared `checklist.md` 中的 resume checklist 不得直接打勾
 - 若 session 需要勾選，必須先複製到自己的 topic-local artifact
 - implementation board 是共享真值表面，可用來表示 `surface + API` 的進度與注入 hint
+- implementation board 的狀態必須與 merged repo truth 對齊，不得保留過期 queue 狀態
 
 ### `*.step.md`
 
@@ -155,7 +163,7 @@ request-shape 主測試面固定為：
 
 - session-entry docs 缺件
 - `surface + API` queue 被要求跳步
-- `modelRepository/projects -> tables-link surface` 被要求在無人工決策下直接推進
+- 已完成的 `modelRepository/projects -> tables-link surface / list_tables` 被要求重新降回 `BLOCKED`
 - `jobExecution/jobs/state` is expanded into polling / state-machine workflow without a new human decision
 - `tests/contracts` 被要求升格成主 request-shape surface
 - `checklist.md` 被要求改成 topic-local gate

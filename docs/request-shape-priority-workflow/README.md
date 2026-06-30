@@ -9,6 +9,9 @@
 本 topic 的目的是把 request-shape 工作從「邊抓 shape、邊改流程、邊等 review」的混合模式，
 收斂成可排序、可注入、可 review、可停住的固定 workflow。
 
+本目錄中的 shared workflow docs 必須反映 repo 的 merged truth。
+已合併的 request-gate 實作不得繼續留在過期的 `[ ]` 或 `[BLOCKED]` board 狀態。
+
 ## Required entry order
 
 新 session 的固定進場順序如下：
@@ -24,7 +27,7 @@
 - `docs/request-shape-priority-workflow/README.md`
   - 第一入口，說明此 topic 的讀取順序、artifact hierarchy 與回讀規則。
 - `docs/request-shape-priority-workflow/standards.md`
-  - request-shape `surface + API` 的實作標準、blocked policy、與 artifact 責任分界。
+  - request-shape `surface + API` 的實作標準、current-truth policy、與 artifact 責任分界。
 - `docs/request-shape-priority-workflow/checklist.md`
   - session resume checklist template 與全域 surface/API implementation board。
 
