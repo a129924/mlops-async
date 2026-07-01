@@ -1,0 +1,31 @@
+{
+  "cases": {
+    "loaded_direct_identifiers": {
+      "capture_run_id": "casmanagement-change-table-state-loaded-direct-identifiers",
+      "responses": [
+        {
+          "match": {
+            "method": "PUT",
+            "path": "/casManagement/servers/cas-shared-default/caslibs/CASUSER/tables/SCORING_INPUT/state",
+            "query": {
+              "value": "loaded"
+            },
+            "body": {
+              "outputCaslibName": "CASUSER",
+              "outputTableName": "SCORING_INPUT"
+            }
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "json_body": {
+              "state": "loaded"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
