@@ -1,0 +1,45 @@
+{
+  "source": {
+    "sdk": "source-observed draft",
+    "function": "list_tables",
+    "contract_status": "tests-only request gate",
+    "classification": "strict-limit-start",
+    "divergence_label": "shape-only"
+  },
+  "cases": {
+    "limit_1000_start_0": {
+      "capture_run_id": "casmanagement-list-tables-limit-1000-start-0",
+      "comparison_scope": "target-api-only",
+      "full_observed_flow": [
+        {
+          "purpose": "target-api",
+          "request": {
+            "method": "GET",
+            "path": "/casManagement/dataSources/cas~fs~cas-shared-default~fs~CASUSER/tables",
+            "required_header_subset": {
+              "Authorization": "Bearer fake-token",
+              "Accept": "application/json"
+            },
+            "query": {
+              "limit": "1000",
+              "start": "0"
+            },
+            "body": null
+          }
+        }
+      ]
+    }
+  },
+  "assertion_layer": "tests-only-request-shape",
+  "reviewer_boundary": {
+    "claims": [
+      "single request-shape baseline only"
+    ],
+    "does_not_prove": [
+      "runtime CAS table listing behavior",
+      "response schema",
+      "pagination semantics beyond strict baseline",
+      "real transport proof"
+    ]
+  }
+}

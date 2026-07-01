@@ -1,0 +1,29 @@
+{
+  "cases": {
+    "limit_1000_start_0": {
+      "capture_run_id": "casmanagement-list-tables-limit-1000-start-0",
+      "responses": [
+        {
+          "match": {
+            "method": "GET",
+            "path": "/casManagement/dataSources/cas~fs~cas-shared-default~fs~CASUSER/tables",
+            "query": {
+              "limit": "1000",
+              "start": "0"
+            },
+            "body": null
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "json_body": {
+              "items": []
+            }
+          }
+        }
+      ]
+    }
+  }
+}
