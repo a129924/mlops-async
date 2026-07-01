@@ -8,6 +8,20 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.12**, the repository closes the
+`request-gate-casmanagement-get-table` release follow-up: the repo now
+includes the bounded request-only / shape-only request gate for
+`GET /casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables/{tableName}`
+(`get_table`) with the direct `{caslib} + {tableName}` baseline, while query
+params, request-body drift, `change_table_state`, and runtime CAS wiring remain
+intentionally outside this release surface.
+
+v0.11.12 補齊 `request-gate-casmanagement-get-table` 的 final release：repo 現已納入
+`GET /casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables/{tableName}`
+(`get_table`) 的 bounded request-only / shape-only request gate，正向 baseline
+固定為 direct `{caslib} + {tableName}`；query params、request-body drift、
+`change_table_state` 與 runtime CAS wiring 仍維持在本次 release surface 之外。
+
 As of **v0.11.11**, the repository closes the
 `request-gate-casmanagement-list-tables` release follow-up: the repo now
 includes the bounded request-only / shape-only request gate for
