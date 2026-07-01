@@ -8,6 +8,22 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.11**, the repository closes the
+`request-gate-casmanagement-list-tables` release follow-up: the repo now
+includes the bounded request-only / shape-only request gate for
+`casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables`
+(`list_tables`) with the strict `limit=1000&start=0` baseline, while bare GET,
+broader pagination semantics, `get_table`, `change_table_state`, and runtime
+CAS wiring remain intentionally outside this release surface.
+
+v0.11.11 補齊 `request-gate-casmanagement-list-tables` 的 final release：
+repo 現已納入
+`casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables`
+(`list_tables`) 的 bounded request-only / shape-only request gate，並凍結
+strict `limit=1000&start=0` baseline；bare GET、較大的 pagination semantics、
+`get_table`、`change_table_state` 與 runtime CAS wiring 仍維持在本次 release
+surface 之外。
+
 As of **v0.11.10**, the repository closes the
 `request-gate-saslogon-refresh-access-token` release follow-up: the repo now
 includes the bounded request-only / shape-only request gate for

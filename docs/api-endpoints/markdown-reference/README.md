@@ -51,6 +51,13 @@ docs/api-endpoints/
 
 ## Release-aligned request-gate status
 
+- `v0.11.11`
+  - `GET /casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables`
+    -> `list_tables`
+  - repo 目前已落地 bounded request-only / shape-only request gate
+  - 正向 baseline 固定為 strict `limit=1000&start=0`
+  - bare GET、較大的 pagination semantics、`get_table`、`change_table_state`
+    與 runtime CAS wiring 仍不在本次 release surface
 - `v0.11.10`
   - `POST /SASLogon/oauth/token` -> `refresh_access_token`
   - repo 目前已落地 bounded request-only / shape-only request gate
