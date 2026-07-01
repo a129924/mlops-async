@@ -8,6 +8,19 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.9**, the repository closes the
+`request-gate-saslogon-obtain-access-token` release follow-up: the repo now
+includes the bounded request-only / shape-only request gate for
+`SASLogon/oauth/token` (`obtain_access_token`) with the `client_credentials`
+grant baseline, while `scope`, refresh-grant behavior, and runtime auth wiring
+remain intentionally outside this release surface.
+
+v0.11.9 補齊 `request-gate-saslogon-obtain-access-token` 的 final release：
+repo 現已納入 `SASLogon/oauth/token` (`obtain_access_token`) 的 bounded
+request-only / shape-only request gate，並凍結 `client_credentials` baseline；
+`scope`、refresh grant 行為與 runtime auth wiring 仍維持在本次 release
+surface 之外。
+
 As of **v0.11.8**, the repository closes `PR #36`: the repo now includes the
 fixed-path MVP request gate for
 `modelRepository/projects/{project_id}/tables` (`list_tables`), with the

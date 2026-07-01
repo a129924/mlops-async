@@ -49,6 +49,18 @@ docs/api-endpoints/
 
 ---
 
+## Release-aligned request-gate status
+
+- `v0.11.9`
+  - `POST /SASLogon/oauth/token` -> `obtain_access_token`
+  - repo 目前已落地 bounded request-only / shape-only request gate
+  - 正向 baseline 固定為 `client_credentials`
+  - `scope` 與 `refresh_access_token` 仍不在本次 release surface
+- 本段落描述的是目前 repo-visible request-gate truth，不等同於把本文件上方的
+  legacy endpoint inventory 全部升格為 runtime auth implementation。
+
+---
+
 ## 如何使用 Swagger UI 檢視
 
 ### 方法一：線上 Swagger Editor
