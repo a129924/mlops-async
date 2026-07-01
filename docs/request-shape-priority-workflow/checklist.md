@@ -45,7 +45,7 @@
 | `[X]` | `jobExecution/jobs/state` | `get_job_state` | `10` | bounded request-only / shape-only gate completed; do not auto-expand this row into polling / state-machine workflow | state request gate landed; broader polling semantics remain separate from the detail surface |
 | `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `list_tables` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-casmanagement-list-tables` | concrete CAS tables surface；strict `limit=1000&start=0` request gate 已 merged / released，但不屬目前 request-shape queue |
 | `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `get_table` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-casmanagement-get-table` | concrete CAS tables surface；direct `{caslib} + {tableName}` request gate 已 merged / released，但不屬目前 request-shape queue |
-| `[OUT-OF-SCOPE]` | `casManagement/caslibs/tables/state` | `change_table_state` | `--` | 不注入到目前 queue | mutation surface，不屬目前 request-shape priority workflow |
+| `[OUT-OF-SCOPE]` | `casManagement/caslibs/tables/state` | `change_table_state` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-casmanagement-change-table-state` | mutation surface；`value=loaded` request gate 已 merged / released，但不屬目前 request-shape queue |
 | `[OUT-OF-SCOPE]` | `SASLogon/oauth/token` | `obtain_access_token` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-saslogon-obtain-access-token` | auth surface 另有 boundary topic；bounded `client_credentials` request gate 已 merged / released，但不屬目前 request-shape queue |
 | `[OUT-OF-SCOPE]` | `SASLogon/oauth/token` | `refresh_access_token` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-saslogon-refresh-access-token` | auth surface 另有 boundary topic；`refresh_token` request gate 已 merged / released，但不屬目前 request-shape queue |
 
@@ -77,8 +77,9 @@
   `request-gate-casmanagement-list-tables` 獨立 topic 落地並 released。
 - `casManagement/dataSources/tables -> get_table` 已透過
   `request-gate-casmanagement-get-table` 獨立 topic 落地並 released。
+- `casManagement/caslibs/tables/state -> change_table_state` 已透過
+  `request-gate-casmanagement-change-table-state` 獨立 topic 落地並 released。
 - shared board 仍維持 `OUT-OF-SCOPE`，因為它們都不屬於目前 request-shape queue。
-- `change_table_state` 不得因 `list_tables` 與 `get_table` 已 landed 而自動視為同批完成。
 
 ## Human-check triggers
 

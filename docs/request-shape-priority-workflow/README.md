@@ -104,3 +104,4 @@ queue 外 surface 的 merged truth 可以在 shared docs 中補充說明，
 - active request-shape queue 已全部落到 `[X]`；shared workflow docs 只維持 queue truth，不把 queue 外 boundary topic 重新灌回 active order。
 - `SASLogon/oauth/token -> obtain_access_token` 與 `refresh_access_token` 都已是 repo-visible boundary topics；shared board 應維持 `OUT-OF-SCOPE`，但 notes 必須對齊 merged truth。
 - `casManagement/dataSources/tables -> list_tables` 與 `get_table` 都已是 repo-visible boundary topics；shared board 應維持 `OUT-OF-SCOPE`，但 notes 必須對齊 merged truth。
+- `casManagement/caslibs/tables/state -> change_table_state` 已是 repo-visible boundary topic；shared board 應維持 `OUT-OF-SCOPE`，但 notes 必須對齊 merged truth。

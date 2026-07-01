@@ -51,6 +51,14 @@ docs/api-endpoints/
 
 ## Release-aligned request-gate status
 
+- `v0.11.13`
+  - `PUT /casManagement/servers/cas-shared-default/caslibs/{caslib}/tables/{tableName}/state`
+    -> `change_table_state`
+  - repo 目前已落地 bounded request-only / shape-only request gate
+  - 正向 baseline 固定為 `value=loaded`，且 body 必須對齊
+    `outputCaslibName` / `outputTableName`
+  - `unloaded`、更廣的 CAS lifecycle semantics、與 runtime CAS wiring
+    仍不在本次 release surface
 - `v0.11.12`
   - `GET /casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables/{tableName}`
     -> `get_table`

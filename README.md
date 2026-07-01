@@ -8,6 +8,23 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.13**, the repository closes the
+`request-gate-casmanagement-change-table-state` release follow-up: the repo now
+includes the bounded request-only / shape-only request gate for
+`PUT /casManagement/servers/cas-shared-default/caslibs/{caslib}/tables/{tableName}/state`
+(`change_table_state`) with the `value=loaded` baseline and the matching
+`{"outputCaslibName", "outputTableName"}` body contract, while `unloaded`,
+broader CAS lifecycle semantics, and runtime CAS wiring remain intentionally
+outside this release surface.
+
+v0.11.13 補齊 `request-gate-casmanagement-change-table-state` 的 final release：
+repo 現已納入
+`PUT /casManagement/servers/cas-shared-default/caslibs/{caslib}/tables/{tableName}/state`
+(`change_table_state`) 的 bounded request-only / shape-only request gate，
+正向 baseline 固定為 `value=loaded`，且 request body 必須對齊
+`outputCaslibName` / `outputTableName`；`unloaded`、更廣的 CAS lifecycle
+semantics 與 runtime CAS wiring 仍維持在本次 release surface 之外。
+
 As of **v0.11.12**, the repository closes the
 `request-gate-casmanagement-get-table` release follow-up: the repo now
 includes the bounded request-only / shape-only request gate for
