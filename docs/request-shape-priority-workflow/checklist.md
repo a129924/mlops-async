@@ -4,9 +4,9 @@
 
 本段是 **template**，不是共享真值狀態。
 
-- 不得直接在本共享文件上打勾
-- 若當前 session 需要使用 resume checklist，必須先複製到該 session 自己的 topic-local notes、
-  handoff、或 plan 附錄，再於複本上勾選
+- 不得直接在本共享文件上打勾。
+- 若當前 session 需要使用 resume checklist，必須先複製到該 session 自己的
+  topic-local notes、handoff、或 plan 附錄，再於複本上勾選。
 
 可複製模板如下：
 
@@ -46,23 +46,36 @@
 | `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `list_tables` | `--` | 不注入到目前 queue | concrete CAS tables surface；不是 `modelRepository` HATEOAS tables |
 | `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `get_table` | `--` | 不注入到目前 queue | concrete CAS tables surface；不是 `modelRepository` HATEOAS tables |
 | `[OUT-OF-SCOPE]` | `casManagement/caslibs/tables/state` | `change_table_state` | `--` | 不注入到目前 queue | mutation surface，不屬目前 request-shape priority workflow |
-| `[OUT-OF-SCOPE]` | `SASLogon/oauth/token` | `obtain_access_token` | `--` | 不注入到目前 queue | auth surface 另有 boundary topic，非目前 request-shape queue |
-| `[OUT-OF-SCOPE]` | `SASLogon/oauth/token` | `refresh_access_token` | `--` | 不注入到目前 queue | auth surface 另有 boundary topic，非目前 request-shape queue |
+| `[OUT-OF-SCOPE]` | `SASLogon/oauth/token` | `obtain_access_token` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-saslogon-obtain-access-token` | auth surface 另有 boundary topic；bounded `client_credentials` request gate 已 merged / released，但不屬目前 request-shape queue |
+| `[OUT-OF-SCOPE]` | `SASLogon/oauth/token` | `refresh_access_token` | `--` | 不注入到目前 queue；不得因 `obtain_access_token` 已 landed 而自動跟進 | auth surface 另有 boundary topic；refresh grant truth 仍需獨立 topic，不屬目前 request-shape queue |
 
 ## Board usage rules
 
-- 若多個 session 同時工作，應以本 board 作為共享排序與接口狀態來源
-- 本 board 必須與 merged repo truth 對齊，不得保留過期的 pending / blocked 狀態
-- 若人類要指定下一個實作接口，可直接點名 `surface + API`
-- 若 session 只需要決定注入內容，應優先使用 `Injection hint`
-- `tables` 一詞不得單獨拿來排隊；必須先指明是 `modelRepository/projects -> tables-link surface` 或 `casManagement/.../tables`
-- 若需要單一 topic completion gate，應改讀該 topic 的 `plan/<topic>/<topic>.step.md`
+- 若多個 session 同時工作，應以本 board 作為共享排序與接口狀態來源。
+- 本 board 必須與 merged repo truth 對齊，不得保留過期的 pending / blocked 狀態。
+- 若人類要指定下一個實作接口，可直接點名 `surface + API`。
+- 若 session 只需要決定注入內容，應優先使用 `Injection hint`。
+- `tables` 一詞不得單獨拿來排隊；必須先指明是
+  `modelRepository/projects -> tables-link surface` 或
+  `casManagement/.../tables`。
+- 若需要單一 topic completion gate，應改讀該 topic 的
+  `plan/<topic>/<topic>.step.md`。
+- queue 外 surface 若已有 merged truth，notes 也必須同步補齊；
+  不得只留下 `OUT-OF-SCOPE` 而不說明當前 repo truth。
+
+## Auth surface current-truth reminder
+
+- `SASLogon/oauth/token -> obtain_access_token` 已透過
+  `request-gate-saslogon-obtain-access-token` 獨立 topic 落地並 release。
+- shared board 仍維持 `OUT-OF-SCOPE`，因為它不屬於目前 request-shape queue。
+- `refresh_access_token` 不得因 `obtain_access_token` 已 landed 而自動視為同批完成。
 
 ## Human-check triggers
 
 以下情況直接停在 `human-check`：
 
-- 已完成的 `modelRepository/projects -> tables-link surface / list_tables` 被要求改回未解鎖狀態
-- surface / API queue 被要求改序
-- `tests/contracts` 被要求升格成主 request-shape surface
-- 需要重開已凍結的 path / contract / architecture decision
+- 已完成的 `modelRepository/projects -> tables-link surface / list_tables`
+  被要求改回未解鎖狀態。
+- surface / API queue 被要求改序。
+- `tests/contracts` 被要求升格成主 request-shape surface。
+- 需要重開已凍結的 path / contract / architecture decision。

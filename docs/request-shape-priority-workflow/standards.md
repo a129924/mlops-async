@@ -106,6 +106,16 @@ Do not automatically:
 - `casManagement/caslibs/tables/state`
 - `SASLogon/oauth/token`
 
+`SASLogon/oauth/token` 的 current-truth 對齊規則：
+
+- `obtain_access_token` 若已在獨立 auth boundary / request-gate topic 落地，
+  shared board 仍應保留 `OUT-OF-SCOPE`。
+- 這裡的 `OUT-OF-SCOPE` 代表「不屬於本 workflow queue」，
+  不是「repo 尚未有 merged implementation truth」。
+- 若要同步 repo truth，應更新 notes / injection hint，
+  不應把這一列誤改成 queue 內的 `[X]`。
+- `refresh_access_token` 不得因為 `obtain_access_token` 已落地就自動視為同批完成。
+
 ## Board and step-tracker boundaries
 
 ### `checklist.md`
@@ -131,6 +141,9 @@ Do not automatically:
 - `*.step.md` 用來追蹤單一 topic 的 implementation steps
 - `checklist.md` 不得承擔 topic-local completion gate
 - implementation board 也不得取代 `*.step.md`
+
+queue 外 surface 若已有 merged truth，shared board 也必須在 notes 或相鄰治理文字中明確標示；
+不得只留下模糊的 `OUT-OF-SCOPE` 而不說明目前 repo truth。
 
 ## Request-shape scope law
 

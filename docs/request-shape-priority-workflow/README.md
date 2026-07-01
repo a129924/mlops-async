@@ -12,6 +12,14 @@
 本目錄中的 shared workflow docs 必須反映 repo 的 merged truth。
 已合併的 request-gate 實作不得繼續留在過期的 `[ ]` 或 `[BLOCKED]` board 狀態。
 
+補充 current-truth 邊界規則：
+
+- queue 外的 surface 若已透過其他 boundary topic 落地，shared workflow docs 仍必須反映 merged truth。
+- 但 queue 外 truth 不得被錯誤改寫成 queue 內的 `[X]` 狀態。
+- `SASLogon/oauth/token -> obtain_access_token` 目前就是這種情況：
+  repo truth 已有獨立 request gate，
+  但 shared board 仍應維持 `OUT-OF-SCOPE`，並在備註中說清楚 current truth。
+
 ## Required entry order
 
 新 session 的固定進場順序如下：
@@ -58,6 +66,9 @@
 - request-contract tests 的功能擴張
 - response / error contract
 - release workflow
+
+queue 外 surface 的 merged truth 可以在 shared docs 中補充說明，
+但不得因此把該 surface 注入到本 workflow queue。
 
 ## Shared-file warning
 
