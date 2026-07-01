@@ -19,6 +19,9 @@
 - `SASLogon/oauth/token -> obtain_access_token` 目前就是這種情況：
   repo truth 已有獨立 request gate，
   但 shared board 仍應維持 `OUT-OF-SCOPE`，並在備註中說清楚 current truth。
+- `casManagement/dataSources/tables -> list_tables` 也屬於相同情況：
+  repo truth 已有獨立 request gate，
+  但 shared board 仍應維持 `OUT-OF-SCOPE`，並在備註中說清楚 current truth。
 
 ## Required entry order
 

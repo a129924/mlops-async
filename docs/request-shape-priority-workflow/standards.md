@@ -106,6 +106,16 @@ Do not automatically:
 - `casManagement/caslibs/tables/state`
 - `SASLogon/oauth/token`
 
+`casManagement/dataSources/tables` 的 current-truth 對齊規則：
+
+- `list_tables` 若已在獨立 CAS boundary / request-gate topic 落地，
+  shared board 仍應保留 `OUT-OF-SCOPE`。
+- 這裡的 `OUT-OF-SCOPE` 代表「不屬於本 workflow queue」，
+  不是「repo 尚未有 merged implementation truth」。
+- 若要同步 repo truth，應更新 notes / injection hint，
+  不應把這一列誤改成 queue 內的 `[X]`。
+- `get_table` 與 `change_table_state` 不得因為 `list_tables` 已落地就自動視為同批完成。
+
 `SASLogon/oauth/token` 的 current-truth 對齊規則：
 
 - `obtain_access_token` 若已在獨立 auth boundary / request-gate topic 落地，
