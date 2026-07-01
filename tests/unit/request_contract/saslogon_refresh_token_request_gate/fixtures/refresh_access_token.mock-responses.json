@@ -1,0 +1,24 @@
+{
+  "cases": {
+    "refresh_token_basic": {
+      "capture_run_id": "saslogon-refresh-token-basic",
+      "responses": [
+        {
+          "match": {
+            "method": "POST",
+            "path": "/SASLogon/oauth/token",
+            "query": {},
+            "body": "grant_type=refresh_token&refresh_token=refresh-token-abc-123"
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "json_body": {}
+          }
+        }
+      ]
+    }
+  }
+}
