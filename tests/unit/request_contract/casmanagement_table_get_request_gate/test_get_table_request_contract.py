@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -12,13 +14,17 @@ from tests.unit.request_contract.contract_case import (
     RequestShape,
     SourceObservedFixture,
 )
+from tests.unit.request_contract import contract_case
+from tests.unit.request_contract.casmanagement_table_get_request_gate import (
+    conftest as get_table_conftest,
+)
 from tests.unit.request_contract.casmanagement_table_get_request_gate.conftest import (
     TOPIC_PACKAGE_DIR,
     CASManagementTableGetContractHarness,
+    _load_case_from_locator,
     _is_topic_scoped_pytest_run,
 )
 
-FIXTURE_ROOT = "tests/unit/request_contract/casmanagement_table_get_request_gate/fixtures"
 CASLIB = "CASUSER"
 TABLE_NAME = "SCORING_INPUT"
 
@@ -51,12 +57,8 @@ def test_get_table_direct_identifiers_request_shape(
             headers={"Content-Type": "application/json"},
         ),
         source_observed=SourceObservedFixture(
-            request_path=(
-                f"{FIXTURE_ROOT}/get_table.request-flow.json#direct_identifiers"
-            ),
-            response_path=(
-                f"{FIXTURE_ROOT}/get_table.mock-responses.json#direct_identifiers"
-            ),
+            request_path="get_table.request-flow.json#direct_identifiers",
+            response_path="get_table.mock-responses.json#direct_identifiers",
         ),
     )
 
@@ -285,3 +287,161 @@ def test_topic_scoped_pytest_run_rejects_full_suite_collection_target() -> None:
     config = SimpleNamespace(args=["tests"], rootpath=TOPIC_PACKAGE_DIR.parents[3])
 
     assert _is_topic_scoped_pytest_run(config) is False
+
+
+def test_load_case_from_locator_rejects_paths_outside_topic_fixture_root(
+    tmp_path: Path,
+) -> None:
+    outside_fixture = tmp_path / "outside.json"
+    outside_fixture.write_text(
+        json.dumps(
+            {
+                "cases": {
+                    "direct_identifiers": {
+                        "full_observed_flow": [
+                            {
+                                "request": {
+                                    "method": "GET",
+                                    "path": "/unexpected",
+                                    "query": {},
+                                    "body": None,
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        AssertionError,
+        match="Fixture locator must stay under the topic fixture root",
+    ):
+        _load_case_from_locator(f"{outside_fixture}#direct_identifiers")
+
+
+def test_load_case_from_locator_rejects_multiple_cases_even_with_explicit_case_name(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture_root = tmp_path / "fixtures"
+    fixture_root.mkdir()
+    monkeypatch.setattr(get_table_conftest, "FIXTURE_DIR", fixture_root)
+
+    multi_case_fixture = fixture_root / "get_table.request-flow.json"
+    multi_case_fixture.write_text(
+        json.dumps(
+            {
+                "cases": {
+                    "direct_identifiers": {
+                        "full_observed_flow": [
+                            {
+                                "request": {
+                                    "method": "GET",
+                                    "path": "/first",
+                                    "query": {},
+                                    "body": None,
+                                }
+                            }
+                        ]
+                    },
+                    "second_case": {
+                        "full_observed_flow": [
+                            {
+                                "request": {
+                                    "method": "GET",
+                                    "path": "/second",
+                                    "query": {},
+                                    "body": None,
+                                }
+                            }
+                        ]
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AssertionError, match="must define exactly one case"):
+        _load_case_from_locator("get_table.request-flow.json#direct_identifiers")
+
+
+def test_get_table_source_observed_headers_must_match_fixture_subset(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    casmanagement_table_get_contract: CASManagementTableGetContractHarness,
+) -> None:
+    fixture_root = tmp_path / "fixtures"
+    fixture_root.mkdir()
+    monkeypatch.setattr(get_table_conftest, "FIXTURE_DIR", fixture_root)
+
+    request_fixture = fixture_root / "get_table.request-flow.json"
+    request_fixture.write_text(
+        json.dumps(
+            {
+                "cases": {
+                    "direct_identifiers": {
+                        "full_observed_flow": [
+                            {
+                                "purpose": "target-api",
+                                "request": {
+                                    "method": "GET",
+                                    "path": (
+                                        "/casManagement/dataSources/"
+                                        "cas~fs~cas-shared-default~fs~"
+                                        "CASUSER/tables/SCORING_INPUT"
+                                    ),
+                                    "required_header_subset": {
+                                        "Authorization": "Bearer fake-token",
+                                        "Accept": "application/problem+json",
+                                    },
+                                    "query": {},
+                                    "body": None,
+                                },
+                            }
+                        ]
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    mismatched_source_case = contract_case.EndpointContractCase(
+        name="casmanagement_tables.get_table.source_observed_header_drift",
+        invoke=lambda: casmanagement_table_get_contract.client.get_table(
+            caslib=CASLIB,
+            table_name=TABLE_NAME,
+        ),
+        expected=RequestShape(
+            method="GET",
+            path=(
+                "/casManagement/dataSources/cas~fs~cas-shared-default~fs~"
+                f"{CASLIB}/tables/{TABLE_NAME}"
+            ),
+            query={},
+            body=None,
+            required_headers={
+                "Authorization": "Bearer ",
+                "Accept": "application/json",
+            },
+        ),
+        response=FakeResponse(
+            status_code=200,
+            json_body={"name": TABLE_NAME},
+            headers={"Content-Type": "application/json"},
+        ),
+        source_observed=SourceObservedFixture(
+            request_path="get_table.request-flow.json#direct_identifiers",
+            response_path=None,
+        ),
+    )
+
+    with pytest.raises(
+        AssertionError,
+        match="Observed request headers drifted from source evidence",
+    ):
+        casmanagement_table_get_contract.run(mismatched_source_case)

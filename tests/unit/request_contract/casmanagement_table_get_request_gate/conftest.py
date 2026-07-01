@@ -20,7 +20,7 @@ from tests.unit.request_contract.contract_case import (
 
 BASE_URL = "https://example.test"
 DUMMY_TOKEN = "fake-token"
-FIXTURE_DIR = Path(__file__).with_name("fixtures")
+FIXTURE_DIR = Path(__file__).with_name("fixtures").resolve()
 TOPIC_PACKAGE_DIR = Path(__file__).resolve().parent
 GET_TABLE_PATH_PREFIX = "/casManagement/dataSources/cas~fs~cas-shared-default~fs~"
 
@@ -103,13 +103,18 @@ def _load_json_fixture_from_path(path: Path) -> dict[str, object]:
 def _split_fixture_locator(locator: str) -> tuple[Path, str | None]:
     raw_path, _, raw_case_name = locator.partition("#")
     candidate = Path(raw_path)
-    if not candidate.is_absolute():
-        if candidate.exists():
-            resolved_path = candidate
-        else:
-            resolved_path = FIXTURE_DIR / candidate
+    if candidate.is_absolute():
+        resolved_path = candidate.resolve()
     else:
-        resolved_path = candidate
+        resolved_path = (FIXTURE_DIR / candidate).resolve()
+
+    try:
+        resolved_path.relative_to(FIXTURE_DIR)
+    except ValueError as exc:
+        raise AssertionError(
+            "Fixture locator must stay under the topic fixture root."
+        ) from exc
+
     return resolved_path, raw_case_name or None
 
 
@@ -119,13 +124,11 @@ def _load_case_from_locator(locator: str) -> Mapping[str, object]:
     cases = payload.get("cases")
     if not isinstance(cases, dict):
         raise TypeError(f"Fixture {fixture_path} must define a cases object.")
+    if len(cases) != 1:
+        raise AssertionError(
+            f"Fixture {fixture_path} must define exactly one case for this topic."
+        )
     if case_name is None:
-        if len(cases) != 1:
-            raise AssertionError(
-                "Fixture "
-                f"{fixture_path} requires an explicit #case locator "
-                "when multiple cases exist."
-            )
         only_case = next(iter(cases.values()))
         if not isinstance(only_case, dict):
             raise TypeError(f"Fixture {fixture_path} case must be a JSON object.")
@@ -148,6 +151,25 @@ def _expected_request_from_case(case: Mapping[str, object]) -> Mapping[str, obje
     if not isinstance(request, dict):
         raise AssertionError("Observed flow step must define a request object.")
     return request
+
+
+def _assert_source_observed_required_headers(
+    actual_headers: Mapping[str, object],
+    expected_request: Mapping[str, object],
+) -> None:
+    expected_headers = expected_request.get("required_header_subset", {})
+    if not isinstance(expected_headers, dict):
+        raise TypeError(
+            "Source-observed request required_header_subset must be a JSON object."
+        )
+
+    lowered_actual = {key.lower(): str(value) for key, value in actual_headers.items()}
+    for header_name, expected_value in expected_headers.items():
+        actual_value = lowered_actual.get(str(header_name).lower())
+        if actual_value is None:
+            raise AssertionError("Observed request headers drifted from source evidence.")
+        if actual_value != str(expected_value):
+            raise AssertionError("Observed request headers drifted from source evidence.")
 
 
 def _response_spec_from_answer_case(case: Mapping[str, object]) -> Mapping[str, object]:
@@ -337,6 +359,10 @@ class CASManagementTableGetContractHarness:
                         "Observed request drifted from source evidence: "
                         f"{self.last_request!r} != {expected_request!r}"
                     )
+            actual_headers = self.last_request.get("headers")
+            if not isinstance(actual_headers, dict):
+                raise TypeError("Captured request headers must be a mapping.")
+            _assert_source_observed_required_headers(actual_headers, expected_request)
 
         return result
 
