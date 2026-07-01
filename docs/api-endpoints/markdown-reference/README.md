@@ -51,6 +51,11 @@ docs/api-endpoints/
 
 ## Release-aligned request-gate status
 
+- `v0.11.10`
+  - `POST /SASLogon/oauth/token` -> `refresh_access_token`
+  - repo 目前已落地 bounded request-only / shape-only request gate
+  - 正向 baseline 固定為 `refresh_token`
+  - `scope` 與 `client_id` / `client_secret` refresh variants 仍不在本次 release surface
 - `v0.11.9`
   - `POST /SASLogon/oauth/token` -> `obtain_access_token`
   - repo 目前已落地 bounded request-only / shape-only request gate

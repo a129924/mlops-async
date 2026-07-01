@@ -8,6 +8,19 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.10**, the repository closes the
+`request-gate-saslogon-refresh-access-token` release follow-up: the repo now
+includes the bounded request-only / shape-only request gate for
+`SASLogon/oauth/token` (`refresh_access_token`) with the `refresh_token`
+grant baseline, while `scope`, `client_id` / `client_secret` refresh variants,
+and runtime auth wiring remain intentionally outside this release surface.
+
+v0.11.10 補齊 `request-gate-saslogon-refresh-access-token` 的 final release：
+repo 現已納入 `SASLogon/oauth/token` (`refresh_access_token`) 的 bounded
+request-only / shape-only request gate，並凍結 `refresh_token` baseline；
+`scope`、`client_id` / `client_secret` refresh variants 與 runtime auth wiring
+仍維持在本次 release surface 之外。
+
 As of **v0.11.9**, the repository closes the
 `request-gate-saslogon-obtain-access-token` release follow-up: the repo now
 includes the bounded request-only / shape-only request gate for
