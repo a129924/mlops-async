@@ -1,4 +1,4 @@
-# HTTP client / auth boundary
+# HTTP client / auth 邊界
 
 > [!IMPORTANT]
 > **Agent first-read**
@@ -8,7 +8,7 @@
 > boundary 的 public/internal dependency direction，先讀本文件，再做設計、文件更新、
 > review、或 implementation 規劃。
 
-## Purpose
+## 目的
 
 本文件固定 `mlops-async` 的 auth / request boundary 基線，讓後續 topic 在討論 public
 surface、internal runtime chain、lazy token lifecycle、與 token endpoint collaborator
@@ -20,7 +20,7 @@ surface、internal runtime chain、lazy token lifecycle、與 token endpoint col
 - auth 不成為其他 family endpoint 的 runtime 依賴核心
 - internal auth chain 維持獨立，不透過 `AuthClient` 回流
 
-## Source of truth and conflict-stop rule
+## Source of truth 與衝突處理
 
 - `docs/ARCHITECTURE.md` 是 architecture overview entry point。
 - 本文件是 auth/request boundary 的 detailed source of truth。
@@ -29,7 +29,7 @@ surface、internal runtime chain、lazy token lifecycle、與 token endpoint col
 - 若未來有 `tach.toml` guardrail topic，它只能表達這裡已凍結的 dependency direction，
   不能重新定義 boundary。
 
-## Public surface baseline
+## Public surface 基線
 
 public surface 採平行 family：
 
@@ -51,7 +51,7 @@ public surface 採平行 family：
 `AuthClient` 是給開發者明確操作 auth/token 的入口，但不是 internal runtime core。
 OtherFamilyEndpoint 不直接依賴 `AuthClient`。
 
-## Dependency diagrams
+## 依賴圖
 
 ### Public family layout
 
@@ -91,12 +91,12 @@ flowchart LR
     TokenEndpointClient --> HttpClient["HttpClient"]
 ```
 
-## Component responsibilities
+## 元件職責與非職責
 
-| Component | Responsibilities | Must not do |
+| 元件 | 負責 | 不負責 |
 | --- | --- | --- |
 | `PackageLevelClient` | public composition root；建立 shared transport、`TokenEndpointClient`、`TokenManager`、`AuthProvider`、`Requester` 與各 family clients；管理 `__aenter__` / `__aexit__` / `aclose` | 在 `__init__` 先取得真實 token；直接承擔 token lifecycle；把 client 變成先同步出生、再非同步補全的半成品 |
-| `AuthClient` | public-visible auth/token 操作入口；明確提供 obtain / refresh 一類 auth operations；委派給 `TokenEndpointClient` | 成為其他 family client 的 runtime dependency；被 `TokenManager` 反向依賴；負責 header 組裝 |
+| `AuthClient` | public-visible auth/token 操作入口；提供 obtain / refresh 類 auth operations；委派給 `TokenEndpointClient` | 成為其他 family client 的 runtime dependency；被 `TokenManager` 反向依賴；負責 header 組裝 |
 | `Requester` | 唯一 request composition layer；套用安全的預設 headers；向 `AuthProvider` 取 auth headers；拒絕衝突的 caller `Authorization`；合併 final headers；委派給 `HttpClient` | 理解 `client_id` / `client_secret` / `grant_type`；直接打 token endpoint；自行做 token lifecycle decision |
 | `AuthProvider` | 將 token 轉成 `Authorization` headers；對 `Requester` 暴露最小 auth header surface | 掌握 auth endpoint；直接打 token API；兼任 token client |
 | `TokenManager` | token lifecycle decision；reuse / fetch / refresh / expiry decision；lazy token resolve；refresh coordination；storage update | 依賴 `AuthClient`；負責 endpoint contract 對外暴露；負責 header 組裝 |
@@ -104,7 +104,57 @@ flowchart LR
 | `TokenEndpointClient` | 真正掌握 `/SASLogon/oauth/token` request contract；封裝 token endpoint I/O；同時供 `AuthClient` 與 `TokenManager` 使用 | 決定 token lifecycle policy；組一般 domain request headers；成為 family endpoint facade |
 | `HttpClient` | transport-only HTTP I/O；接收 final request data；回傳 response 或 transport errors | 理解 auth lifecycle；持有 token state；替 family client 做 request composition |
 
-## Fixed boundary rules
+## 核心政策
+
+### Authorization collision policy
+
+- 當 `Requester` 已配置 `AuthProvider` 時，caller **不得**透過 per-request headers 傳入
+  `Authorization`；檢查必須大小寫不敏感。
+- 若 caller 仍傳入 `Authorization`，`Requester` 會在 transport 前直接拋出
+  `AuthorizationConflictException`，不會把 request 送到 `HttpClient`。
+- 若 `Requester` **未**配置 `AuthProvider`，則允許 caller 傳入 `Authorization`，保留給
+  低階／測試用途。
+
+### Refresh / expiry / lock contract
+
+- `AccessToken.is_expired()` 的判定規則是：`now + skew >= expires_at`。
+- 預設 `skew` 為 **60 秒**；`TokenManager` 可透過 `expiry_skew` 覆寫。
+- `TokenManager.get_access_token()` 使用 `asyncio.Lock` 的 double-check locking：
+  先看快取，進 lock 後再檢查一次，避免多個 waiters 同時 refresh。
+- storage 為空時走 `fetch_access_token()`；已有 token 但視為 expired 時走
+  `refresh_access_token(previous_token)`。
+- refresh / fetch **成功後**才更新 `TokenStorage`；失敗或 cancellation 不得覆寫既有狀態。
+- `AuthException` 與 `asyncio.CancelledError` 直接傳播；其他 generic exception 轉譯為
+  `TokenFetchException`，並保留 exception chaining。
+
+### Lazy auth lifecycle
+
+#### `__init__`
+
+- `PackageLevelClient.__init__` 是同步。
+- `__init__` 只做 wiring。
+- `__init__` 不能假設已取得真實 token。
+- 注入的是 auth-configured `Requester`，不是 token-resolved `Requester`。
+
+#### `__aenter__`
+
+- 進入 client lifecycle。
+- 不承諾 token 已存在。
+
+#### first authenticated request
+
+- 若 request 需要 auth，`Requester` 會向 `AuthProvider` 取 header。
+- `AuthProvider` 會向 `TokenManager` 要 token。
+- `TokenManager` 若發現 storage 無 token 或 token expired，才會透過
+  `TokenEndpointClient` lazy fetch / refresh。
+
+#### `__aexit__` / `aclose`
+
+- 只負責 transport/resource cleanup。
+- 不應假設 explicit auth operation 與 runtime auth state 一定自動互通；若未來要共享 state，
+  必須另行文件化其所有權與同步語意。
+
+## 邊界與禁止事項
 
 ### OtherFamilyEndpoint
 
@@ -141,34 +191,7 @@ flowchart LR
 - 不可回退成：
   - `TokenManager -> AuthClient`
 
-## Lazy auth lifecycle
-
-### `__init__`
-
-- `PackageLevelClient.__init__` 是同步。
-- `__init__` 只做 wiring。
-- `__init__` 不能假設已取得真實 token。
-- 注入的是 auth-configured `Requester`，不是 token-resolved `Requester`。
-
-### `__aenter__`
-
-- 進入 client lifecycle。
-- 不承諾 token 已存在。
-
-### first authenticated request
-
-- 若 request 需要 auth，`Requester` 會向 `AuthProvider` 取 header。
-- `AuthProvider` 會向 `TokenManager` 要 token。
-- `TokenManager` 若發現 storage 無 token 或 token expired，才會透過
-  `TokenEndpointClient` lazy fetch / refresh。
-
-### `__aexit__` / `aclose`
-
-- 只負責 transport/resource cleanup。
-- 不應假設 explicit auth operation 與 runtime auth state 一定自動互通；若未來要共享 state，
-  必須另行文件化其所有權與同步語意。
-
-## Prohibited models
+### Prohibited models
 
 以下模型在本 repository 的 auth/request boundary 下視為錯誤：
 

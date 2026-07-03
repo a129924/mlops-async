@@ -2,17 +2,17 @@
 
 ## Purpose
 
-?遢?辣??`mlops-async` ??銝?migration 撠銵剁??其???source SDK / legacy API
-??皞撘璅?async method?????鈭箏極 review 閮餉??曉????嫘?
+這份文件是 `mlops-async` 的集中 migration 對照表，用來把 source SDK / legacy API
+的來源函式、目標 async method、目前狀態與人工 review 註記放在同一個地方。
 
-摰??格??臬鼠?抵??蕭頩方? handoff嚗??舐靘?隞?`docs/porting-ledger.md` ???痊隞颯?
-憒???撌脩????? ledger entry嚗ource / request / response / error /
-compatibility ???渲???隞?`docs/porting-ledger.md` ?箸?嚗??撠撱箇? ledger
-entry ? API嚗igration map ?臭誑?????葉?????急? reference??
+它的目標是幫助規劃、追蹤與 handoff；不是用來取代 `docs/porting-ledger.md` 的證據責任。
+如果某列已經有對應的 ledger entry，source / request / response / error /
+compatibility 的完整證據仍以 `docs/porting-ledger.md` 為準；如果是尚未建立 ledger
+entry 的新 API，migration map 可以先保留規劃中的狀態與暫時 reference。
 
 ## Authoritative inputs
 
-?湔?遢 migration map ??隢誑?? artifact ?箔?皞?
+更新這份 migration map 時，請以這些 artifact 為來源：
 
 1. `analysis/api-client-porting-contract/requirements.md`
 2. `analysis/api-client-porting-contract/technical-spec.md`
@@ -21,18 +21,18 @@ entry ? API嚗igration map ?臭誑?????葉?????急? refe
 5. `.github/skills/api-client-porting-implementer/`
 6. `docs/porting-ledger.md`
 
-隤芣?嚗docs/porting-ledger.md` ?冽??entry 摮?銝餉?雿?靘?嚗?舀 API嚗?
-?臬???migration map 隞?`planned` / `TBD` 撱箇??急? `Ledger reference`嚗? ledger
-entry 撱箇?敺?憛怠祕??anchor??
+說明：`docs/porting-ledger.md` 在既有 entry 存在時是主要佐證來源；若是新 API，
+可先在 migration map 以 `planned` / `TBD` 建立暫時 `Ledger reference`，待 ledger
+entry 建立後回填實際 anchor。
 
 ## When to update
 
-隢?????湔嚗?
+請在這些時點更新：
 
-1. planner 摰???endpoint family ??source discovery ??request contract draft 敺?
-2. implementer 摰? minimal implementation / response contract / decision 敺?
-3. ledger entry ??霈?嚗?憒?`drafted -> tested -> implemented`
-4. 隞餃?鋡急???`needs-human-review` ??`blocked` ??
+1. planner 完成某個 endpoint family 的 source discovery 與 request contract draft 後
+2. implementer 完成 minimal implementation / response contract / decision 後
+3. ledger entry 狀態改變時，例如 `drafted -> tested -> implemented`
+4. 任務被標成 `needs-human-review` 或 `blocked` 時
 
 ## Status fields
 
@@ -69,19 +69,19 @@ entry 撱箇?敺?憛怠祕??anchor??
 
 ## Update rules
 
-1. ?遢?辣?????芾?餈質馱??銝?????request / response payload 蝝啁??券鞎澆?ㄐ??
-2. 瘥???餈賢撠???source evidence嚗 ledger entry 撌脣??剁???撠? entry??
-3. ??ledger entry 撠撱箇?嚗? `Ledger reference` 甈?憛?`planned` ??`TBD`嚗?
-   蝑?`docs/porting-ledger.md` 鋆?敺??‵撖阡? anchor??
-4. ??target async method 撠摮嚗????`planned` ??`TBD`嚗?銝??撌脣祕雿?
-5. ?? endpoint family ?臭誑?葉?典?銝撘菔”嚗?? upload/download?treaming??
-   polling?agination expansion?etry?lobal session side effects ??conditional
-   endpoint selection ?????蝡?銝行?蝣箸?閮?review note??
-6. 憒? planner ??implementer ??隢?銝?湛??? `needs-human-review`嚗?閬銵?閫??
+1. 這份文件偏向「導航與追蹤」，不要把完整 request / response payload 細節全部貼在這裡。
+2. 每一列都應能追到對應的 source evidence；若 ledger entry 已存在，應連到對應 entry。
+3. 若 ledger entry 尚未建立，可先在 `Ledger reference` 欄位填 `planned` 或 `TBD`，
+   等 `docs/porting-ledger.md` 補上後再回填實際 anchor。
+4. 若 target async method 尚未存在，可先保留 `planned` 或 `TBD`，但不可假裝已實作。
+5. 同一 endpoint family 可以集中在同一張表，但遇到 upload/download、streaming、
+   polling、pagination expansion、retry、global session side effects 或 conditional
+   endpoint selection 時，應拆成獨立列並明確標記 review note。
+6. 如果 planner 與 implementer 的結論不一致，先標 `needs-human-review`，不要自行消解。
 
 ## Recommended table
 
-瘥?endpoint family 撱箄降雿輻銝撘菔”嚗?
+每個 endpoint family 建議使用一張表：
 
 | Source family | Source module / function | Source file / lines | Target module / class / method | Request status | Response status | Compatibility | Decision | Stop reason / review note | Ledger reference |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -95,10 +95,9 @@ entry 撱箇?敺?憛怠祕??anchor??
 
 | Source family | Source module / function | Source file / lines | Target module / class / method | Request status | Response status | Compatibility | Decision | Stop reason / review note | Ledger reference |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| auth | `sasctl.session.SASsession.__init__` | `sasctl/session.py:L10-L90` | `mlops_async.auth.AuthClient.[pending auth method]` | drafted | missing | unknown | continue | Public AuthClient is the fixed surface; exact method naming is still draft pending docs alignment | planned |
-| auth | `legacy.auth.login` | `legacy/auth.py:L1-L40` | `mlops_async.auth.AuthClient.[pending auth method]` | tested | drafted | normalized | continue | Public AuthClient is fixed; exact method naming and session-state wording remain pending | `docs/porting-ledger.md#auth-login` |
+| auth | `sasctl.session.SASsession.__init__` | `sasctl/session.py:L10-L90` | `mlops_async.auth.AuthClient.[待定 auth method]` | drafted | missing | unknown | continue | Public AuthClient 已固定為 public surface；具體 method naming 仍待後續文件與實作 topic 定案 | planned |
+| auth | `legacy.auth.login` | `legacy/auth.py:L1-L40` | `mlops_async.auth.AuthClient.[待定 auth method]` | tested | drafted | normalized | continue | Public AuthClient 已固定；method naming 與 session-state wording 仍待後續 topic 定案 | `docs/porting-ledger.md#auth-login` |
 
-> Note: `AuthClient.login` was an earlier draft placeholder. The current docs baseline fixes `AuthClient` as the public auth family while keeping runtime token resolution on the internal `TokenEndpointClient` path. Do not read the target shape as `TokenManager -> AuthClient`.
 ## model-repository
 
 | Source family | Source module / function | Source file / lines | Target module / class / method | Request status | Response status | Compatibility | Decision | Stop reason / review note | Ledger reference |
@@ -106,7 +105,11 @@ entry 撱箇?敺?憛怠祕??anchor??
 | model-repository | `sasctl.repositories.register_model` | `sasctl/repositories.py:L120-L210` | `TBD` | drafted | missing | unknown | needs-human-review | Upload behavior detected; do not batch-port; ledger entry not created yet | TBD |
 ```
 
+補充：`AuthClient.login` 是較早期的 draft placeholder。當前 docs baseline 固定的是
+`AuthClient` 作為 public auth family，而 runtime token resolution 仍走 internal
+`TokenEndpointClient` path；不得把目標形狀讀成 `TokenManager -> AuthClient`。
+
 ## Current map
 
-?桀?撠撱箇?隞颱?甇?? migration rows?洵銝??rows ???蝛拙???摰寞??賢 request
-contract ??endpoint family ??嚗?憒?auth ??read-only metadata family??
+目前尚未建立任何正式 migration rows。第一批 rows 應從最穩定、最容易抽出 request
+contract 的 endpoint family 開始，例如 auth 或 read-only metadata family。

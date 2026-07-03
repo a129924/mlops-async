@@ -75,7 +75,7 @@ Analysis-layer routing: **incomplete mode** — `analysis/auth-public-surface-co
 
 ## Status / Allowed Transitions
 
-- **Current**: `planned`
+- **Current**: `review-ready`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; 此 topic 停在 merge，不包含 release。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
@@ -94,10 +94,10 @@ Analysis-layer routing: **incomplete mode** — `analysis/auth-public-surface-co
 
 Routing notes:
 
-- Analysis-layer incomplete mode applies because no topic-local analysis artifact exists.
+- Analysis-layer incomplete mode applies because no topic-local analysis artifact exists。
 - Shared-file coordination warning: `docs/ARCHITECTURE.md`、`docs/standards/http-client-auth-boundary.md`、`docs/migration-map.md` 都是 shared doc surfaces；若其他 worktrees 同步修改，必須先做人工作業協調。
-- Creator execution for this topic must happen inside the managed worktree `../mlops-async.worktrees/agent-20260702-auth-public-surface-context-doc` or its direct successor if the human later explicitly relocates the topic.
-- This topic does not use `python-implementation-workflow`.
+- Creator execution for this topic must happen inside the managed worktree `../mlops-async.worktrees/agent-20260702-auth-public-surface-context-doc` or its direct successor if the human later explicitly relocates the topic。
+- This topic does not use `python-implementation-workflow`。
 
 ## Artifact Paths
 
@@ -171,8 +171,8 @@ Artifact path notes:
 
 ## Post-merge / release actions
 
-- After merge, no repository release action is required for this topic.
-- No README row, VERSION bump, release-note, or tag action is expected.
+- After merge, no repository release action is required for this topic。
+- No README row, VERSION bump, release-note, or tag action is expected。
 
 ## Open Questions / Unresolved Items
 
