@@ -8,6 +8,22 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.14**, the repository closes `PR #40`: the repo now includes the
+docs-only auth public-surface baseline for Option B, with `PackageLevelClient`
+together with `client.auth` / `client.projects` / `client.models` / `client.jobs` /
+`client.tables` as the parallel family shape, `TokenEndpointClient` as the
+internal token endpoint collaborator, and the lazy auth lifecycle / requester
+boundary documentation aligned, while runtime auth wiring and concrete
+`AuthClient` method implementation remain intentionally outside this release
+surface.
+
+v0.11.14 補齊 `PR #40` 的文件化 release：repo 現已納入 Option B 的 docs-only auth
+public surface baseline，固定 `PackageLevelClient` 搭配 `client.auth` /
+`client.projects` / `client.models` / `client.jobs` / `client.tables` 的平行
+family shape，並將 `TokenEndpointClient`、lazy auth lifecycle 與 requester
+boundary 寫入文件；runtime auth wiring 與具體 `AuthClient` method 實作仍維持在本次
+release surface 之外。
+
 As of **v0.11.13**, the repository closes the
 `request-gate-casmanagement-change-table-state` release follow-up: the repo now
 includes the bounded request-only / shape-only request gate for
