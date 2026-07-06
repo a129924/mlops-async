@@ -153,7 +153,8 @@ Artifact path notes:
 - `src/**` 與 `tests/**` 無變更。
 - 驗證命令應保持 bounded：
   - `rg -n "AuthClient|TokenEndpointClient|Requester|lazy|__init__" docs/ARCHITECTURE.md docs/standards/http-client-auth-boundary.md docs/migration-map.md`
-  - `git diff --name-only -- plan/auth-public-surface-context-doc docs`
+  - `git diff --name-only -- . ":(exclude)plan/auth-public-surface-context-doc" ":(exclude)docs"`
+- 若第二個命令有任何輸出，視為 out-of-scope drift，必須停止並回報。
 
 ## Reviewer Handoff
 
