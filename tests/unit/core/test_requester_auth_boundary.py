@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -8,6 +8,8 @@ import mlops_async.core.requester as requester_mod
 import pytest
 
 from mlops_async.core.request_options import ClientRequestOptions
+from mlops_async.core.token_endpoint_client import TokenEndpointClient
+from mlops_async.core.token_storage import InMemoryTokenStorage
 from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
 
 
@@ -25,6 +27,8 @@ class _RecordedRequest:
 class _FakeHttpClient:
     def __init__(self) -> None:
         self.requests: list[_RecordedRequest] = []
+        self.request_json_calls = 0
+        self.request_json_responses: list[object] = []
 
     async def request(
         self,
@@ -56,8 +60,16 @@ class _FakeHttpClient:
             url=f"https://example.test{path}",
         )
 
-    async def request_json(self, *args: object, **kwargs: object) -> object:
-        raise AssertionError("Requester tests should call request(), not request_json()")
+    async def request_json(
+        self,
+        *args: object,
+        **kwargs: object,
+    ) -> object:
+        del args, kwargs
+        self.request_json_calls += 1
+        if not self.request_json_responses:
+            raise AssertionError("No request_json response registered")
+        return self.request_json_responses.pop(0)
 
     async def aclose(self) -> None:
         return None
@@ -167,3 +179,27 @@ async def test_requester_does_not_call_transport_after_auth_layer_failure() -> N
         await requester.request(HttpMethod.GET, "/items")
 
     assert transport.requests == []
+
+
+@pytest.mark.asyncio
+async def test_requester_lazy_resolves_token_on_first_authenticated_request_only() -> None:
+    transport = _FakeHttpClient()
+    transport.request_json_responses.append({"access_token": "managed-token", "expires_in": 3600})
+    token_endpoint_client = TokenEndpointClient(
+        transport,
+        client_id="client-id-abc-123",
+        client_secret="secret-value-xyz",
+    )
+    token_manager = auth.TokenManager(InMemoryTokenStorage(), token_endpoint_client)
+    requester = requester_mod.Requester(transport, auth_provider=auth.AuthProvider(token_manager))
+
+    assert transport.request_json_calls == 0
+
+    await requester.request(HttpMethod.GET, "/items")
+
+    assert transport.request_json_calls == 1
+    assert len(transport.requests) == 1
+    assert transport.requests[0].headers == {
+        "Accept": "application/json",
+        "Authorization": "Bearer managed-token",
+    }
