@@ -8,6 +8,23 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.15**, the repository closes `PR #41`: the repo now includes the
+internal auth spine MVP runtime baseline, with a concrete
+`TokenEndpointClient`, a shared `/SASLogon/oauth/token` endpoint carrier,
+`TokenManager` obtain/reuse/expiry/lock behavior, and proof that the first
+authenticated request lazy-resolves access tokens through
+`Requester -> AuthProvider -> TokenManager`, while public `AuthClient` UX,
+refresh flows, and non-auth endpoint families remain intentionally outside this
+release surface.
+
+v0.11.15 補齊 `PR #41` 的 final release：repo 現已納入 internal auth spine MVP
+runtime baseline，包含 concrete `TokenEndpointClient`、共享的
+`/SASLogon/oauth/token` endpoint carrier、`TokenManager` 的 obtain / reuse /
+expiry / lock 行為，以及第一次 authenticated request 會透過
+`Requester -> AuthProvider -> TokenManager` lazy resolve access token 的證明；
+public `AuthClient` UX、refresh flow 與非 auth endpoint family 仍維持在本次
+release surface 之外。
+
 As of **v0.11.14**, the repository closes `PR #40`: the repo now includes the
 docs-only auth public-surface baseline for Option B, with `PackageLevelClient`
 together with `client.auth` / `client.projects` / `client.models` / `client.jobs` /
