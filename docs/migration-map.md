@@ -95,8 +95,8 @@ entry 建立後回填實際 anchor。
 
 | Source family | Source module / function | Source file / lines | Target module / class / method | Request status | Response status | Compatibility | Decision | Stop reason / review note | Ledger reference |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| auth | `sasctl.session.SASsession.__init__` | `sasctl/session.py:L10-L90` | `mlops_async.auth.AuthClient.[待定 auth method]` | drafted | missing | unknown | continue | Public AuthClient 已固定為 public surface；具體 method naming 仍待後續文件與實作 topic 定案 | planned |
-| auth | `legacy.auth.login` | `legacy/auth.py:L1-L40` | `mlops_async.auth.AuthClient.[待定 auth method]` | tested | drafted | normalized | continue | Public AuthClient 已固定；method naming 與 session-state wording 仍待後續 topic 定案 | `docs/porting-ledger.md#auth-login` |
+| auth | `sasctl.session.SASsession.__init__` | `sasctl/session.py:L10-L90` | `client.auth.[待定 auth method]` (`AuthClient`) | drafted | missing | unknown | continue | Public auth surface 已固定為 `client.auth`（對應 `AuthClient`）；具體 method naming 仍待後續文件與實作 topic 定案 | planned |
+| auth | `legacy.auth.login` | `legacy/auth.py:L1-L40` | `client.auth.[待定 auth method]` (`AuthClient`) | tested | drafted | normalized | continue | Public auth surface 已固定為 `client.auth`（對應 `AuthClient`）；method naming 與 session-state wording 仍待後續 topic 定案 | `docs/porting-ledger.md#auth-login` |
 
 ## model-repository
 
@@ -106,8 +106,9 @@ entry 建立後回填實際 anchor。
 ```
 
 補充：`AuthClient.login` 是較早期的 draft placeholder。當前 docs baseline 固定的是
-`AuthClient` 作為 public auth family，而 runtime token resolution 仍走 internal
-`TokenEndpointClient` path；不得把目標形狀讀成 `TokenManager -> AuthClient`。
+`PackageLevelClient` 對外提供 `client.auth` public surface，而 `client.auth` 對應
+`AuthClient` family；runtime token resolution 仍走 internal `TokenEndpointClient` path；
+不得把目標形狀讀成 `TokenManager -> AuthClient`。
 
 ## Current map
 
