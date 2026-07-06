@@ -24,10 +24,15 @@ surface、internal runtime chain、lazy token lifecycle、與 token endpoint col
 
 - `docs/ARCHITECTURE.md` 是 architecture overview entry point。
 - 本文件是 auth/request boundary 的 detailed source of truth。
-- 若本文件、`docs/ARCHITECTURE.md`、current code、`docs/migration-map.md`、或未來
-  guardrail 文件互相衝突，不得自行平均解讀；必須停止並交人工決策。
-- 若未來有 `tach.toml` guardrail topic，它只能表達這裡已凍結的 dependency direction，
-  不能重新定義 boundary。
+- repository 目前已有 active `tach.toml` guardrail；它只能表達這裡已凍結的 dependency
+  direction，不能重新定義 boundary。
+- 目前 guardrail 允許方向固定為：
+  - `mlops_async.core` 只能依賴 `mlops_async`
+  - `mlops_async.transport` 只能依賴 `mlops_async` 與 `mlops_async.core`
+- 若本文件、`docs/ARCHITECTURE.md`、current code、`docs/migration-map.md`、或
+  `tach.toml` guardrail 互相衝突，不得自行平均解讀；必須停止並交人工決策。
+- 後續若新增或調整 guardrail topic，只能把這裡既有的 allowed directions 文件化或機械化；
+  不能藉 guardrail topic 重新定義 auth/request boundary。
 
 ## Public surface 基線
 
