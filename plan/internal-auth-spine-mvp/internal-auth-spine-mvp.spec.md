@@ -1,4 +1,4 @@
-﻿# internal-auth-spine-mvp specification
+# internal-auth-spine-mvp specification
 
 ## Goal
 

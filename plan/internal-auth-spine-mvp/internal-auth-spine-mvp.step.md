@@ -1,4 +1,4 @@
-﻿---
+---
 topic: internal-auth-spine-mvp
 phase: implementation
 created: 2026-07-06

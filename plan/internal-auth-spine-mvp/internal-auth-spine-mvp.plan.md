@@ -1,4 +1,4 @@
-﻿Analysis-layer routing: **strict mode** — `analysis/internal-auth-spine-mvp/requirements.md` 與
+Analysis-layer routing: **strict mode** — `analysis/internal-auth-spine-mvp/requirements.md` 與
 `analysis/internal-auth-spine-mvp/technical-spec.md` 皆存在。本 plan 以兩者為 execution-facing
 baseline，不得在 creator phase 靜默擴 scope。
 

@@ -1,4 +1,4 @@
-﻿# internal-auth-spine-mvp technical specification
+# internal-auth-spine-mvp technical specification
 
 ## Status
 

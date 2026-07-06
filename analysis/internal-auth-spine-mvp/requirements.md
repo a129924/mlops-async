@@ -1,4 +1,4 @@
-﻿# internal-auth-spine-mvp requirements
+# internal-auth-spine-mvp requirements
 
 ## Status
 
