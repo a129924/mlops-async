@@ -5,14 +5,15 @@ from collections.abc import Mapping
 from datetime import timedelta
 from typing import Protocol, runtime_checkable
 
+from mlops_async.core.token_endpoint_client import TokenEndpointClient
 from mlops_async.core.token_storage import AccessToken, DEFAULT_EXPIRY_SKEW, TokenStorage
 from mlops_async.exceptions import MlopsAsyncBaseException
 
 __all__ = [
     "AuthException",
     "AuthProvider",
+    "TokenEndpointClient",
     "TokenFetchException",
-    "TokenFetcher",
     "TokenManager",
 ]
 
@@ -26,7 +27,7 @@ class TokenFetchException(AuthException):
 
 
 @runtime_checkable
-class TokenFetcher(Protocol):
+class TokenEndpointClientProtocol(Protocol):
     """Internal collaborator that fetches or refreshes tokens via raw transport."""
 
     async def fetch_access_token(self) -> AccessToken: ...
@@ -47,7 +48,7 @@ class TokenManager:
     def __init__(
         self,
         storage: TokenStorage,
-        fetcher: TokenFetcher,
+        fetcher: TokenEndpointClientProtocol,
         expiry_skew: timedelta = DEFAULT_EXPIRY_SKEW,
     ) -> None:
         """Store collaborators and the shared refresh policy."""

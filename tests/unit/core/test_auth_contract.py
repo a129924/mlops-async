@@ -12,7 +12,7 @@ import mlops_async.core.token_storage as token_storage
 def test_internal_auth_contracts_are_not_promoted_to_package_root() -> None:
     assert not hasattr(mlops_async, "AuthProvider")
     assert not hasattr(mlops_async, "TokenManager")
-    assert not hasattr(mlops_async, "TokenFetcher")
+    assert not hasattr(mlops_async, "TokenEndpointClient")
     assert not hasattr(mlops_async, "TokenStorage")
     assert not hasattr(mlops_async, "AccessToken")
     assert not hasattr(mlops_async, "Requester")
@@ -38,12 +38,16 @@ def test_auth_provider_surface_is_async_and_returns_header_mapping() -> None:
     assert get_type_hints(get_auth_headers)["return"] == Mapping[str, str]
 
 
-def test_token_fetcher_contract_supports_fetch_and_refresh_paths() -> None:
-    fetch_access_token = auth.TokenFetcher.fetch_access_token
+def test_token_endpoint_client_surface_supports_fetch_and_refresh_paths() -> None:
+    token_endpoint_client = auth.TokenEndpointClient
+    signature = inspect.signature(token_endpoint_client)
+    assert tuple(signature.parameters) == ("transport", "client_id", "client_secret", "endpoint")
+
+    fetch_access_token = token_endpoint_client.fetch_access_token
     assert inspect.iscoroutinefunction(fetch_access_token)
     assert get_type_hints(fetch_access_token)["return"] is token_storage.AccessToken
 
-    refresh_access_token = auth.TokenFetcher.refresh_access_token
+    refresh_access_token = token_endpoint_client.refresh_access_token
     assert inspect.iscoroutinefunction(refresh_access_token)
     refresh_hints = get_type_hints(refresh_access_token)
     assert refresh_hints["token"] is token_storage.AccessToken
