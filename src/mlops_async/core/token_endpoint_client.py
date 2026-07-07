@@ -6,6 +6,7 @@ from enum import Enum
 from urllib.parse import urlencode
 
 from mlops_async.core.client import Client
+from mlops_async.core.headers import token_request_headers
 from mlops_async.core.token_storage import AccessToken
 from mlops_async.core.types import HttpMethod, JSONValue
 
@@ -63,10 +64,7 @@ class TokenEndpointClient:
         response = await self._transport.request_json(
             HttpMethod.POST,
             self._endpoint.value,
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
+            headers=token_request_headers(),
             content=self._form_body_for_client_credentials(),
         )
         token_response = _parse_token_response(response)

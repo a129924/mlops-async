@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlsplit
 import httpx
 import pytest
 
+import mlops_async.core.headers as headers_mod
 import mlops_async.transport.exceptions as transport_exceptions
 import mlops_async.transport.http_client as transport_http_client
 from mlops_async.core.client import Client
@@ -149,10 +150,13 @@ async def test_request_returns_raw_response_and_applies_minimal_json_headers() -
     assert response.url == "https://example.com/base/items?page=1"
 
     sent_request = transport.requests[0]
-    assert sent_request.headers["accept"] == "application/json"
-    assert sent_request.headers["content-type"] == "application/json"
-    assert sent_request.headers["x-default"] == "kept"
-    assert sent_request.headers["x-request-level"] == "present"
+    expected_headers = headers_mod.json_request_headers(
+        {"X-Default": "kept"},
+        {"X-Request-Level": "present"},
+        json_body={"name": "demo"},
+    )
+    for header_name, header_value in expected_headers.items():
+        assert sent_request.headers[header_name.lower()] == header_value
     assert parse_qs(urlsplit(str(sent_request.url)).query) == {"page": ["1"]}
 
 

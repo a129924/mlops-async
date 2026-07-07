@@ -102,12 +102,12 @@ flowchart LR
 | --- | --- | --- |
 | `PackageLevelClient` | public composition root；建立 shared transport、`TokenEndpointClient`、`TokenManager`、`AuthProvider`、`Requester` 與各 family clients；管理 `__aenter__` / `__aexit__` / `aclose` | 在 `__init__` 先取得真實 token；直接承擔 token lifecycle；把 client 變成先同步出生、再非同步補全的半成品 |
 | `AuthClient` | public-visible auth/token 操作入口；提供 obtain / refresh 類 auth operations；委派給 `TokenEndpointClient` | 成為其他 family client 的 runtime dependency；被 `TokenManager` 反向依賴；負責 header 組裝 |
-| `Requester` | 唯一 request composition layer；套用安全的預設 headers；僅在 `json_body` 存在時補上 `Content-Type: application/json`；向 `AuthProvider` 取 auth headers；拒絕衝突的 caller `Authorization`；合併 final headers；委派給 `HttpClient` | 理解 `client_id` / `client_secret` / `grant_type`；直接打 token endpoint；自行做 token lifecycle decision |
+| `Requester` | ?? managed request composition layer??? `core/headers.py` ???? JSON-domain request family ?? headers?? `AuthProvider` ? auth headers?????? caller `Authorization`??? final headers???? `HttpClient` | ?? `client_id` / `client_secret` / `grant_type`???? token endpoint???? token lifecycle decision |
 | `AuthProvider` | 將 token 轉成 `Authorization` headers；對 `Requester` 暴露最小 auth header surface | 掌握 auth endpoint；直接打 token API；兼任 token client |
 | `TokenManager` | token lifecycle decision；reuse / fetch / refresh / expiry decision；lazy token resolve；refresh coordination；storage update | 依賴 `AuthClient`；負責 endpoint contract 對外暴露；負責 header 組裝 |
 | `TokenStorage` | 保存目前 token state；提供 `get_token()` / `set_token()` | 決定 expiry policy；直接做 refresh；掌握 token endpoint |
-| `TokenEndpointClient` | 真正掌握 `/SASLogon/oauth/token` request contract；封裝 token endpoint I/O；同時供 `AuthClient` 與 `TokenManager` 使用 | 決定 token lifecycle policy；組一般 domain request headers；成為 family endpoint facade |
-| `HttpClient` | transport-only HTTP I/O；接收 final request data；回傳 response 或 transport errors | 理解 auth lifecycle；持有 token state；替 family client 做 request composition |
+| `TokenEndpointClient` | ???? `/SASLogon/oauth/token` request contract??? `core/headers.py` ? token request policy helper ?? token endpoint headers??? token endpoint I/O???? `AuthClient` ? `TokenManager` ?? | ?? token lifecycle policy???? domain request headers??? family endpoint facade |
+| `HttpClient` | transport-only HTTP I/O??? final request data?? direct transport path ??? shared JSON request-header helper??? response ? transport errors | ?? auth lifecycle??? token state?? family client ? request composition |
 
 ## 核心政策
 
@@ -124,6 +124,12 @@ flowchart LR
 
 - `Requester` 只有在 request 帶有 `json_body` 時，才補上 `Content-Type: application/json`。
 - 若 request 沒有 `json_body`，`Requester` 不得無條件注入 `Content-Type: application/json`。
+- ?? JSON-domain request family policy ? `core/headers.py::json_request_headers()` ?????`Requester` ? direct-transport `HttpClient` path ?????????
+
+### Token request-header contract
+
+- `/SASLogon/oauth/token` ? request family policy ? `core/headers.py::token_request_headers()` ?????
+- `TokenEndpointClient` ??? `Accept: application/json` ? `Content-Type: application/x-www-form-urlencoded`????? topic ????? contract?
 
 ### Refresh / expiry / lock contract
 
@@ -176,6 +182,7 @@ flowchart LR
 
 - `Requester` 可依賴 `AuthProvider`。
 - `Requester` 不直接理解 `client_id`、`client_secret`、`grant_type` 等 auth config 細節。
+- `Requester` ? JSON-domain default header policy ? `core/headers.py` ?????? `Requester` ??? auth merge order ? `Authorization` collision gate?
 - `Requester` 不直接操作 `TokenStorage`，也不直接做 token fetch / refresh。
 
 ### AuthProvider
@@ -195,6 +202,7 @@ flowchart LR
 ### TokenEndpointClient
 
 - `TokenEndpointClient` 是 internal token endpoint collaborator。
+- `TokenEndpointClient` ?? `core/headers.py::token_request_headers()` ?? token request family ? shared header policy?
 - 共享方向固定為：
   - `AuthClient -> TokenEndpointClient`
   - `TokenManager -> TokenEndpointClient`

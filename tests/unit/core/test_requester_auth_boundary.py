@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 import mlops_async.core.auth as auth
+import mlops_async.core.headers as headers_mod
 import mlops_async.core.requester as requester_mod
 import pytest
 
@@ -126,6 +127,32 @@ async def test_requester_merges_defaults_auth_and_caller_headers_before_transpor
         "X-Mode": "caller",
         "X-Trace": "present",
     }
+
+
+@pytest.mark.asyncio
+async def test_requester_headers_match_shared_json_request_policy_helper() -> None:
+    transport = _FakeHttpClient()
+    auth_provider = _StaticAuthProvider({"Authorization": "Bearer managed-token"})
+    requester = requester_mod.Requester(
+        transport,
+        auth_provider=auth_provider,
+        default_headers={"X-Mode": "default"},
+    )
+
+    await requester.request(
+        HttpMethod.POST,
+        "/items",
+        headers={"X-Mode": "caller", "X-Trace": "present"},
+        json_body={"name": "demo"},
+    )
+
+    sent_request = transport.requests[0]
+    assert sent_request.headers == headers_mod.json_request_headers(
+        {"X-Mode": "default"},
+        {"Authorization": "Bearer managed-token"},
+        {"X-Mode": "caller", "X-Trace": "present"},
+        json_body={"name": "demo"},
+    )
 
 
 @pytest.mark.asyncio

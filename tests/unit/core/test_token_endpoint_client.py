@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import pytest
 
+import mlops_async.core.headers as headers_mod
 from mlops_async.core.token_endpoint_client import (
     AuthTokenEndpoint,
     TokenEndpointClient,
@@ -65,10 +66,7 @@ async def test_token_endpoint_client_emits_obtain_request_matching_request_gate_
         _RecordedRequest(
             method=HttpMethod.POST,
             path="/SASLogon/oauth/token",
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
+            headers=headers_mod.token_request_headers(),
             content=(
                 b"grant_type=client_credentials"
                 b"&client_id=client-id-abc-123"
