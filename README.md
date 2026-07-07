@@ -8,6 +8,22 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.11.16**, the repository closes `PR #42`: the repo now centralizes
+request-header policy for JSON-domain requests and token-endpoint requests
+through `src/mlops_async/core/headers.py`, rewires `Requester`,
+`TokenEndpointClient`, and `HttpClient` to consume the shared helpers, and
+normalizes repeated job-execution request-contract `Accept` headers through a
+shared test helper, while keeping public API shape, auth lifecycle policy, and
+content/binary runtime expansion intentionally outside this release surface.
+
+v0.11.16 新增 `PR #42` 的 final release：repo 現在將 JSON-domain requests 與
+token-endpoint requests 的 request-header policy 集中到
+`src/mlops_async/core/headers.py`，並讓 `Requester`、`TokenEndpointClient`、
+`HttpClient` 共用這組 shared helpers，同時把重複的 job execution
+request-contract `Accept` headers 正規化到 shared test helper；public API
+shape、auth lifecycle policy 與 content/binary runtime expansion 仍刻意維持在
+本次 release surface 之外。
+
 As of **v0.11.15**, the repository closes `PR #41`: the repo now includes the
 internal auth spine MVP runtime baseline, with a concrete
 `TokenEndpointClient`, a shared `/SASLogon/oauth/token` endpoint carrier,
