@@ -1,0 +1,44 @@
+verdict: insufficient-context
+d1_verdict:
+  verdict: non-trivial
+  reason: request-header policy normalization touches a shared helper surface plus three runtime consumers and requires regression-proof TDD before production changes
+test_mapping:
+  - requirement_id: R1
+    test_case_name: tests/unit/core/test_request_headers.py::test_json_request_headers_applies_json_defaults_for_json_body
+    coverage_category: happy_path
+  - requirement_id: R2
+    test_case_name: tests/unit/core/test_request_headers.py::test_token_request_headers_emits_token_family_defaults_and_allows_overrides
+    coverage_category: integration_points
+  - requirement_id: R3
+    test_case_name: tests/unit/core/test_requester_auth_boundary.py::test_requester_headers_match_shared_json_request_policy_helper
+    coverage_category: state_side_effects
+  - requirement_id: R4
+    test_case_name: tests/unit/core/test_token_endpoint_client.py::test_token_endpoint_client_emits_obtain_request_matching_request_gate_baseline
+    coverage_category: integration_points
+  - requirement_id: R5
+    test_case_name: tests/unit/core/test_requester_auth_boundary.py::test_requester_rejects_caller_authorization_when_auth_provider_is_configured
+    coverage_category: error_exception
+  - requirement_id: R6
+    test_case_name: tests/unit/transport/test_http_client.py::test_request_preserves_per_request_header_override_without_non_json_content_type
+    coverage_category: boundary_edge
+  - requirement_id: R7
+    test_case_name: tests/unit/request_contract/job_execution_jobs_request_gate/test_get_job_request_contract.py::test_contract_case_matches_source_observed_request
+    coverage_category: backward_compatibility
+validation_checks:
+  d1_decision: non-trivial
+  behavior_contract_source: plan/request-header-policy-normalization/request-header-policy-normalization.spec.md
+  requirements_mapped: true
+  public_contract_coverage: true
+  test_categories_present:
+    - happy_path
+    - error_exception
+    - boundary_edge
+    - integration_points
+    - state_side_effects
+    - backward_compatibility
+  expected_initial_status: mixed
+  production_code_modified: true
+issues:
+  - Production files under src/mlops_async/core/headers.py, src/mlops_async/core/requester.py, src/mlops_async/core/token_endpoint_client.py, and src/mlops_async/transport/http_client.py were already modified in this worktree before TDD artifact finalization, so a clean RED-before-production proof is not available.
+  - The current tests act as regression coverage for pre-landed helper changes rather than provably failing RED tests, so this artifact records the TDD precondition exception instead of a clean red-tests-ready verdict.
+next_step: Finish helper/test alignment, run bounded validation, and call out the TDD precondition exception during implementation review.

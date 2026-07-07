@@ -67,6 +67,7 @@ authenticated request 的內部 auth chain 固定如下：
 - OtherFamilyEndpoint 不直接依賴 `AuthClient`。
 - `ProjectsClient`、`ModelsClient`、`JobsClient`、`TablesClient` 只持有 `Requester`。
 - `Requester` 不自行處理 token acquisition、refresh、或 auth config 細節。
+- `core/headers.py` 集中管理 JSON-domain request family 與 token-endpoint request family 的 shared request-header policy，避免多個 collaborator 重複複製預設 header 規則。
 - `AuthProvider` 只把 token 轉成 `Authorization` headers。
 - `TokenManager` 只負責 token lifecycle decision。
 - `TokenEndpointClient` 才是真正掌握 `/SASLogon/oauth/token` contract 的 internal collaborator。
@@ -101,9 +102,10 @@ internal client contract 仍維持拆分：
 
 - `core/client.py`：internal-only `Client` protocol
 - `core/requester.py`：internal-only `Requester`
+- `core/headers.py`：提供 JSON-domain requests 與 token-endpoint requests 共用的 request-header policy helpers
 - `core/auth.py`：auth lifecycle 與 header adapter boundary
 - `core/token_storage.py`：token state storage boundary
-- `transport/http_client.py`：concrete transport-only `HttpClient`
+- `transport/http_client.py`：concrete transport-only `HttpClient`，可重用 shared JSON request-header helper，但不擁有 auth policy
 
 若未來落地 `TokenEndpointClient` 或 `PackageLevelClient` public facade，該變更也必須維持
 上述 dependency direction，而不是把 internal runtime auth chain 反向收斂成

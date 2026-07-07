@@ -17,14 +17,11 @@ from tests.unit.request_contract.contract_case import (
     EndpointContractCase,
     RequestShape,
 )
+from tests.unit.request_contract.header_families import JOB_EXECUTION_JOB_ACCEPT_HEADER
 
 BASE_URL = "https://example.test"
 DUMMY_TOKEN = "fake-token"
-START_JOB_ACCEPT = (
-    "application/vnd.sas.job.execution.job+json, "
-    "application/vnd.sas.job.execution.job.request+json, "
-    "application/vnd.sas.error+json, application/json"
-)
+START_JOB_ACCEPT = JOB_EXECUTION_JOB_ACCEPT_HEADER
 FIXTURE_DIR = Path(__file__).with_name("fixtures")
 
 

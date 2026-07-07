@@ -4,7 +4,7 @@ from collections.abc import Mapping
 
 from mlops_async.core.auth import AuthException, AuthProvider
 from mlops_async.core.client import Client
-from mlops_async.core.headers import merge_headers
+from mlops_async.core.headers import json_request_headers
 from mlops_async.core.request_options import ClientRequestOptions
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse
 
@@ -54,16 +54,12 @@ class Requester:
         auth_headers = None
         if self._auth_provider is not None:
             auth_headers = await self._auth_provider.get_auth_headers()
-        request_headers = merge_headers(
-            {"Accept": "application/json"},
+        request_headers = json_request_headers(
             self._default_headers,
             auth_headers,
             headers,
+            json_body=json_body,
         )
-        if json_body is not None and not any(
-            name.lower() == "content-type" for name in request_headers
-        ):
-            request_headers["Content-Type"] = "application/json"
 
         return await self._transport.request(
             method,

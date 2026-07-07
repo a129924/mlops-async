@@ -315,6 +315,7 @@ boundary context document for future planning and review work.
 for the dependency diagrams, component responsibilities, Authorization
 collision policy, refresh / expiry / lock contract, and mismatch-stop rule,
 while `docs/ARCHITECTURE.md` now links to it as the overview entry point. 這讓
+`core/headers.py` 現在作為 JSON-domain requests 與 token-endpoint requests 的 shared request-header policy surface，而 `Requester` 仍持有 auth merge 與 Authorization-conflict behavior。
 後續 auth-boundary 相關 topic 不必再重複口頭對齊同一套設計。
 
 v0.10.1 新增 **http-client-auth-boundary-context-doc** 主題，將

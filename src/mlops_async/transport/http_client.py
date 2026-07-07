@@ -9,7 +9,7 @@ from typing import TypeGuard, cast
 import httpx
 
 from mlops_async.core.client import Client
-from mlops_async.core.headers import merge_headers
+from mlops_async.core.headers import json_request_headers
 from mlops_async.core.request_options import ClientRequestOptions, RequestTimeouts
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse, ResponseHeaders
 from mlops_async.transport.exceptions import (
@@ -173,15 +173,11 @@ class HttpClient(Client):
         options: ClientRequestOptions | None = None,
     ) -> RawClientResponse:
         """Execute an HTTP request and return a raw response only for 2xx outcomes."""
-        request_headers = merge_headers(
-            {"Accept": "application/json"},
+        request_headers = json_request_headers(
             self._default_headers,
             headers,
+            json_body=json_body,
         )
-        if json_body is not None and "content-type" not in {
-            name.lower() for name in request_headers
-        }:
-            request_headers["Content-Type"] = "application/json"
 
         resolved_timeout = self._resolve_timeout(options)
         try:
