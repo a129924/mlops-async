@@ -1,6 +1,6 @@
 ---
 topic: internal-auth-spine-mvp
-phase: implementation
+phase: code-review
 created: 2026-07-06
 ---
 
@@ -16,8 +16,8 @@ created: 2026-07-06
 - [X] plan-review
 - [X] tdd-test-authoring
 - [X] implementation
-- [ ] implementation-review
-- [ ] code-review
+- [X] implementation-review
+- [X] code-review
 
 ## Implementation Steps
 

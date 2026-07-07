@@ -65,7 +65,7 @@ Topic 完成時，repo 應具備：
 
 ## Status / Allowed Transitions
 
-- **Current**: `review-ready`
+- **Current**: `merged`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path; 本 topic
   不包含 release。
 - **Allowed transitions**:
