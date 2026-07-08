@@ -384,6 +384,76 @@
         }
       }
     },
+    "/modelRepository/projects/{projectId}": {
+      "get": {
+        "summary": "??????????",
+        "operationId": "getProjectById",
+        "tags": [
+          "Projects"
+        ],
+        "description": "??????? ID?????????????\n\n**HTTP Method**?GET\n\n**?? normalization ??**?\n- repo-local spec ???????? `/modelRepository/projects/{projectId}`\n- upstream raw spec `modelRepository-openapi.yml` ?? service-root ????\n  `\"/projects/{projectId}\"`\n- ?????? service root ?????????? endpoint mismatch\n\n**????**?\n- ?? `projectId` ????????????\n- ?? `get_champion_model` ??????????\n\n**?? Headers**?\n```\nAuthorization: Bearer {access_token}\nAccept: present?? topic ? source-observed gate ??? header ???????? media type?\n```\n\n**repo-local ?????**?`tests/unit/request_contract/projects_request_gate/*`\n? `sasctl._services.model_repository.ModelRepository.get_project` ? prepared-request capture",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "description": "????????",
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-456-abc-789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "????????????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectItem"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "????????",
+                    "value": {
+                      "id": "proj-456-abc-789",
+                      "name": "Churn_Prediction_Project",
+                      "function": "classification",
+                      "externalProjectId": null,
+                      "candidateChampionHonored": true,
+                      "trainTable": "PUBLIC.CHURN_TRAIN",
+                      "targetVariable": "event",
+                      "targetEventValue": "1",
+                      "targetLevel": "binary",
+                      "eventProbabilityVariable": "P_EVENT1",
+                      "latestVersion": "1",
+                      "status": "development",
+                      "repositoryId": "repo-001",
+                      "folderId": "folder-001",
+                      "links": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "??????"
+          },
+          "401": {
+            "description": "Bearer Token ????"
+          },
+          "404": {
+            "description": "????????"
+          }
+        }
+      }
+    },
     "/modelRepository/projects/{projectId}/champion": {
       "get": {
         "summary": "取得專案的 Champion Model",

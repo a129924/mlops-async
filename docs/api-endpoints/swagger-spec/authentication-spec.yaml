@@ -186,9 +186,6 @@ components:
         client_secret:
           type: string
           description: 註冊 OAuth client 的 client_secret
-        scope:
-          type: string
-          description: 欲申請的 scope；service-to-service baseline 可使用 `uaa.none`
 
     SASViyaTokenResponse:
       type: object

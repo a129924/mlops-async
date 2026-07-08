@@ -50,9 +50,11 @@
       },
       "StartJobRequestBody": {
         "type": "object",
-        "description": "啟動 Job 的請求 Body。\n來源：`utils/_api/job_execution.py::start_job`\n\n**注意**：`start_job` 以空的 JSON body `{}` 呼叫此端點，\n實際上 SAS Viya 會以 Job Request 的預設設定啟動 Job。\nBody 為空物件，僅需提供 `Content-Type: application/json` header。\n",
+        "description": "?? Job ??? Body?\n???`utils/_api/job_execution.py::start_job`\n\n**??**?repo-local `start_job` ??????? JSON body `{}` ?? invocation baseline?\nupstream raw spec ??? empty body??? `Content-Type: application/json` ? `{}`\n??? repo-local shape?????? upstream official request-body contract?\n",
         "properties": {},
-        "example": {}
+        "example": {},
+        "additionalProperties": false,
+        "maxProperties": 0
       },
       "JobInfo": {
         "type": "object",
@@ -177,7 +179,7 @@
         "tags": [
           "Job Execution"
         ],
-        "description": "根據指定的 Job Request ID，建立並啟動新的 SAS Job 執行。\n\n**HTTP Method**：POST\n\n**URL 組合方式**（來源 `job_execution.py`）：\n```python\nJOB_EXECUTION_URL = f\"{base_url}jobExecution/jobRequests\"\nurl = f\"{JOB_EXECUTION_URL}/{job_request_id}/jobs\"\n```\n\n**使用場景**：\n- 觸發 SAS Scoring Job（在 CAS 中執行評分程序）\n- `job_request_id` 為預先設定好的 SAS Job Request UUID\n\n**必要 Headers**（`sas_viya_post_job_execution_headers`）：\n```\nDelegate-Domain: \"\"\nContent-Type: application/json\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json\n```\n\n**Request Body**：空物件 `{}`（使用 Job Request 的預設設定）\n\n**回傳**：新建的 Job 物件，其中 `id` 欄位為後續查詢 Job 狀態所需的 `jobId`\n\n⚠️ **已知 Bug**：`start_job` 呼叫 header 函式時傳入了不存在的 `is_text=False` 參數。\n\n**逾時設定**：`timeout=180` 秒\n\n**來源程式碼**：`utils/_api/job_execution.py::start_job`\n",
+        "description": "????? Job Request ID???????? SAS Job ???\n\n**HTTP Method**?POST\n\n**URL ????**??? `job_execution.py`??\n```python\nJOB_EXECUTION_URL = f\"{base_url}jobExecution/jobRequests\"\nurl = f\"{JOB_EXECUTION_URL}/{job_request_id}/jobs\"\n```\n\n**????**?\n- ?? SAS Scoring Job?? CAS ????????\n- `job_request_id` ??????? SAS Job Request UUID\n\n**?? Headers**?`sas_viya_post_job_execution_headers`??\n```\nDelegate-Domain: \"\"\nContent-Type: application/json\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json\n```\n\n**Request Body**?\n- upstream raw spec `jobExecution-openapi.yml::createJobRequestJob` ???? **empty body**\n- ?? repo-local wrapper / request gate ??? invocation shape ? JSON `{}`\n- ?? `{}` ???? repo-local shape baseline?????? upstream official body contract\n\n**??**???? Job ????? `id` ??????? Job ????? `jobId`\n\n?? **?? Bug**?`start_job` ?? header ?????????? `is_text=False` ???\n\n**????**?`timeout=180` ?\n\n**?????**?`utils/_api/job_execution.py::start_job`\n",
         "security": [
           {
             "BearerAuth": []
@@ -195,22 +197,6 @@
             "example": "job-request-abc-123"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartJobRequestBody"
-              },
-              "examples": {
-                "default": {
-                  "summary": "標準啟動請求（空 Body）",
-                  "value": {}
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "201": {
             "description": "Job 已成功建立並啟動",
@@ -244,6 +230,14 @@
           "401": {
             "description": "Bearer Token 無效或過期"
           }
+        },
+        "x-repo-local-request-shape": {
+          "contentType": "application/json",
+          "schema": {
+            "$ref": "#/components/schemas/StartJobRequestBody"
+          },
+          "example": {},
+          "note": "repo-local helper / request gate ????? invocation baseline?upstream official contract ?? empty body"
         }
       }
     },
