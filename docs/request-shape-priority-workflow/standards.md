@@ -84,21 +84,22 @@ API 級順序與建議注入內容以 `docs/request-shape-priority-workflow/chec
 shared board 必須反映 merged repo truth，不得把已合併的 request-gate 實作保留在過期的
 `[ ]` 或 `[BLOCKED]` 狀態。
 
-目前 queue 內沒有 active blocked surface。
+目前 queue 內若存在 blocked surface，必須明確寫出 blocker 與 historical artifact 邊界。
 
 - `modelRepository/projects -> tables-link surface / list_tables`
-  已在 `request-gate-projects-tables-fixed-path-mvp` topic 以 fixed-path MVP 完成，
-  shared board 應視為 completed gate。
-- `modelRepository/projects -> tables-link surface` 與 `casManagement/.../tables`
-  仍然是不同 surface；承認前者已完成，不代表後者進入 queue。
-- 先前的 HATEOAS / fixed-path 分歧屬於已記錄並已落地的歷史決策，不再是 current blocker。
-
+  的歷史 `request-gate-projects-tables-fixed-path-mvp` artifact 只保留 fixed-path MVP
+  decision trail；它已 superseded，不得再被當成 current truth、不得再被描述成
+  `sasctl` 對應端點證據。這個 surface 目前回到 source / HATEOAS unresolved 狀態；
+  若要重新啟動，必須另開 source-resolution topic。
 Do not automatically:
 
-- rewrite the completed `modelRepository/projects -> tables-link surface / list_tables`
-  gate back into a HATEOAS-only blocker
+- reactivate the superseded `request-gate-projects-tables-fixed-path-mvp` artifact as if it were current truth
 - expand `jobExecution/jobs/state` from its bounded request-only / shape-only lane into a polling / state-machine gate
 - treat the completed `jobExecution/jobs/state` request gate as permission to redefine broader polling semantics
+
+- request-contract 證據分類請一律先對照
+  `docs/request-shape-priority-workflow/request-contract-evidence-matrix.md`，
+  再決定某個 topic 能不能被描述成 direct `sasctl` capture。
 
 下列 surface 必須保留為 `OUT-OF-SCOPE`，除非人類重新定義 workflow 範圍：
 

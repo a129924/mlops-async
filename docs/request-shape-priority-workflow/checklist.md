@@ -39,7 +39,7 @@
 | `[X]` | `modelRepository/projects` | `list_projects` | `04` | 沿用 models oracle，聚焦 `bare_get` / `limit_1000` | request-only gate 已存在 |
 | `[X]` | `modelRepository/projects` | `get_project` | `05` | 注入 `direct_identifier` branch 與 blocked variants | request-only gate 已存在 |
 | `[X]` | `modelRepository/projects/champion` | `get_champion_model` | `06` | 注入 project identifier -> champion model 取回語意，避免混入 files payload 驗證 | request-only gate 已存在 |
-| `[X]` | `modelRepository/projects -> tables-link surface` | `list_tables` | `07` | 注入 fixed-path MVP gate：`GET /modelRepository/projects/{project_id}/tables`，避免混回 HATEOAS-only blocker | fixed-path MVP request-only gate 已存在；與 CAS tables 仍是不同 surface |
+| `[BLOCKED]` | `modelRepository/projects -> tables-link surface` | `list_tables` | `07` | 歷史 `request-gate-projects-tables-fixed-path-mvp` artifact 已 superseded；若要重新啟動此 surface，必須先補 source / HATEOAS resolution | fixed-path MVP `/modelRepository/projects/{project_id}/tables` 僅保留歷史痕跡，不是 current truth，也不是 `sasctl` 對應端點 |
 | `[X]` | `jobExecution/jobRequests/jobs` | `start_job` | `08` | 先凍結 `jobRequestId -> POST jobs` 的 request shape，不預設輪詢策略 | request-only gate 已存在 |
 | `[X]` | `jobExecution/jobs` | `get_job` | `09` | 聚焦單次 GET job detail shape，不混入 state polling contract | request-only gate 已存在 |
 | `[X]` | `jobExecution/jobs/state` | `get_job_state` | `10` | bounded request-only / shape-only gate completed; do not auto-expand this row into polling / state-machine workflow | state request gate landed; broader polling semantics remain separate from the detail surface |

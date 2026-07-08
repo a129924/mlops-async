@@ -4,7 +4,9 @@
 >   `analysis/request-gate-projects-tables-fixed-path-mvp/technical-spec.md`
 > - Business-intent guardrail:
 >   `analysis/request-gate-projects-tables-fixed-path-mvp/requirements.md`
-
+>
+> Status: `SUPERSEDED`
+> This plan remains repo-visible only as a historical fixed-path MVP record.
 ## Goal / Outcome
 
 - 建立 `request-gate-projects-tables-fixed-path-mvp` 的 repo-visible execution contract。

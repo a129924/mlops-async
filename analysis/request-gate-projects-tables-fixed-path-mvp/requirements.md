@@ -1,5 +1,10 @@
 # Request-Gate Projects Tables Fixed-Path MVP Requirements
 
+> Status: `SUPERSEDED`
+>
+> 這份 artifact 只保留 fixed-path MVP 的歷史決策痕跡。
+> `/modelRepository/projects/{project_id}/tables` 不得再被當成 current truth，
+> 也不得再被描述成 upstream `sasctl` 對應端點。
 ## Purpose
 
 本 topic 的目的，是為 `modelRepository/projects -> tables-link surface` 的

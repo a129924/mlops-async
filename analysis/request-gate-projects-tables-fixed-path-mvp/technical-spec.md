@@ -1,5 +1,10 @@
 # Request-Gate Projects Tables Fixed-Path MVP Technical Spec
 
+> Status: `SUPERSEDED`
+>
+> 這份 technical spec 只保留 fixed-path MVP 的歷史決策痕跡。
+> 若要重新啟動 `modelRepository/projects -> tables-link surface / list_tables`，
+> 必須另開 source / HATEOAS resolution topic，不得直接沿用本 artifact。
 ## Source requirements
 
 - `analysis/request-gate-projects-tables-fixed-path-mvp/requirements.md`

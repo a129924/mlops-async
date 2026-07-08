@@ -1,5 +1,8 @@
 # request-gate-projects-tables-fixed-path-mvp - Behavior Spec
 
+> Status: `SUPERSEDED`
+>
+> 本 spec 僅保留 fixed-path MVP 行為記錄，不再作為 current truth。
 ## Purpose
 
 本 spec 定義 `modelRepository/projects -> tables-link surface / list_tables`
