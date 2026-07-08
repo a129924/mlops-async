@@ -26,7 +26,7 @@ servers:
 paths:
 
   # ─────────────────────────────────────────────────────────────────────────
-  # POST /SASLogon/oauth/token  (password grant)
+  # POST /SASLogon/oauth/token  (password / refresh_token / client_credentials)
   # 功能：使用帳號密碼取得 access_token
   # HTTP Method：POST
   # Source：utils/_async/_token.py::obtain_access_token
@@ -38,13 +38,14 @@ paths:
       tags:
         - Authentication
       description: |
-        使用帳號密碼（password grant）或 refresh token 向 SAS Viya 取得 OAuth access token。
+        使用帳號密碼（password grant）、refresh token，或 client credentials 向 SAS Viya 取得 OAuth access token。
 
         **HTTP Method**：POST
 
         **使用場景**：
-        - 初次登入，取得 `access_token` 與 `refresh_token`
+        - 初次登入，取得 `access_token` 與 `refresh_token` (password grant)
         - `access_token` 過期時，使用 `refresh_token` 重新取得
+        - service-to-service 或 tests-only bounded baseline 可使用 `client_credentials`
 
         **來源程式碼**：`utils/_async/_token.py`
       security: []
@@ -56,6 +57,7 @@ paths:
               oneOf:
                 - $ref: '#/components/schemas/PasswordGrantRequest'
                 - $ref: '#/components/schemas/RefreshTokenGrantRequest'
+                - $ref: '#/components/schemas/ClientCredentialsGrantRequest'
             examples:
               password_grant:
                 summary: 帳號密碼登入
@@ -68,16 +70,24 @@ paths:
                 value:
                   grant_type: refresh_token
                   refresh_token: your_refresh_token
+              client_credentials_grant:
+                summary: service-to-service / bounded request gate
+                value:
+                  grant_type: client_credentials
+                  client_id: your_client_id
+                  client_secret: your_client_secret
       responses:
         '200':
-          description: 成功取得 access token
+          description: 成功取得 access token；`client_credentials` 回應不保證含有 `id_token` / `refresh_token`
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SASViyaTokenResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/SASViyaTokenResponse'
+                  - $ref: '#/components/schemas/ClientCredentialsTokenResponse'
               examples:
-                success:
-                  summary: 成功回應範例
+                password_grant_success:
+                  summary: password / refresh_token grant 成功回應範例
                   value:
                     access_token: "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
                     token_type: "bearer"
@@ -85,6 +95,15 @@ paths:
                     refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
                     expires_in: 3600
                     scope: "openid"
+                    jti: "abc123-def456"
+                client_credentials_success:
+                  summary: client_credentials grant 成功回應範例
+                  value:
+                    access_token: "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
+                    token_type: "bearer"
+                    expires_in: 3600
+                    scope: "uaa.none"
+                    revocable: true
                     jti: "abc123-def456"
         '401':
           description: 認證失敗（帳號密碼錯誤、伺服器無法連線）
@@ -148,6 +167,27 @@ components:
           type: string
           description: 先前取得的 refresh_token
 
+    ClientCredentialsGrantRequest:
+      type: object
+      description: client_credentials grant 請求體
+      required:
+        - grant_type
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - client_credentials
+          description: OAuth grant type，固定為 "client_credentials"
+        client_id:
+          type: string
+          description: 註冊 OAuth client 的 client_id
+        client_secret:
+          type: string
+          description: 註冊 OAuth client 的 client_secret
+        scope:
+          type: string
+          description: 欲申請的 scope；service-to-service baseline 可使用 `uaa.none`
+
     SASViyaTokenResponse:
       type: object
       description: |
@@ -183,6 +223,39 @@ components:
           type: string
           description: token 授權範圍
           example: openid
+        jti:
+          type: string
+          description: JWT ID，token 的唯一識別碼
+
+    ClientCredentialsTokenResponse:
+      type: object
+      description: client_credentials grant 成功回應
+      required:
+        - access_token
+        - token_type
+        - expires_in
+        - scope
+        - revocable
+        - jti
+      properties:
+        access_token:
+          type: string
+          description: Bearer token，所有 SAS Viya API 呼叫的認證憑證
+        token_type:
+          type: string
+          description: token 類型，固定為 "bearer"
+          example: bearer
+        expires_in:
+          type: integer
+          description: access_token 有效秒數
+          example: 3600
+        scope:
+          type: string
+          description: token 授權範圍；service-to-service baseline 常見為 `uaa.none`
+          example: uaa.none
+        revocable:
+          type: boolean
+          description: token 是否可撤銷
         jti:
           type: string
           description: JWT ID，token 的唯一識別碼
