@@ -27,7 +27,7 @@ paths:
 
   # ─────────────────────────────────────────────────────────────────────────
   # POST /SASLogon/oauth/token  (password / refresh_token / client_credentials)
-  # 功能：使用帳號密碼取得 access_token
+  # 功能：取得 OAuth access token
   # HTTP Method：POST
   # Source：utils/_async/_token.py::obtain_access_token
   # ─────────────────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
+                anyOf:
                   - $ref: '#/components/schemas/SASViyaTokenResponse'
                   - $ref: '#/components/schemas/ClientCredentialsTokenResponse'
               examples:
@@ -172,6 +172,8 @@ components:
       description: client_credentials grant 請求體
       required:
         - grant_type
+        - client_id
+        - client_secret
       properties:
         grant_type:
           type: string
@@ -229,14 +231,7 @@ components:
 
     ClientCredentialsTokenResponse:
       type: object
-      description: client_credentials grant 成功回應
-      required:
-        - access_token
-        - token_type
-        - expires_in
-        - scope
-        - revocable
-        - jti
+      description: client_credentials grant 成功回應（illustrative upstream-shaped subset；不是 frozen response truth）
       properties:
         access_token:
           type: string

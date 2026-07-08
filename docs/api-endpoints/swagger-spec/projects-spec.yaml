@@ -375,7 +375,8 @@ paths:
         Accept: present（此 topic 的 source-observed gate 只凍結 header 存在，不凍結單一 media type）
         ```
 
-        **來源程式碼**：`ModelRepository.get_project` / `utils/_api/project.py`
+        **repo-local 可追溯證據**：`tests/unit/request_contract/projects_request_gate/*`
+        與 `sasctl._services.model_repository.ModelRepository.get_project` 的 prepared-request capture
       security:
         - BearerAuth: []
       parameters:

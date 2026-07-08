@@ -78,6 +78,8 @@ components:
         upstream raw spec 則要求 empty body；因此 `Content-Type: application/json` 與 `{}`
         只屬於 repo-local shape，不可放大成 upstream official request-body contract。
       properties: {}
+      additionalProperties: false
+      maxProperties: 0
       example: {}
 
     JobInfo:
@@ -231,16 +233,12 @@ paths:
           schema:
             type: string
           example: "job-request-abc-123"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StartJobRequestBody'
-            examples:
-              default:
-                summary: 標準啟動請求（空 Body）
-                value: {}
+      x-repo-local-request-shape:
+        contentType: application/json
+        schema:
+          $ref: '#/components/schemas/StartJobRequestBody'
+        example: {}
+        note: repo-local helper / request gate 目前凍結的 invocation baseline；upstream official contract 仍是 empty body
       responses:
         '201':
           description: Job 已成功建立並啟動
