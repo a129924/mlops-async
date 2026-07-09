@@ -22,9 +22,9 @@ created: 2026-07-09
 
 ## Implementation Steps
 
-- [X] 1. ????? topic-local planning artifacts
-- [X] 2. ?? `request-contract-evidence-matrix.md`
-- [X] 3. ?? `request-contract-non-authoritative-ledger.md`
-- [X] 4. ? `projects_tables_link_request_gate` ?? historical-only metadata ? collection guard
-- [X] 5. ? wrapper / custom-client shape-only topics ?? non-authoritative metadata
-- [X] 6. ?? scoped pytest?`ruff check`?? `pyright` ??
+- [X] 1. Freeze the topic-local planning artifacts.
+- [X] 2. Update `request-contract-evidence-matrix.md`.
+- [X] 3. Add `request-contract-non-authoritative-ledger.md`.
+- [X] 4. Apply historical-only metadata and the collection guard to `projects_tables_link_request_gate`.
+- [X] 5. Apply non-authoritative metadata to wrapper and custom-client shape-only topics.
+- [X] 6. Run scoped pytest, `ruff check`, and `pyright` verification.
