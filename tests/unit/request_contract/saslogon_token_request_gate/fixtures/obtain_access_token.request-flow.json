@@ -4,7 +4,9 @@
     "function": "obtain_access_token",
     "contract_status": "tests-only request gate",
     "classification": "client-credentials-basic",
-    "divergence_label": "shape-only"
+    "divergence_label": "shape-only",
+    "authority_class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline"
   },
   "cases": {
     "client_credentials_basic": {
@@ -38,6 +40,13 @@
       "scope support",
       "response schema",
       "real transport proof"
+    ]
+  },
+  "authority": {
+    "class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline",
+    "forbidden_use": [
+      "upstream token truth"
     ]
   }
 }

@@ -1,1 +1,2 @@
-"""Request-contract package for jobExecution/jobs/state get_job_state."""
+"""Non-authoritative shape-only package for the internal
+jobExecution/jobs/state wrapper request gate."""

@@ -1,4 +1,5 @@
-"""Internal jobExecution/jobs/state.get_job_state readable request-contract tests."""
+"""Non-authoritative shape-only tests for the internal
+jobExecution/jobs/state wrapper request gate."""
 
 from __future__ import annotations
 

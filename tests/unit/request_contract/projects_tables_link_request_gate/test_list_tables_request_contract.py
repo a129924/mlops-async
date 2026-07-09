@@ -1,4 +1,5 @@
-"""Readable request-contract tests for fixed-path MVP list_tables."""
+"""Historical non-authoritative tests for the superseded
+fixed-path `list_tables` MVP request gate."""
 
 from __future__ import annotations
 

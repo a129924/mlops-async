@@ -1,4 +1,5 @@
-"""Layer 1 request-shape helpers for the internal jobExecution/jobs/state wrapper."""
+"""Non-authoritative shape-only helpers for the internal
+jobExecution/jobs/state wrapper request gate."""
 
 from __future__ import annotations
 
@@ -26,6 +27,8 @@ DUMMY_TOKEN = "fake-token"
 FIXTURE_DIR = Path(__file__).with_name("fixtures")
 GET_JOB_STATE_ACCEPT_HEADER = JOB_EXECUTION_JOB_ACCEPT_HEADER
 TOPIC_PACKAGE_DIR = Path(__file__).resolve().parent
+AUTHORITY_CLASS = "non-authoritative-shape-only"
+ALLOWED_USE = "keep-as-shape-baseline"
 
 
 def _is_topic_scoped_pytest_run(config: pytest.Config) -> bool:
@@ -72,6 +75,8 @@ try:
 except ModuleNotFoundError as error:
     if error.name not in {"mlops_async._api", "mlops_async._api.job_execution_jobs"}:
         raise
+    # Keep non-authoritative shape-only request-gate tests
+    # collectible until src/_api is materialized.
     _ImportedClient = None
 
 

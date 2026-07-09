@@ -4,7 +4,9 @@
     "function": "list_tables",
     "contract_status": "tests-only request gate",
     "classification": "strict-limit-start",
-    "divergence_label": "shape-only"
+    "divergence_label": "shape-only",
+    "authority_class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline"
   },
   "cases": {
     "limit_1000_start_0": {
@@ -40,6 +42,13 @@
       "response schema",
       "pagination semantics beyond strict baseline",
       "real transport proof"
+    ]
+  },
+  "authority": {
+    "class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline",
+    "forbidden_use": [
+      "upstream endpoint truth"
     ]
   }
 }

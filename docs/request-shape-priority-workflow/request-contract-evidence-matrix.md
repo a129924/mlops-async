@@ -2,44 +2,44 @@
 
 ## Purpose
 
-- 本表只分類 `tests/unit/request_contract/**` 的 request-shape 證據型態。
-- 它回答兩個問題：
-  - 哪些 topic 真的直接執行 `sasctl` 並攔截 outbound prepared request。
-  - 哪些 topic 只是 repo-local helper、custom client、draft fixture、或 shape-only baseline。
-- 本表只處理 request-shape evidence，不提供 auth proof、session/refresh proof、real transport proof、或 target runtime behavior proof。
+- This table normalizes the request-shape evidence types under `tests/unit/request_contract/**`.
+- Its first job is to make the authority boundary explicit before an implementer reads any single test surface.
+- This table only governs request-truth consumption. It does not claim runtime proof, auth proof,
+  session or refresh proof, or response-contract proof.
 
 ## Evidence Classes
 
-| Class | Meaning |
-| --- | --- |
-| `sasctl-direct` | 直接 import upstream `sasctl` service / session flow，並攔截其 outbound prepared request。 |
-| `repo-helper-direct-path` | 使用 repo-local helper 或 direct-path helper 驅動 request；可能重用 `sasctl.Session` transport seam，但不是 upstream named positive entry。 |
-| `custom-client-shape-only` | 使用 repo-local custom client 或 helper 凍結 request shape；fixture 可標 `source-observed draft`，但不等於 direct `sasctl` capture。 |
-| `internal-wrapper-shape-only` | 驗 repo 內部 wrapper 或 fallback client 的 request shape，不代表 upstream source truth。 |
-| `superseded-fixed-path-mvp` | 歷史 MVP artifact；保留審計痕跡，但已 superseded，不可當 current truth。 |
+| Class | Meaning | Authority class | Default allowed use |
+| --- | --- | --- | --- |
+| `sasctl-direct` | Observed outbound prepared requests produced directly by upstream `sasctl` service or session flows. | `upstream-aligned` | `implementation-truth` |
+| `repo-helper-direct-path` | Observed requests driven by a repo-local helper or direct-path helper; may reuse the `sasctl.Session` transport seam but is not an upstream named positive-entry capture. | `upstream-aligned` | `implementation-truth` |
+| `custom-client-shape-only` | Request shapes frozen by a repo-local custom client or helper; preserves a shape baseline but is not direct `sasctl` capture. | `non-authoritative-shape-only` | `keep-as-shape-baseline` |
+| `internal-wrapper-shape-only` | Request shapes frozen by an internal repo wrapper or fallback client; only a repo-local baseline. | `non-authoritative-shape-only` | `keep-as-shape-baseline` |
+| `superseded-fixed-path-mvp` | Historical fixed-path MVP artifact retained for audit, but already superseded. | `historical-superseded` | `keep-as-historical-only` |
 
 ## Matrix
 
-| Topic | Surface / API | Class | Upstream Evidence | Invokes `sasctl` Directly | Fixture Posture | Current Truth Reading | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `models_request_gate` | `modelRepository/models` -> `list_models`, `get_model` | `sasctl-direct` | `sasctl.ModelRepository` + `sasctl.Session` | yes | `sdk: sasctl`, `layer1-source-observed-request-shape` | 可視為 `sasctl` prepared-request evidence | 只到 prepared request semantics；不是 runtime/auth proof。 |
-| `projects_request_gate` | `modelRepository/projects` -> `list_projects`, `get_project` | `sasctl-direct` | `sasctl.ModelRepository` + `sasctl.Session` | yes | `layer1-source-observed-request-shape` | 可視為 `sasctl` prepared-request evidence | 只到 prepared request semantics；不是 runtime/auth proof。 |
-| `projects_request_gate.get_champion_model` | `modelRepository/projects/champion` -> `get_champion_model` | `sasctl-direct` | `ModelRepository.get(...)` generic path + `sasctl.Session` | yes | `mixed: layer1-source-observed-request-shape`, `fixture metadata: sas-api legacy source` | 只可視為 generic prepared-request capture；不可當 named champion helper 或無條件 `sasctl-direct` 真值 | 目前測試直接攔截 `ModelRepository.get("/projects/{id}/champion")`；fixture provenance 仍保留 legacy-source 描述。 |
-| `models_content_request_gate` | `modelRepository/models/content` -> `get_model_content` | `repo-helper-direct-path` | repo-local `invoke_get_model_content(...)` + repo docs + `sasctl.Session` transport seam | no | `abstract repository evidence`, `direct-path-only` | 不可當 direct `sasctl` endpoint truth | 它驗 direct GET path；不是 `sasctl` upstream positive entry oracle。 |
-| `job_requests_jobs_request_gate` | `jobExecution/jobRequests/jobs` -> `start_job` | `repo-helper-direct-path` | repo docs + human-confirmed external source evidence + `sasctl.Session` transport seam | no | `abstract repository evidence` | 不可當 direct `sasctl` endpoint truth | baseline 來自抽象外部證據與 repo docs，不是 named `sasctl` method capture。 |
-| `casmanagement_tables_list_request_gate` | `casManagement/dataSources/tables` -> `list_tables` | `custom-client-shape-only` | repo-local custom client | no | `source-observed draft`, `tests-only request gate`, `shape-only` | 不可當 `sasctl` endpoint truth | 凍結 strict `limit=1000&start=0` baseline。 |
-| `casmanagement_table_get_request_gate` | `casManagement/dataSources/tables` -> `get_table` | `custom-client-shape-only` | repo-local custom client | no | `source-observed draft`, `tests-only-request-shape`, `shape-only` | 不可當 `sasctl` endpoint truth | direct `{caslib} + {tableName}` baseline only。 |
-| `casmanagement_table_state_change_request_gate` | `casManagement/caslibs/tables/state` -> `change_table_state` | `custom-client-shape-only` | repo-local custom client | no | `source-observed draft`, `tests-only-request-shape`, `shape-only` | 不可當 `sasctl` endpoint truth | 只凍結 `value=loaded` direct-identifiers branch。 |
-| `saslogon_token_request_gate` | `SASLogon/oauth/token` -> `obtain_access_token` | `custom-client-shape-only` | repo-local auth helper | no | `source-observed draft`, `tests-only-request-shape`, `shape-only` | 不可當 `sasctl` endpoint truth | 只凍結 `client_credentials` request shape。 |
-| `saslogon_refresh_token_request_gate` | `SASLogon/oauth/token` -> `refresh_access_token` | `custom-client-shape-only` | repo-local auth helper | no | `source-observed draft`, `tests-only-request-shape`, `shape-only` | 不可當 `sasctl` endpoint truth | 只凍結 `refresh_token` request shape。 |
-| `job_execution_jobs_request_gate` | `jobExecution/jobs` -> `get_job` | `internal-wrapper-shape-only` | `mlops_async._api.job_execution_jobs` or fallback client | no | minimal topic-local fixture | 不可當 upstream source truth | 這是內部 wrapper request gate，不是 `sasctl` capture。 |
-| `job_execution_jobs_state_request_gate` | `jobExecution/jobs/state` -> `get_job_state` | `internal-wrapper-shape-only` | `mlops_async._api.job_execution_jobs_state` or fallback client | no | minimal topic-local fixture | 不可當 upstream source truth | 這是內部 wrapper request gate，不是 `sasctl` capture。 |
-| `projects_tables_link_request_gate` | `modelRepository/projects -> tables-link surface` -> `list_tables` | `superseded-fixed-path-mvp` | repo-local fixed-path client | no | `implementation-facing draft`, `implementation-facing-fixed-path-request-shape`, `intentionally_changed` | 不可當 current truth；已 superseded | 歷史 fixed-path MVP artifact；不代表 upstream `sasctl` endpoint。 |
+| Topic | Surface / API | Evidence class | Authority class | Allowed use | Current truth reading | Forbidden use |
+| --- | --- | --- | --- | --- | --- | --- |
+| `models_request_gate` | `modelRepository/models` -> `list_models`, `get_model` | `sasctl-direct` | `upstream-aligned` | `implementation-truth` | Valid `sasctl` prepared-request evidence. | Do not expand into runtime or auth proof. |
+| `projects_request_gate` | `modelRepository/projects` -> `list_projects`, `get_project` | `sasctl-direct` | `upstream-aligned` | `implementation-truth` | Valid `sasctl` prepared-request evidence. | Do not expand into runtime or auth proof. |
+| `projects_request_gate.get_champion_model` | `modelRepository/projects/champion` -> `get_champion_model` | `sasctl-direct` | `upstream-aligned` | `implementation-truth` | Read only as generic-path prepared-request capture. | Do not inflate legacy-source metadata into named champion-helper truth. |
+| `models_content_request_gate` | `modelRepository/models/content` -> `get_model_content` | `repo-helper-direct-path` | `upstream-aligned` | `implementation-truth` | Direct-path request truth supported by repo docs and the transport seam. | Do not describe it as direct `sasctl` endpoint truth. |
+| `job_requests_jobs_request_gate` | `jobExecution/jobRequests/jobs` -> `start_job` | `repo-helper-direct-path` | `upstream-aligned` | `implementation-truth` | Request truth supported by repo docs and external evidence. | Do not describe it as a named `sasctl` capture. |
+| `casmanagement_tables_list_request_gate` | `casManagement/dataSources/tables` -> `list_tables` | `custom-client-shape-only` | `non-authoritative-shape-only` | `keep-as-shape-baseline` | Keep only the strict `limit=1000&start=0` repo-local baseline. | Do not treat it as upstream endpoint truth. |
+| `casmanagement_table_get_request_gate` | `casManagement/dataSources/tables` -> `get_table` | `custom-client-shape-only` | `non-authoritative-shape-only` | `keep-as-shape-baseline` | Keep only the direct `{caslib} + {tableName}` repo-local baseline. | Do not treat it as upstream endpoint truth. |
+| `casmanagement_table_state_change_request_gate` | `casManagement/caslibs/tables/state` -> `change_table_state` | `custom-client-shape-only` | `non-authoritative-shape-only` | `keep-as-shape-baseline` | Keep only the `value=loaded` repo-local baseline. | Do not treat it as upstream endpoint truth. |
+| `saslogon_token_request_gate` | `SASLogon/oauth/token` -> `obtain_access_token` | `custom-client-shape-only` | `non-authoritative-shape-only` | `keep-as-shape-baseline` | Keep only the `client_credentials` request baseline. | Do not treat it as upstream token truth. |
+| `saslogon_refresh_token_request_gate` | `SASLogon/oauth/token` -> `refresh_access_token` | `custom-client-shape-only` | `non-authoritative-shape-only` | `keep-as-shape-baseline` | Keep only the `refresh_token` request baseline. | Do not treat it as upstream token truth. |
+| `job_execution_jobs_request_gate` | `jobExecution/jobs` -> `get_job` | `internal-wrapper-shape-only` | `non-authoritative-shape-only` | `keep-as-shape-baseline` | Keep only the repo-local wrapper baseline. | Do not treat it as upstream source truth. |
+| `job_execution_jobs_state_request_gate` | `jobExecution/jobs/state` -> `get_job_state` | `internal-wrapper-shape-only` | `non-authoritative-shape-only` | `keep-as-shape-baseline` | Keep only the repo-local wrapper baseline. | Do not treat it as upstream source truth. |
+| `projects_tables_link_request_gate` | `modelRepository/projects -> tables-link surface` -> `list_tables` | `superseded-fixed-path-mvp` | `historical-superseded` | `keep-as-historical-only` | Keep only the historical fixed-path MVP trace. | Do not treat it as current truth or implementation baseline. |
 
 ## Reading Rules
 
-- 只有 `Class = sasctl-direct` 的 rows 可以被描述成「直接執行 `sasctl` 並攔截 prepared request」。
-- `repo-helper-direct-path` 仍可能有攔截到 outbound request，但它不是 upstream named source truth。
-- `custom-client-shape-only` 與 `internal-wrapper-shape-only` 只能描述成 repo-defined request baseline。
-- `projects_request_gate.get_champion_model` 若 fixture metadata 仍標 `sas-api legacy source`，只能讀成 generic-path capture，不可放大成 champion named-helper truth。
-- `projects_tables_link_request_gate` 僅保留為 superseded 歷史 artifact，不應再作為 merge、porting、或 runtime alignment 的依據。
+- Read `Authority class` and `Allowed use` before reading any single test or fixture.
+- `implementation-truth` can feed an implementation request baseline, but it is not runtime proof by itself.
+- `keep-as-shape-baseline` preserves repo-local request shape only and must not be used to invent upstream endpoints.
+- `keep-as-historical-only` preserves audit history only and must not re-enter current implementation routing.
+- If a future topic is classified as `pseudo-endpoint-or-contract`, it can only become a `delete-candidate`
+  or move into a new historical-governance topic; it cannot be promoted back to current truth directly.
