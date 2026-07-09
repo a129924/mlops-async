@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "SAS Viya Authentication API",
-    "description": "SAS Viya 認證端點文檔。\n\n使用 SASLogon OAuth 2.0 取得 access token，所有其他 SAS Viya API 呼叫均需以此 token 進行認證。\n\n**認證流程**：\n1. 使用帳號密碼 POST 取得 `access_token` 與 `refresh_token`\n2. 後續 API 請求 header 帶入 `Authorization: Bearer {access_token}`\n3. `access_token` 過期時使用 `refresh_token` 重新取得\n\n**重要**：`Authorization: Basic c2FzLmNsaTo=` 是 SAS Viya 官方 OAuth client 的固定 Basic Auth，\n其中 `c2FzLmNsaTo=` 為 `sas.cli:` 的 Base64 編碼，不可修改。\n",
+    "description": "SAS Viya 認證端點文檔。\n\n使用 SASLogon OAuth 2.0 取得 access token，所有其他 SAS Viya API 呼叫均需以此 token 進行認證。\n\n**認證流程**：\n1. 使用帳號密碼 POST 取得 `access_token` 與 `refresh_token`\n2. 後續 API 請求 header 帶入 `Authorization: Bearer {access_token}`\n3. `access_token` 過期時使用 `refresh_token` 重新取得\n\n**重要**：SASLogon 的 OAuth token flow 可能使用 HTTP Basic Auth 承載已註冊 OAuth client 的認證資訊。\n對 `client_credentials` 而言，應使用已註冊 client 自身的認證資訊，不可將單一固定值誤認為通用 official contract。\n",
     "version": "1.0.0"
   },
   "servers": [
@@ -25,7 +25,7 @@
         "tags": [
           "Authentication"
         ],
-        "description": "使用帳號密碼（password grant）、refresh token，或 client credentials 向 SAS Viya 取得 OAuth access token。\n\n**HTTP Method**：POST\n\n**使用場景**：\n- 初次登入，取得 `access_token` 與 `refresh_token` (password grant)\n- `access_token` 過期時，使用 `refresh_token` 重新取得\n- service-to-service 或 tests-only bounded baseline 可使用 `client_credentials`\n- upstream raw spec 也記錄 `Authorization: Basic ...` + `grant_type=client_credentials` 的變體\n\n**來源程式碼**：`utils/_async/_token.py`\n",
+        "description": "使用帳號密碼（password grant）、refresh token，或 client credentials 向 SAS Viya 取得 OAuth access token。\n\n**HTTP Method**：POST\n\n**使用場景**：\n- 初次登入，取得 `access_token` 與 `refresh_token` (password grant)\n- `access_token` 過期時，使用 `refresh_token` 重新取得\n- service-to-service 或 tests-only bounded baseline 可使用 `client_credentials`\n- upstream raw spec 也記錄 Basic Auth + `grant_type=client_credentials` 的替代做法；\n  但此 repo-local published contract 只凍結 form-body baseline，不把該替代做法建成可獨立驗證的 request branch\n\n**來源程式碼**：`utils/_async/_token.py`\n",
         "security": [],
         "requestBody": {
           "required": true,
@@ -41,9 +41,6 @@
                   },
                   {
                     "$ref": "#/components/schemas/ClientCredentialsGrantRequest"
-                  },
-                  {
-                    "$ref": "#/components/schemas/ClientCredentialsBasicAuthGrantRequest"
                   }
                 ]
               },
@@ -69,12 +66,6 @@
                     "grant_type": "client_credentials",
                     "client_id": "your_client_id",
                     "client_secret": "your_client_secret"
-                  }
-                },
-                "client_credentials_basic_auth": {
-                  "summary": "upstream documented Basic Auth variant",
-                  "value": {
-                    "grant_type": "client_credentials"
                   }
                 }
               }
@@ -140,19 +131,7 @@
               }
             }
           }
-        },
-        "parameters": [
-          {
-            "name": "Authorization",
-            "in": "header",
-            "required": false,
-            "description": "upstream documented Basic Auth variant 使用的固定授權標頭。\n當 request body 僅包含 `grant_type=client_credentials` 時，應送出\n`Authorization: Basic c2FzLmNsaTo=`。\nrepo-local request gate 目前只凍結 form-body baseline，不以此 header 作為 gate truth。",
-            "schema": {
-              "type": "string"
-            },
-            "example": "Basic c2FzLmNsaTo="
-          }
-        ]
+        }
       }
     }
   },
@@ -161,7 +140,7 @@
       "BasicAuth": {
         "type": "http",
         "scheme": "basic",
-        "description": "SAS Viya 官方 OAuth client 的固定 Basic Auth。\n值為 `c2FzLmNsaTo=`（即 `sas.cli:` 的 Base64 編碼）。\nHeader 格式：`Authorization: Basic c2FzLmNsaTo=`\n\n**注意**：此值固定，不可由使用者自訂。\n"
+        "description": "SASLogon OAuth token flow 可使用的 HTTP Basic Auth。\nHeader 應承載已註冊 OAuth client 的 credentials。\n對 `client_credentials` 而言，這是 upstream documented alternative；\nrepo-local request gate 目前未將其凍結為獨立 request branch。\n"
       }
     },
     "schemas": {
@@ -323,23 +302,6 @@
             "description": "JWT ID，token 的唯一識別碼"
           }
         }
-      },
-      "ClientCredentialsBasicAuthGrantRequest": {
-        "type": "object",
-        "description": "client_credentials grant 請求體（upstream documented Basic Auth variant；需搭配固定 Authorization header）",
-        "required": [
-          "grant_type"
-        ],
-        "properties": {
-          "grant_type": {
-            "type": "string",
-            "enum": [
-              "client_credentials"
-            ],
-            "description": "OAuth grant type，固定為 \"client_credentials\""
-          }
-        },
-        "additionalProperties": false
       }
     }
   }

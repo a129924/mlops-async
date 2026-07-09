@@ -11,8 +11,8 @@ info:
     2. 後續 API 請求 header 帶入 `Authorization: Bearer {access_token}`
     3. `access_token` 過期時使用 `refresh_token` 重新取得
 
-    **重要**：`Authorization: Basic c2FzLmNsaTo=` 是 SAS Viya 官方 OAuth client 的固定 Basic Auth，
-    其中 `c2FzLmNsaTo=` 為 `sas.cli:` 的 Base64 編碼，不可修改。
+    **重要**：SASLogon 的 OAuth token flow 可能使用 HTTP Basic Auth 承載已註冊 OAuth client 的認證資訊。
+    對 `client_credentials` 而言，應使用已註冊 client 自身的認證資訊，不可將單一固定值誤認為通用 official contract。
   version: 1.0.0
 
 servers:
@@ -46,22 +46,11 @@ paths:
         - 初次登入，取得 `access_token` 與 `refresh_token` (password grant)
         - `access_token` 過期時，使用 `refresh_token` 重新取得
         - service-to-service 或 tests-only bounded baseline 可使用 `client_credentials`
-        - upstream raw spec 也記錄 `Authorization: Basic ...` + `grant_type=client_credentials` 的變體
+        - upstream raw spec 也記錄 Basic Auth + `grant_type=client_credentials` 的替代做法；
+          但此 repo-local published contract 只凍結 form-body baseline，不把該替代做法建成可獨立驗證的 request branch
 
         **來源程式碼**：`utils/_async/_token.py`
       security: []
-      parameters:
-        - name: Authorization
-          in: header
-          required: false
-          description: |
-            upstream documented Basic Auth variant 使用的固定授權標頭。
-            當 request body 僅包含 `grant_type=client_credentials` 時，應送出
-            `Authorization: Basic c2FzLmNsaTo=`。
-            repo-local request gate 目前只凍結 form-body baseline，不以此 header 作為 gate truth。
-          schema:
-            type: string
-          example: Basic c2FzLmNsaTo=
       requestBody:
         required: true
         content:
@@ -71,7 +60,6 @@ paths:
                 - $ref: '#/components/schemas/PasswordGrantRequest'
                 - $ref: '#/components/schemas/RefreshTokenGrantRequest'
                 - $ref: '#/components/schemas/ClientCredentialsGrantRequest'
-                - $ref: '#/components/schemas/ClientCredentialsBasicAuthGrantRequest'
             examples:
               password_grant:
                 summary: 帳號密碼登入
@@ -90,10 +78,6 @@ paths:
                   grant_type: client_credentials
                   client_id: your_client_id
                   client_secret: your_client_secret
-              client_credentials_basic_auth:
-                summary: upstream documented Basic Auth variant
-                value:
-                  grant_type: client_credentials
       responses:
         '200':
           description: 成功取得 access token；`client_credentials` 回應不保證含有 `id_token` / `refresh_token`
@@ -140,11 +124,10 @@ components:
       type: http
       scheme: basic
       description: |
-        SAS Viya 官方 OAuth client 的固定 Basic Auth。
-        值為 `c2FzLmNsaTo=`（即 `sas.cli:` 的 Base64 編碼）。
-        Header 格式：`Authorization: Basic c2FzLmNsaTo=`
-
-        **注意**：此值固定，不可由使用者自訂。
+        SASLogon OAuth token flow 可使用的 HTTP Basic Auth。
+        Header 應承載已註冊 OAuth client 的 credentials。
+        對 `client_credentials` 而言，這是 upstream documented alternative；
+        repo-local request gate 目前未將其凍結為獨立 request branch。
 
   schemas:
     PasswordGrantRequest:
@@ -205,19 +188,6 @@ components:
         client_secret:
           type: string
           description: 註冊 OAuth client 的 client_secret
-
-    ClientCredentialsBasicAuthGrantRequest:
-      type: object
-      description: client_credentials grant 請求體（upstream documented Basic Auth variant；需搭配固定 Authorization header）
-      required:
-        - grant_type
-      additionalProperties: false
-      properties:
-        grant_type:
-          type: string
-          enum:
-            - client_credentials
-          description: OAuth grant type，固定為 "client_credentials"
 
     SASViyaTokenResponse:
       type: object

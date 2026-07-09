@@ -53,7 +53,7 @@
         "tags": [
           "Authentication"
         ],
-        "description": "使用帳號密碼（password grant）、refresh token，或 client credentials 向 SAS Viya 取得 OAuth access token。\n\n**HTTP Method**：POST\n\n**使用場景**：\n- 初次登入，取得 `access_token` 與 `refresh_token` (password grant)\n- `access_token` 過期時，使用 `refresh_token` 重新取得\n- service-to-service 或 tests-only bounded baseline 可使用 `client_credentials`\n- upstream raw spec 也記錄 `Authorization: Basic ...` + `grant_type=client_credentials` 的變體\n\n**來源程式碼**：`utils/_async/_token.py`\n",
+        "description": "使用帳號密碼（password grant）、refresh token，或 client credentials 向 SAS Viya 取得 OAuth access token。\n\n**HTTP Method**：POST\n\n**使用場景**：\n- 初次登入，取得 `access_token` 與 `refresh_token` (password grant)\n- `access_token` 過期時，使用 `refresh_token` 重新取得\n- service-to-service 或 tests-only bounded baseline 可使用 `client_credentials`\n- upstream raw spec 也記錄 Basic Auth + `grant_type=client_credentials` 的替代做法；\n  但此 repo-local published contract 只凍結 form-body baseline，不把該替代做法建成可獨立驗證的 request branch\n\n**來源程式碼**：`utils/_async/_token.py`\n",
         "security": [],
         "requestBody": {
           "required": true,
@@ -69,9 +69,6 @@
                   },
                   {
                     "$ref": "#/components/schemas/ClientCredentialsGrantRequest"
-                  },
-                  {
-                    "$ref": "#/components/schemas/ClientCredentialsBasicAuthGrantRequest"
                   }
                 ]
               },
@@ -97,12 +94,6 @@
                     "grant_type": "client_credentials",
                     "client_id": "your_client_id",
                     "client_secret": "your_client_secret"
-                  }
-                },
-                "client_credentials_basic_auth": {
-                  "summary": "upstream documented Basic Auth variant",
-                  "value": {
-                    "grant_type": "client_credentials"
                   }
                 }
               }
@@ -168,19 +159,7 @@
               }
             }
           }
-        },
-        "parameters": [
-          {
-            "name": "Authorization",
-            "in": "header",
-            "required": false,
-            "description": "upstream documented Basic Auth variant 使用的固定授權標頭。\n當 request body 僅包含 `grant_type=client_credentials` 時，應送出\n`Authorization: Basic c2FzLmNsaTo=`。\nrepo-local request gate 目前只凍結 form-body baseline，不以此 header 作為 gate truth。",
-            "schema": {
-              "type": "string"
-            },
-            "example": "Basic c2FzLmNsaTo="
-          }
-        ]
+        }
       }
     },
     "/modelRepository/models": {
@@ -1090,7 +1069,7 @@
         "tags": [
           "Job Execution"
         ],
-        "description": "根據指定的 Job Request ID，建立並啟動新的 SAS Job 執行。\n\n**HTTP Method**：POST\n\n**URL 組合方式**（來源 `job_execution.py`）：\n```python\nJOB_EXECUTION_URL = f\"{base_url}jobExecution/jobRequests\"\nurl = f\"{JOB_EXECUTION_URL}/{job_request_id}/jobs\"\n```\n\n**使用場景**：\n- 觸發 SAS Scoring Job（在 CAS 中執行評分程序）\n- `job_request_id` 為預先設定好的 SAS Job Request UUID\n\n**必要 Headers**（`sas_viya_post_job_execution_headers`）：\n```\nDelegate-Domain: \"\"\nContent-Type: application/json\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json\n```\n\n**Request Body**：\n- upstream raw spec `jobExecution-openapi.yml::createJobRequestJob` 明確要求 **empty body**\n- 目前 repo-local wrapper / request gate 凍結的 invocation shape 是 JSON `{}`\n- 因此 `{}` 只能視為 repo-local shape baseline，不可誤讀成 upstream official body contract\n\n**回傳**：新建的 Job 物件，其中 `id` 欄位為後續查詢 Job 狀態所需的 `jobId`\n\n⚠️ **已知 Bug**：`start_job` 呼叫 header 函式時傳入了不存在的 `is_text=False` 參數。\n\n**逾時設定**：`timeout=180` 秒\n\n**來源程式碼**：`utils/_api/job_execution.py::start_job`\n",
+        "description": "根據指定的 Job Request ID，建立並啟動新的 SAS Job 執行。\n\n**HTTP Method**：POST\n\n**URL 組合方式**（來源 `job_execution.py`）：\n```python\nJOB_EXECUTION_URL = f\"{base_url}jobExecution/jobRequests\"\nurl = f\"{JOB_EXECUTION_URL}/{job_request_id}/jobs\"\n```\n\n**使用場景**：\n- 觸發 SAS Scoring Job（在 CAS 中執行評分程序）\n- `job_request_id` 為預先設定好的 SAS Job Request UUID\n\n**必要 Headers**（upstream official baseline）：\n```\nDelegate-Domain: \"\"\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json\n```\n\n**Request Body**：\n- upstream raw spec `jobExecution-openapi.yml::createJobRequestJob` 明確要求 **empty body**\n- 目前 repo-local wrapper / request gate 凍結的 invocation shape 是 JSON `{}`\n- `Content-Type: application/json` 只屬於 repo-local `{}` invocation shape，不屬於 upstream official empty-body contract\n- 因此 `{}` 只能視為 repo-local shape baseline，不可誤讀成 upstream official body contract\n\n**回傳**：新建的 Job 物件，其中 `id` 欄位為後續查詢 Job 狀態所需的 `jobId`\n\n⚠️ **已知 Bug**：`start_job` 呼叫 header 函式時傳入了不存在的 `is_text=False` 參數。\n\n**逾時設定**：`timeout=180` 秒\n\n**來源程式碼**：`utils/_api/job_execution.py::start_job`\n",
         "security": [
           {
             "BearerAuth": []
@@ -1314,7 +1293,7 @@
       "BasicAuth": {
         "type": "http",
         "scheme": "basic",
-        "description": "SAS Viya 官方 OAuth client 的固定 Basic Auth。\n值為 `c2FzLmNsaTo=`（即 `sas.cli:` 的 Base64 編碼）。\nHeader 格式：`Authorization: Basic c2FzLmNsaTo=`\n\n**注意**：此值固定，不可由使用者自訂。\n"
+        "description": "SASLogon OAuth token flow 可使用的 HTTP Basic Auth。\nHeader 應承載已註冊 OAuth client 的 credentials。\n對 `client_credentials` 而言，這是 upstream documented alternative；\nrepo-local request gate 目前未將其凍結為獨立 request branch。\n"
       },
       "BearerAuth": {
         "type": "http",
@@ -2415,23 +2394,6 @@
             "description": "JWT ID，token 的唯一識別碼"
           }
         }
-      },
-      "ClientCredentialsBasicAuthGrantRequest": {
-        "type": "object",
-        "description": "client_credentials grant 請求體（upstream documented Basic Auth variant；需搭配固定 Authorization header）",
-        "required": [
-          "grant_type"
-        ],
-        "properties": {
-          "grant_type": {
-            "type": "string",
-            "enum": [
-              "client_credentials"
-            ],
-            "description": "OAuth grant type，固定為 \"client_credentials\""
-          }
-        },
-        "additionalProperties": false
       }
     }
   }

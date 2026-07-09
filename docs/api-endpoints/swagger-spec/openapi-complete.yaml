@@ -37,22 +37,11 @@ paths:
         - 初次登入，取得 `access_token` 與 `refresh_token` (password grant)
         - `access_token` 過期時，使用 `refresh_token` 重新取得
         - service-to-service 或 tests-only bounded baseline 可使用 `client_credentials`
-        - upstream raw spec 也記錄 `Authorization: Basic ...` + `grant_type=client_credentials` 的變體
+        - upstream raw spec 也記錄 Basic Auth + `grant_type=client_credentials` 的替代做法；
+          但此 repo-local published contract 只凍結 form-body baseline，不把該替代做法建成可獨立驗證的 request branch
 
         **來源程式碼**：`utils/_async/_token.py`
       security: []
-      parameters:
-        - name: Authorization
-          in: header
-          required: false
-          description: |
-            upstream documented Basic Auth variant 使用的固定授權標頭。
-            當 request body 僅包含 `grant_type=client_credentials` 時，應送出
-            `Authorization: Basic c2FzLmNsaTo=`。
-            repo-local request gate 目前只凍結 form-body baseline，不以此 header 作為 gate truth。
-          schema:
-            type: string
-          example: Basic c2FzLmNsaTo=
       requestBody:
         required: true
         content:
@@ -62,7 +51,6 @@ paths:
                 - $ref: '#/components/schemas/PasswordGrantRequest'
                 - $ref: '#/components/schemas/RefreshTokenGrantRequest'
                 - $ref: '#/components/schemas/ClientCredentialsGrantRequest'
-                - $ref: '#/components/schemas/ClientCredentialsBasicAuthGrantRequest'
             examples:
               password_grant:
                 summary: 帳號密碼登入
@@ -81,10 +69,6 @@ paths:
                   grant_type: client_credentials
                   client_id: your_client_id
                   client_secret: your_client_secret
-              client_credentials_basic_auth:
-                summary: upstream documented Basic Auth variant
-                value:
-                  grant_type: client_credentials
       responses:
         '200':
           description: 成功取得 access token；`client_credentials` 回應不保證含有 `id_token` / `refresh_token`
@@ -945,10 +929,9 @@ paths:
         - 觸發 SAS Scoring Job（在 CAS 中執行評分程序）
         - `job_request_id` 為預先設定好的 SAS Job Request UUID
 
-        **必要 Headers**（`sas_viya_post_job_execution_headers`）：
+        **必要 Headers**（upstream official baseline）：
         ```
         Delegate-Domain: ""
-        Content-Type: application/json
         Authorization: Bearer {access_token}
         Accept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json
         ```
@@ -956,6 +939,7 @@ paths:
         **Request Body**：
         - upstream raw spec `jobExecution-openapi.yml::createJobRequestJob` 明確要求 **empty body**
         - 目前 repo-local wrapper / request gate 凍結的 invocation shape 是 JSON `{}`
+        - `Content-Type: application/json` 只屬於 repo-local `{}` invocation shape，不屬於 upstream official empty-body contract
         - 因此 `{}` 只能視為 repo-local shape baseline，不可誤讀成 upstream official body contract
 
         **回傳**：新建的 Job 物件，其中 `id` 欄位為後續查詢 Job 狀態所需的 `jobId`
@@ -1005,7 +989,6 @@ paths:
         '401':
           description: Bearer Token 無效或過期
 
-  # ─────────────────────────────────────────────────────────────────────────
   /jobExecution/jobs/{jobId}:
     get:
       summary: 取得 Job 詳細資訊
@@ -1233,19 +1216,6 @@ components:
         client_secret:
           type: string
           description: 註冊 OAuth client 的 client_secret
-
-    ClientCredentialsBasicAuthGrantRequest:
-      type: object
-      description: client_credentials grant 請求體（upstream documented Basic Auth variant；需搭配固定 Authorization header）
-      required:
-        - grant_type
-      additionalProperties: false
-      properties:
-        grant_type:
-          type: string
-          enum:
-            - client_credentials
-          description: OAuth grant type，固定為 "client_credentials"
 
     SASViyaTokenResponse:
       type: object
