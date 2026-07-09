@@ -46,6 +46,7 @@ paths:
         - 初次登入，取得 `access_token` 與 `refresh_token` (password grant)
         - `access_token` 過期時，使用 `refresh_token` 重新取得
         - service-to-service 或 tests-only bounded baseline 可使用 `client_credentials`
+        - upstream raw spec 也記錄 `Authorization: Basic ...` + `grant_type=client_credentials` 的變體
 
         **來源程式碼**：`utils/_async/_token.py`
       security: []
@@ -58,6 +59,7 @@ paths:
                 - $ref: '#/components/schemas/PasswordGrantRequest'
                 - $ref: '#/components/schemas/RefreshTokenGrantRequest'
                 - $ref: '#/components/schemas/ClientCredentialsGrantRequest'
+                - $ref: '#/components/schemas/ClientCredentialsBasicAuthGrantRequest'
             examples:
               password_grant:
                 summary: 帳號密碼登入
@@ -71,11 +73,15 @@ paths:
                   grant_type: refresh_token
                   refresh_token: your_refresh_token
               client_credentials_grant:
-                summary: service-to-service / bounded request gate
+                summary: repo-local form-body baseline
                 value:
                   grant_type: client_credentials
                   client_id: your_client_id
                   client_secret: your_client_secret
+              client_credentials_basic_auth:
+                summary: upstream documented Basic Auth variant
+                value:
+                  grant_type: client_credentials
       responses:
         '200':
           description: 成功取得 access token；`client_credentials` 回應不保證含有 `id_token` / `refresh_token`
@@ -169,7 +175,7 @@ components:
 
     ClientCredentialsGrantRequest:
       type: object
-      description: client_credentials grant 請求體
+      description: client_credentials grant 請求體（repo-local form-body baseline）
       required:
         - grant_type
         - client_id
@@ -186,6 +192,18 @@ components:
         client_secret:
           type: string
           description: 註冊 OAuth client 的 client_secret
+
+    ClientCredentialsBasicAuthGrantRequest:
+      type: object
+      description: client_credentials grant 請求體（upstream documented Basic Auth variant）
+      required:
+        - grant_type
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - client_credentials
+          description: OAuth grant type，固定為 "client_credentials"
 
     SASViyaTokenResponse:
       type: object
@@ -229,6 +247,9 @@ components:
     ClientCredentialsTokenResponse:
       type: object
       description: client_credentials grant 成功回應（illustrative upstream-shaped subset；不是 frozen response truth）
+      required:
+        - access_token
+        - expires_in
       properties:
         access_token:
           type: string

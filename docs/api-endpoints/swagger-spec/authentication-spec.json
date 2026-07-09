@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "SAS Viya Authentication API",
-    "description": "SAS Viya ???????\n\n?? SASLogon OAuth 2.0 ?? access token????? SAS Viya API ?????? token ?????\n\n**????**?\n1. ??????? client_credentials POST ?? `access_token`\n2. ?? API ?? header ?? `Authorization: Bearer {access_token}`\n3. `access_token` ????? `refresh_token` ????\n\n**??**?`Authorization: Basic c2FzLmNsaTo=` ? SAS Viya ?? OAuth client ??? Basic Auth?\n?? `c2FzLmNsaTo=` ? `sas.cli:` ? Base64 ????????\n",
+    "description": "SAS Viya 認證端點文檔。\n\n使用 SASLogon OAuth 2.0 取得 access token，所有其他 SAS Viya API 呼叫均需以此 token 進行認證。\n\n**認證流程**：\n1. 使用帳號密碼 POST 取得 `access_token` 與 `refresh_token`\n2. 後續 API 請求 header 帶入 `Authorization: Bearer {access_token}`\n3. `access_token` 過期時使用 `refresh_token` 重新取得\n\n**重要**：`Authorization: Basic c2FzLmNsaTo=` 是 SAS Viya 官方 OAuth client 的固定 Basic Auth，\n其中 `c2FzLmNsaTo=` 為 `sas.cli:` 的 Base64 編碼，不可修改。\n",
     "version": "1.0.0"
   },
   "servers": [
@@ -25,7 +25,7 @@
         "tags": [
           "Authentication"
         ],
-        "description": "???????password grant??refresh token?? client credentials ? SAS Viya ?? OAuth access token?\n\n**HTTP Method**?POST\n\n**????**?\n- ??????? `access_token` ? `refresh_token` (password grant)\n- `access_token` ?????? `refresh_token` ????\n- service-to-service ? tests-only bounded baseline ??? `client_credentials`\n\n**?????**?`utils/_async/_token.py`\n",
+        "description": "使用帳號密碼（password grant）、refresh token，或 client credentials 向 SAS Viya 取得 OAuth access token。\n\n**HTTP Method**：POST\n\n**使用場景**：\n- 初次登入，取得 `access_token` 與 `refresh_token` (password grant)\n- `access_token` 過期時，使用 `refresh_token` 重新取得\n- service-to-service 或 tests-only bounded baseline 可使用 `client_credentials`\n- upstream raw spec 也記錄 `Authorization: Basic ...` + `grant_type=client_credentials` 的變體\n\n**來源程式碼**：`utils/_async/_token.py`\n",
         "security": [],
         "requestBody": {
           "required": true,
@@ -41,12 +41,15 @@
                   },
                   {
                     "$ref": "#/components/schemas/ClientCredentialsGrantRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ClientCredentialsBasicAuthGrantRequest"
                   }
                 ]
               },
               "examples": {
                 "password_grant": {
-                  "summary": "??????",
+                  "summary": "帳號密碼登入",
                   "value": {
                     "grant_type": "password",
                     "username": "your_username",
@@ -54,18 +57,24 @@
                   }
                 },
                 "refresh_token_grant": {
-                  "summary": "?? refresh_token ????",
+                  "summary": "使用 refresh_token 重新取得",
                   "value": {
                     "grant_type": "refresh_token",
                     "refresh_token": "your_refresh_token"
                   }
                 },
                 "client_credentials_grant": {
-                  "summary": "service-to-service / bounded request gate",
+                  "summary": "repo-local form-body baseline",
                   "value": {
                     "grant_type": "client_credentials",
                     "client_id": "your_client_id",
                     "client_secret": "your_client_secret"
+                  }
+                },
+                "client_credentials_basic_auth": {
+                  "summary": "upstream documented Basic Auth variant",
+                  "value": {
+                    "grant_type": "client_credentials"
                   }
                 }
               }
@@ -74,7 +83,7 @@
         },
         "responses": {
           "200": {
-            "description": "???? access token?`client_credentials` ??????? `id_token` / `refresh_token`",
+            "description": "成功取得 access token；`client_credentials` 回應不保證含有 `id_token` / `refresh_token`",
             "content": {
               "application/json": {
                 "schema": {
@@ -89,7 +98,7 @@
                 },
                 "examples": {
                   "password_grant_success": {
-                    "summary": "password / refresh_token grant ??????",
+                    "summary": "password / refresh_token grant 成功回應範例",
                     "value": {
                       "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ...",
                       "token_type": "bearer",
@@ -101,13 +110,14 @@
                     }
                   },
                   "client_credentials_success": {
-                    "summary": "client_credentials grant ??????",
+                    "summary": "client_credentials grant 成功回應範例",
                     "value": {
                       "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ...",
                       "token_type": "bearer",
                       "expires_in": 3600,
                       "revocable": true,
-                      "jti": "abc123-def456"
+                      "jti": "abc123-def456",
+                      "scope": "uaa.none"
                     }
                   }
                 }
@@ -240,7 +250,7 @@
       },
       "ClientCredentialsGrantRequest": {
         "type": "object",
-        "description": "client_credentials grant ???",
+        "description": "client_credentials grant 請求體（repo-local form-body baseline）",
         "required": [
           "grant_type",
           "client_id",
@@ -252,21 +262,21 @@
             "enum": [
               "client_credentials"
             ],
-            "description": "OAuth grant type???? \"client_credentials\""
+            "description": "OAuth grant type，固定為 \"client_credentials\""
           },
           "client_id": {
             "type": "string",
-            "description": "?? OAuth client ? client_id"
+            "description": "註冊 OAuth client 的 client_id"
           },
           "client_secret": {
             "type": "string",
-            "description": "?? OAuth client ? client_secret"
+            "description": "註冊 OAuth client 的 client_secret"
           }
         }
       },
       "ClientCredentialsTokenResponse": {
         "type": "object",
-        "description": "client_credentials grant ?????illustrative upstream-shaped subset??? frozen response truth?",
+        "description": "client_credentials grant 成功回應（illustrative upstream-shaped subset；不是 frozen response truth）",
         "required": [
           "access_token",
           "expires_in"
@@ -274,25 +284,46 @@
         "properties": {
           "access_token": {
             "type": "string",
-            "description": "Bearer token??? SAS Viya API ???????"
+            "description": "Bearer token，所有 SAS Viya API 呼叫的認證憑證"
           },
           "token_type": {
             "type": "string",
-            "description": "token ?????? \"bearer\"",
+            "description": "token 類型，固定為 \"bearer\"",
             "example": "bearer"
           },
           "expires_in": {
             "type": "integer",
-            "description": "access_token ????",
+            "description": "access_token 有效秒數",
             "example": 3600
+          },
+          "scope": {
+            "type": "string",
+            "description": "token 授權範圍；service-to-service baseline 常見為 `uaa.none`",
+            "example": "uaa.none"
           },
           "revocable": {
             "type": "boolean",
-            "description": "token ?????"
+            "description": "token 是否可撤銷"
           },
           "jti": {
             "type": "string",
-            "description": "JWT ID?token ??????"
+            "description": "JWT ID，token 的唯一識別碼"
+          }
+        }
+      },
+      "ClientCredentialsBasicAuthGrantRequest": {
+        "type": "object",
+        "description": "client_credentials grant 請求體（upstream documented Basic Auth variant）",
+        "required": [
+          "grant_type"
+        ],
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "client_credentials"
+            ],
+            "description": "OAuth grant type，固定為 \"client_credentials\""
           }
         }
       }

@@ -27,24 +27,19 @@ paths:
       summary: 取得 Access Token
       operationId: obtainAccessToken
       tags:
-      - Authentication
-      description: '使用帳號密碼（password grant）或 refresh token 向 SAS Viya 取得 OAuth access
-        token。
-
+        - Authentication
+      description: |
+        使用帳號密碼（password grant）、refresh token，或 client credentials 向 SAS Viya 取得 OAuth access token。
 
         **HTTP Method**：POST
 
-
         **使用場景**：
-
-        - 初次登入，取得 `access_token` 與 `refresh_token`
-
+        - 初次登入，取得 `access_token` 與 `refresh_token` (password grant)
         - `access_token` 過期時，使用 `refresh_token` 重新取得
-
+        - service-to-service 或 tests-only bounded baseline 可使用 `client_credentials`
+        - upstream raw spec 也記錄 `Authorization: Basic ...` + `grant_type=client_credentials` 的變體
 
         **來源程式碼**：`utils/_async/_token.py`
-
-        '
       security: []
       requestBody:
         required: true
@@ -52,8 +47,10 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               oneOf:
-              - $ref: '#/components/schemas/PasswordGrantRequest'
-              - $ref: '#/components/schemas/RefreshTokenGrantRequest'
+                - $ref: '#/components/schemas/PasswordGrantRequest'
+                - $ref: '#/components/schemas/RefreshTokenGrantRequest'
+                - $ref: '#/components/schemas/ClientCredentialsGrantRequest'
+                - $ref: '#/components/schemas/ClientCredentialsBasicAuthGrantRequest'
             examples:
               password_grant:
                 summary: 帳號密碼登入
@@ -66,24 +63,45 @@ paths:
                 value:
                   grant_type: refresh_token
                   refresh_token: your_refresh_token
+              client_credentials_grant:
+                summary: repo-local form-body baseline
+                value:
+                  grant_type: client_credentials
+                  client_id: your_client_id
+                  client_secret: your_client_secret
+              client_credentials_basic_auth:
+                summary: upstream documented Basic Auth variant
+                value:
+                  grant_type: client_credentials
       responses:
         '200':
-          description: 成功取得 access token
+          description: 成功取得 access token；`client_credentials` 回應不保證含有 `id_token` / `refresh_token`
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SASViyaTokenResponse'
+                anyOf:
+                  - $ref: '#/components/schemas/SASViyaTokenResponse'
+                  - $ref: '#/components/schemas/ClientCredentialsTokenResponse'
               examples:
-                success:
-                  summary: 成功回應範例
+                password_grant_success:
+                  summary: password / refresh_token grant 成功回應範例
                   value:
-                    access_token: eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ...
-                    token_type: bearer
-                    id_token: eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ...
-                    refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ...
+                    access_token: "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
+                    token_type: "bearer"
+                    id_token: "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
+                    refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
                     expires_in: 3600
-                    scope: openid
-                    jti: abc123-def456
+                    scope: "openid"
+                    jti: "abc123-def456"
+                client_credentials_success:
+                  summary: client_credentials grant 成功回應範例
+                  value:
+                    access_token: "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
+                    token_type: "bearer"
+                    expires_in: 3600
+                    scope: "uaa.none"
+                    revocable: true
+                    jti: "abc123-def456"
         '401':
           description: 認證失敗（帳號密碼錯誤、伺服器無法連線）
           content:
@@ -92,8 +110,9 @@ paths:
                 unauthorized:
                   summary: 認證失敗範例
                   value:
-                    error: unauthorized
-                    error_description: Bad credentials
+                    error: "unauthorized"
+                    error_description: "Bad credentials"
+
   /modelRepository/models:
     get:
       summary: 取得所有模型
@@ -425,6 +444,77 @@ paths:
           description: 請求無效
         '401':
           description: Bearer Token 無效或過期
+  /modelRepository/projects/{projectId}:
+    get:
+      summary: 取得單一專案詳細資訊
+      operationId: getProjectById
+      tags:
+        - Projects
+      description: |
+        根據指定的專案 ID，取得單一專案的詳細資訊。
+
+        **HTTP Method**：GET
+
+        **路徑 normalization 說明**：
+        - repo-local spec 顯示的完整路徑是 `/modelRepository/projects/{projectId}`
+        - upstream raw spec `modelRepository-openapi.yml` 使用 service-root 相對路徑
+          `"/projects/{projectId}"`
+        - 上述差異只是 service root 展開方式不同，不代表 endpoint mismatch
+
+        **使用場景**：
+        - 已知 `projectId` 時，直接取得專案詳細資訊
+        - 作為 `get_champion_model` 前的單一專案查詢基線
+
+        **必要 Headers**：
+        ```
+        Authorization: Bearer {access_token}
+        Accept: present（此 topic 的 source-observed gate 只凍結 header 存在，不凍結單一 media type）
+        ```
+
+        **repo-local 可追溯證據**：`tests/unit/request_contract/projects_request_gate/*`
+        與 `sasctl._services.model_repository.ModelRepository.get_project` 的 prepared-request capture
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: 專案唯一識別碼。
+          schema:
+            type: string
+          example: "proj-456-abc-789"
+      responses:
+        '200':
+          description: 成功取得單一專案詳細資訊
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectItem'
+              examples:
+                success:
+                  summary: 單一專案詳細資訊
+                  value:
+                    id: "proj-456-abc-789"
+                    name: "Churn_Prediction_Project"
+                    function: "classification"
+                    externalProjectId: null
+                    candidateChampionHonored: true
+                    trainTable: "PUBLIC.CHURN_TRAIN"
+                    targetVariable: "event"
+                    targetEventValue: "1"
+                    targetLevel: "binary"
+                    eventProbabilityVariable: "P_EVENT1"
+                    latestVersion: "1"
+                    status: "development"
+                    repositoryId: "repo-001"
+                    folderId: "folder-001"
+                    links: []
+        '400':
+          description: 請求格式錯誤
+        '401':
+          description: Bearer Token 驗證失敗
+        '404':
+          description: 找不到對應的專案
   /modelRepository/projects/{projectId}/champion:
     get:
       summary: 取得專案的 Champion Model
@@ -827,82 +917,58 @@ paths:
       summary: 啟動 Job 執行
       operationId: startJob
       tags:
-      - Job Execution
-      description: '根據指定的 Job Request ID，建立並啟動新的 SAS Job 執行。
-
+        - Job Execution
+      description: |
+        根據指定的 Job Request ID，建立並啟動新的 SAS Job 執行。
 
         **HTTP Method**：POST
 
-
         **URL 組合方式**（來源 `job_execution.py`）：
-
         ```python
-
         JOB_EXECUTION_URL = f"{base_url}jobExecution/jobRequests"
-
         url = f"{JOB_EXECUTION_URL}/{job_request_id}/jobs"
-
         ```
-
 
         **使用場景**：
-
         - 觸發 SAS Scoring Job（在 CAS 中執行評分程序）
-
         - `job_request_id` 為預先設定好的 SAS Job Request UUID
 
-
         **必要 Headers**（`sas_viya_post_job_execution_headers`）：
-
         ```
-
         Delegate-Domain: ""
-
         Content-Type: application/json
-
         Authorization: Bearer {access_token}
-
-        Accept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json,
-        application/vnd.sas.error+json, application/json
-
+        Accept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json
         ```
 
-
-        **Request Body**：空物件 `{}`（使用 Job Request 的預設設定）
-
+        **Request Body**：
+        - upstream raw spec `jobExecution-openapi.yml::createJobRequestJob` 明確要求 **empty body**
+        - 目前 repo-local wrapper / request gate 凍結的 invocation shape 是 JSON `{}`
+        - 因此 `{}` 只能視為 repo-local shape baseline，不可誤讀成 upstream official body contract
 
         **回傳**：新建的 Job 物件，其中 `id` 欄位為後續查詢 Job 狀態所需的 `jobId`
 
-
         ⚠️ **已知 Bug**：`start_job` 呼叫 header 函式時傳入了不存在的 `is_text=False` 參數。
-
 
         **逾時設定**：`timeout=180` 秒
 
-
         **來源程式碼**：`utils/_api/job_execution.py::start_job`
-
-        '
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       parameters:
-      - name: jobRequestId
-        in: path
-        required: true
-        description: Job Request 唯一識別碼（SAS Viya 預先設定的 Job Request UUID）
+        - name: jobRequestId
+          in: path
+          required: true
+          description: Job Request 唯一識別碼（SAS Viya 預先設定的 Job Request UUID）
+          schema:
+            type: string
+          example: "job-request-abc-123"
+      x-repo-local-request-shape:
+        contentType: application/json
         schema:
-          type: string
-        example: job-request-abc-123
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StartJobRequestBody'
-            examples:
-              default:
-                summary: 標準啟動請求（空 Body）
-                value: {}
+          $ref: '#/components/schemas/StartJobRequestBody'
+        example: {}
+        note: repo-local helper / request gate 目前凍結的 invocation baseline；upstream official contract 仍是 empty body
       responses:
         '201':
           description: Job 已成功建立並啟動
@@ -914,18 +980,20 @@ paths:
                 created:
                   summary: 成功建立 Job 回應
                   value:
-                    id: job-id-abc-123
-                    state: running
-                    creationTimeStamp: '2024-01-15T10:30:00.000Z'
-                    createdBy: sas_user
+                    id: "job-id-abc-123"
+                    state: "running"
+                    creationTimeStamp: "2024-01-15T10:30:00.000Z"
+                    createdBy: "sas_user"
                     jobRequest:
-                      id: job-request-abc-123
-                      name: ScoringJobRequest
+                      id: "job-request-abc-123"
+                      name: "ScoringJobRequest"
                     links: []
         '400':
           description: 請求無效（Job Request 不存在）
         '401':
           description: Bearer Token 無效或過期
+
+  # ─────────────────────────────────────────────────────────────────────────
   /jobExecution/jobs/{jobId}:
     get:
       summary: 取得 Job 詳細資訊
@@ -1099,14 +1167,14 @@ components:
       type: object
       description: 帳號密碼 grant 請求體
       required:
-      - grant_type
-      - username
-      - password
+        - grant_type
+        - username
+        - password
       properties:
         grant_type:
           type: string
           enum:
-          - password
+            - password
           description: OAuth grant type，固定為 "password"
         username:
           type: string
@@ -1116,36 +1184,68 @@ components:
           type: string
           format: password
           description: SAS Viya 使用者密碼（來自環境變數 `user_password`）
+
     RefreshTokenGrantRequest:
       type: object
       description: refresh_token grant 請求體
       required:
-      - grant_type
-      - refresh_token
+        - grant_type
+        - refresh_token
       properties:
         grant_type:
           type: string
           enum:
-          - refresh_token
+            - refresh_token
           description: OAuth grant type，固定為 "refresh_token"
         refresh_token:
           type: string
           description: 先前取得的 refresh_token
+
+    ClientCredentialsGrantRequest:
+      type: object
+      description: client_credentials grant 請求體（repo-local form-body baseline）
+      required:
+        - grant_type
+        - client_id
+        - client_secret
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - client_credentials
+          description: OAuth grant type，固定為 "client_credentials"
+        client_id:
+          type: string
+          description: 註冊 OAuth client 的 client_id
+        client_secret:
+          type: string
+          description: 註冊 OAuth client 的 client_secret
+
+    ClientCredentialsBasicAuthGrantRequest:
+      type: object
+      description: client_credentials grant 請求體（upstream documented Basic Auth variant）
+      required:
+        - grant_type
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - client_credentials
+          description: OAuth grant type，固定為 "client_credentials"
+
     SASViyaTokenResponse:
       type: object
-      description: 'SAS Viya OAuth token 回應。
-
+      description: |
+        SAS Viya OAuth token 回應。
         來源：`schema/_token_response.py::SASViyaTokenResponse`
-
-        '
       required:
-      - access_token
-      - token_type
-      - id_token
-      - refresh_token
-      - expires_in
-      - scope
-      - jti
+        - access_token
+        - token_type
+        - id_token
+        - refresh_token
+        - expires_in
+        - scope
+        - jti
       properties:
         access_token:
           type: string
@@ -1168,6 +1268,35 @@ components:
           type: string
           description: token 授權範圍
           example: openid
+        jti:
+          type: string
+          description: JWT ID，token 的唯一識別碼
+
+    ClientCredentialsTokenResponse:
+      type: object
+      description: client_credentials grant 成功回應（illustrative upstream-shaped subset；不是 frozen response truth）
+      required:
+        - access_token
+        - expires_in
+      properties:
+        access_token:
+          type: string
+          description: Bearer token，所有 SAS Viya API 呼叫的認證憑證
+        token_type:
+          type: string
+          description: token 類型，固定為 "bearer"
+          example: bearer
+        expires_in:
+          type: integer
+          description: access_token 有效秒數
+          example: 3600
+        scope:
+          type: string
+          description: token 授權範圍；service-to-service baseline 常見為 `uaa.none`
+          example: uaa.none
+        revocable:
+          type: boolean
+          description: token 是否可撤銷
         jti:
           type: string
           description: JWT ID，token 的唯一識別碼
@@ -1839,20 +1968,18 @@ components:
           nullable: true
     StartJobRequestBody:
       type: object
-      description: '啟動 Job 的請求 Body。
-
+      description: |
+        啟動 Job 的請求 Body。
         來源：`utils/_api/job_execution.py::start_job`
 
-
-        **注意**：`start_job` 以空的 JSON body `{}` 呼叫此端點，
-
-        實際上 SAS Viya 會以 Job Request 的預設設定啟動 Job。
-
-        Body 為空物件，僅需提供 `Content-Type: application/json` header。
-
-        '
+        **注意**：repo-local `start_job` 目前會送出空的 JSON body `{}` 作為 invocation baseline。
+        upstream raw spec 則要求 empty body；因此 `Content-Type: application/json` 與 `{}`
+        只屬於 repo-local shape，不可放大成 upstream official request-body contract。
       properties: {}
+      additionalProperties: false
+      maxProperties: 0
       example: {}
+
     JobInfo:
       type: object
       description: 'Job 詳細資訊。
