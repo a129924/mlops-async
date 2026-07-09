@@ -4,7 +4,9 @@
     "function": "list_tables",
     "contract_status": "implementation-facing draft",
     "classification": "fixed-path MVP",
-    "divergence_label": "intentionally_changed"
+    "divergence_label": "intentionally_changed",
+    "authority_class": "historical-superseded",
+    "allowed_use": "keep-as-historical-only"
   },
   "cases": {
     "direct_project_identifier": {
@@ -27,14 +29,23 @@
   "assertion_layer": "implementation-facing-fixed-path-request-shape",
   "reviewer_boundary": {
     "claims": [
-      "fixed-path MVP request-shape only"
+      "historical fixed-path MVP request-shape only"
     ],
     "does_not_prove": [
+      "current endpoint truth",
       "HATEOAS endpoint discovery",
       "project pre-fetch behavior",
       "response schema",
-      "real transport proof",
-      "target runtime behavior proof"
+      "real transport proof"
+    ]
+  },
+  "authority": {
+    "class": "historical-superseded",
+    "allowed_use": "keep-as-historical-only",
+    "forbidden_use": [
+      "current endpoint truth",
+      "implementation baseline",
+      "HATEOAS endpoint discovery"
     ]
   }
 }

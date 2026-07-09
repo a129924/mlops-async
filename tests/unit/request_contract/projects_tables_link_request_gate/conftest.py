@@ -1,4 +1,5 @@
-"""Fixed-path MVP request-shape helpers for modelRepository projects tables-link surface."""
+"""Historical non-authoritative helpers for the superseded
+projects tables-link MVP request gate."""
 
 from __future__ import annotations
 
@@ -23,6 +24,12 @@ BASE_URL = "https://example.test"
 DUMMY_TOKEN = "fake-token"
 FIXTURE_DIR = Path(__file__).with_name("fixtures")
 TOPIC_PACKAGE_DIR = Path(__file__).resolve().parent
+AUTHORITY_CLASS = "historical-superseded"
+ALLOWED_USE = "keep-as-historical-only"
+HISTORICAL_SKIP_REASON = (
+    "Historical superseded request gate: explicit topic-scoped execution only; "
+    "do not use this surface as current implementation truth."
+)
 
 
 def _is_topic_scoped_pytest_run(config: pytest.Config) -> bool:
@@ -52,6 +59,20 @@ def pytest_configure(config: pytest.Config) -> None:
     cov_plugin = config.pluginmanager.getplugin("_cov")
     if cov_plugin is not None:
         cov_plugin.options.cov_fail_under = 0
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    if _is_topic_scoped_pytest_run(config):
+        return
+
+    skip_marker = pytest.mark.skip(reason=HISTORICAL_SKIP_REASON)
+    for item in items:
+        item_path = Path(str(item.path)).resolve()
+        try:
+            item_path.relative_to(TOPIC_PACKAGE_DIR)
+        except ValueError:
+            continue
+        item.add_marker(skip_marker)
 
 
 class BlockedTopicScopeError(RuntimeError):

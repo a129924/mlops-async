@@ -4,7 +4,9 @@
     "function": "get_table",
     "contract_status": "tests-only request gate",
     "classification": "direct-identifiers",
-    "divergence_label": "shape-only"
+    "divergence_label": "shape-only",
+    "authority_class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline"
   },
   "cases": {
     "direct_identifiers": {
@@ -37,6 +39,13 @@
       "response schema",
       "CAS load-state semantics",
       "real transport proof"
+    ]
+  },
+  "authority": {
+    "class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline",
+    "forbidden_use": [
+      "upstream endpoint truth"
     ]
   }
 }

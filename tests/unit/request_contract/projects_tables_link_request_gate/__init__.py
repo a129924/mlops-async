@@ -1,1 +1,1 @@
-"""Request-contract package for fixed-path MVP project tables-link surface."""
+"""Historical non-authoritative request-contract package for the superseded tables-link surface."""
