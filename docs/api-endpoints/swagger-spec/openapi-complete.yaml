@@ -482,6 +482,13 @@ paths:
       responses:
         '200':
           description: 成功取得單一專案詳細資訊
+          headers:
+            ETag:
+              description: |
+                Version tag returned by upstream `getProject`; preserve it for later `If-Match` concurrency control.
+              schema:
+                type: string
+              example: '"dummy-etag"'
           content:
             application/json:
               schema:
@@ -931,10 +938,13 @@ paths:
 
         **必要 Headers**（upstream official baseline）：
         ```
-        Delegate-Domain: ""
         Authorization: Bearer {access_token}
         Accept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json
         ```
+        `Delegate-Domain` is documented in the upstream raw spec as a header parameter, but it is not
+        marked `required: true`. The repo-local `{}` invocation fixture currently sends
+        `Delegate-Domain: ""`; treat that only as a repo-local/internal wrapper artifact,
+        not an upstream required header.
 
         **Request Body**：
         - upstream raw spec `jobExecution-openapi.yml::createJobRequestJob` 明確要求 **empty body**
@@ -1212,9 +1222,13 @@ components:
           description: OAuth grant type，固定為 "client_credentials"
         client_id:
           type: string
+          minLength: 1
+          pattern: \S
           description: 註冊 OAuth client 的 client_id
         client_secret:
           type: string
+          minLength: 1
+          pattern: \S
           description: 註冊 OAuth client 的 client_secret
 
     SASViyaTokenResponse:
@@ -1265,6 +1279,7 @@ components:
       properties:
         access_token:
           type: string
+          minLength: 1
           description: Bearer token，所有 SAS Viya API 呼叫的認證憑證
         token_type:
           type: string
@@ -1272,6 +1287,7 @@ components:
           example: bearer
         expires_in:
           type: integer
+          minimum: 1
           description: access_token 有效秒數
           example: 3600
         scope:

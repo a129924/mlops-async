@@ -599,6 +599,15 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Version tag returned by upstream `getProject`; preserve it for later `If-Match` concurrency control.\n",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "\"dummy-etag\""
+              }
             }
           },
           "400": {
@@ -1069,7 +1078,7 @@
         "tags": [
           "Job Execution"
         ],
-        "description": "根據指定的 Job Request ID，建立並啟動新的 SAS Job 執行。\n\n**HTTP Method**：POST\n\n**URL 組合方式**（來源 `job_execution.py`）：\n```python\nJOB_EXECUTION_URL = f\"{base_url}jobExecution/jobRequests\"\nurl = f\"{JOB_EXECUTION_URL}/{job_request_id}/jobs\"\n```\n\n**使用場景**：\n- 觸發 SAS Scoring Job（在 CAS 中執行評分程序）\n- `job_request_id` 為預先設定好的 SAS Job Request UUID\n\n**必要 Headers**（upstream official baseline）：\n```\nDelegate-Domain: \"\"\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json\n```\n\n**Request Body**：\n- upstream raw spec `jobExecution-openapi.yml::createJobRequestJob` 明確要求 **empty body**\n- 目前 repo-local wrapper / request gate 凍結的 invocation shape 是 JSON `{}`\n- `Content-Type: application/json` 只屬於 repo-local `{}` invocation shape，不屬於 upstream official empty-body contract\n- 因此 `{}` 只能視為 repo-local shape baseline，不可誤讀成 upstream official body contract\n\n**回傳**：新建的 Job 物件，其中 `id` 欄位為後續查詢 Job 狀態所需的 `jobId`\n\n⚠️ **已知 Bug**：`start_job` 呼叫 header 函式時傳入了不存在的 `is_text=False` 參數。\n\n**逾時設定**：`timeout=180` 秒\n\n**來源程式碼**：`utils/_api/job_execution.py::start_job`\n",
+        "description": "根據指定的 Job Request ID，建立並啟動新的 SAS Job 執行。\n\n**HTTP Method**：POST\n\n**URL 組合方式**（來源 `job_execution.py`）：\n```python\nJOB_EXECUTION_URL = f\"{base_url}jobExecution/jobRequests\"\nurl = f\"{JOB_EXECUTION_URL}/{job_request_id}/jobs\"\n```\n\n**使用場景**：\n- 觸發 SAS Scoring Job（在 CAS 中執行評分程序）\n- `job_request_id` 為預先設定好的 SAS Job Request UUID\n\n**必要 Headers**（upstream official baseline）：\n```\nAuthorization: Bearer {access_token}\nAccept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json\n```\n\n        `Delegate-Domain` is documented in the upstream raw spec as a header parameter, but it is not\n        marked `required: true`. The repo-local `{}` invocation fixture currently sends\n        `Delegate-Domain: \"\"`; treat that only as a repo-local/internal wrapper artifact,\n        not an upstream required header.\n\n**Request Body**：\n- upstream raw spec `jobExecution-openapi.yml::createJobRequestJob` 明確要求 **empty body**\n- 目前 repo-local wrapper / request gate 凍結的 invocation shape 是 JSON `{}`\n- `Content-Type: application/json` 只屬於 repo-local `{}` invocation shape，不屬於 upstream official empty-body contract\n- 因此 `{}` 只能視為 repo-local shape baseline，不可誤讀成 upstream official body contract\n\n**回傳**：新建的 Job 物件，其中 `id` 欄位為後續查詢 Job 狀態所需的 `jobId`\n\n⚠️ **已知 Bug**：`start_job` 呼叫 header 函式時傳入了不存在的 `is_text=False` 參數。\n\n**逾時設定**：`timeout=180` 秒\n\n**來源程式碼**：`utils/_api/job_execution.py::start_job`\n",
         "security": [
           {
             "BearerAuth": []
@@ -2349,11 +2358,15 @@
           },
           "client_id": {
             "type": "string",
-            "description": "註冊 OAuth client 的 client_id"
+            "description": "註冊 OAuth client 的 client_id",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "client_secret": {
             "type": "string",
-            "description": "註冊 OAuth client 的 client_secret"
+            "description": "註冊 OAuth client 的 client_secret",
+            "minLength": 1,
+            "pattern": "\\S"
           }
         },
         "additionalProperties": false
@@ -2368,7 +2381,8 @@
         "properties": {
           "access_token": {
             "type": "string",
-            "description": "Bearer token，所有 SAS Viya API 呼叫的認證憑證"
+            "description": "Bearer token，所有 SAS Viya API 呼叫的認證憑證",
+            "minLength": 1
           },
           "token_type": {
             "type": "string",
@@ -2378,7 +2392,8 @@
           "expires_in": {
             "type": "integer",
             "description": "access_token 有效秒數",
-            "example": 3600
+            "example": 3600,
+            "minimum": 1
           },
           "scope": {
             "type": "string",

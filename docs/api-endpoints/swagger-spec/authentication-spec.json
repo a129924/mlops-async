@@ -257,11 +257,15 @@
           },
           "client_id": {
             "type": "string",
-            "description": "註冊 OAuth client 的 client_id"
+            "description": "註冊 OAuth client 的 client_id",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "client_secret": {
             "type": "string",
-            "description": "註冊 OAuth client 的 client_secret"
+            "description": "註冊 OAuth client 的 client_secret",
+            "minLength": 1,
+            "pattern": "\\S"
           }
         },
         "additionalProperties": false
@@ -276,7 +280,8 @@
         "properties": {
           "access_token": {
             "type": "string",
-            "description": "Bearer token，所有 SAS Viya API 呼叫的認證憑證"
+            "description": "Bearer token，所有 SAS Viya API 呼叫的認證憑證",
+            "minLength": 1
           },
           "token_type": {
             "type": "string",
@@ -286,7 +291,8 @@
           "expires_in": {
             "type": "integer",
             "description": "access_token 有效秒數",
-            "example": 3600
+            "example": 3600,
+            "minimum": 1
           },
           "scope": {
             "type": "string",

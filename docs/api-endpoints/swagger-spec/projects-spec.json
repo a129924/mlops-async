@@ -440,6 +440,15 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Version tag returned by upstream `getProject`; preserve it for later `If-Match` concurrency control.\n",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "\"dummy-etag\""
+              }
             }
           },
           "400": {

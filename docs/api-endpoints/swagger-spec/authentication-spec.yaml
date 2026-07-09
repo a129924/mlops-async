@@ -184,9 +184,13 @@ components:
           description: OAuth grant type，固定為 "client_credentials"
         client_id:
           type: string
+          minLength: 1
+          pattern: \S
           description: 註冊 OAuth client 的 client_id
         client_secret:
           type: string
+          minLength: 1
+          pattern: \S
           description: 註冊 OAuth client 的 client_secret
 
     SASViyaTokenResponse:
@@ -237,6 +241,7 @@ components:
       properties:
         access_token:
           type: string
+          minLength: 1
           description: Bearer token，所有 SAS Viya API 呼叫的認證憑證
         token_type:
           type: string
@@ -244,6 +249,7 @@ components:
           example: bearer
         expires_in:
           type: integer
+          minimum: 1
           description: access_token 有效秒數
           example: 3600
         scope:

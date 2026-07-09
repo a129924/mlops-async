@@ -390,6 +390,13 @@ paths:
       responses:
         '200':
           description: 成功取得單一專案詳細資訊
+          headers:
+            ETag:
+              description: |
+                Version tag returned by upstream `getProject`; preserve it for later `If-Match` concurrency control.
+              schema:
+                type: string
+              example: '"dummy-etag"'
           content:
             application/json:
               schema:

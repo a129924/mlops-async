@@ -13,10 +13,12 @@ info:
 
     **必要 Headers**（family-level upstream baseline）：
     ```
-    Delegate-Domain: ""
     Authorization: Bearer {access_token}
     Accept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, ...
     ```
+    `Delegate-Domain` is documented in the upstream raw spec as a header parameter, but it is not marked `required: true`.
+    The repo-local `start_job` fixture currently sends `Delegate-Domain: ""`; treat that only as a
+    repo-local/internal wrapper invocation artifact, not upstream required truth.
 
     `Content-Type: application/json` 僅適用於 repo-local `start_job` 目前送出的 `{}` invocation shape，
     不屬於 upstream official empty-body baseline。
@@ -207,10 +209,13 @@ paths:
 
         **必要 Headers**（upstream official baseline）：
         ```
-        Delegate-Domain: ""
         Authorization: Bearer {access_token}
         Accept: application/vnd.sas.job.execution.job+json, application/vnd.sas.job.execution.job.request+json, application/vnd.sas.error+json, application/json
         ```
+        `Delegate-Domain` is documented in the upstream raw spec as a header parameter, but it is not
+        marked `required: true`. The repo-local `{}` invocation fixture currently sends
+        `Delegate-Domain: ""`; treat that only as a repo-local/internal wrapper artifact,
+        not an upstream required header.
 
         **Request Body**：
         - upstream raw spec `jobExecution-openapi.yml::createJobRequestJob` 明確要求 **empty body**
