@@ -13,15 +13,18 @@
   - `plan/request-contract-truth-alignment/request-contract-truth-alignment.plan.md`
   - `plan/request-contract-truth-alignment/request-contract-truth-alignment.step.md`
   - `docs/api-endpoints/swagger-spec/projects-spec.yaml`
+  - `docs/api-endpoints/swagger-spec/projects-spec.json`
   - `docs/api-endpoints/swagger-spec/authentication-spec.yaml`
+  - `docs/api-endpoints/swagger-spec/authentication-spec.json`
   - `docs/api-endpoints/swagger-spec/jobs-spec.yaml`
+  - `docs/api-endpoints/swagger-spec/jobs-spec.json`
+  - `docs/api-endpoints/swagger-spec/openapi-complete.yaml`
+  - `docs/api-endpoints/swagger-spec/openapi-complete.json`
   - `docs/request-shape-priority-workflow/request-contract-evidence-matrix.md`
   - `docs/request-shape-priority-workflow/checklist.md`，但只有在 matrix 不足以防誤讀時才可最小幅度修改
 
 - **Out of scope**:
   - `tests/unit/request_contract/**` fixture / test shape 改寫
-  - `docs/api-endpoints/swagger-spec/openapi-complete.yaml`
-  - `docs/api-endpoints/swagger-spec/openapi-complete.json`
   - `casmanagement_*` family-level upstream realignment
   - `projects_tables_link_request_gate` 重新啟動
   - `job_execution_jobs_state_request_gate` 擴張成 polling / state-machine workflow
@@ -87,8 +90,12 @@ Routing notes:
 | Topic plan | `plan/request-contract-truth-alignment/request-contract-truth-alignment.plan.md` | Planning actor | Repo-visible execution contract for this topic |
 | Topic step tracker | `plan/request-contract-truth-alignment/request-contract-truth-alignment.step.md` | Planning actor | Topic-local completion gate |
 | Projects spec | `docs/api-endpoints/swagger-spec/projects-spec.yaml` | Code-Implementer | 補齊 `get_project` repo-local contract |
+| Projects JSON output | `docs/api-endpoints/swagger-spec/projects-spec.json` | Code-Implementer | 同步 repo-local published JSON output |
 | Authentication spec | `docs/api-endpoints/swagger-spec/authentication-spec.yaml` | Code-Implementer | 補齊 `client_credentials` 與 token flow truth boundary |
+| Authentication JSON output | `docs/api-endpoints/swagger-spec/authentication-spec.json` | Code-Implementer | 同步 repo-local published JSON output |
 | Jobs spec | `docs/api-endpoints/swagger-spec/jobs-spec.yaml` | Code-Implementer | 分離 upstream empty-body truth 與 repo-local `{}` invocation shape |
+| Jobs JSON output | `docs/api-endpoints/swagger-spec/jobs-spec.json` | Code-Implementer | 同步 repo-local published JSON output |
+| Merged published spec outputs | `docs/api-endpoints/swagger-spec/openapi-complete.yaml`、`docs/api-endpoints/swagger-spec/openapi-complete.json` | Code-Implementer | 同步 merged published outputs，避免 split spec 與 Swagger UI surface 漂移 |
 | Evidence matrix | `docs/request-shape-priority-workflow/request-contract-evidence-matrix.md` | Code-Implementer | 修正 evidence class / truth posture 敘述 |
 | Shared checklist | `docs/request-shape-priority-workflow/checklist.md` | Code-Implementer | 僅在 matrix 不足以防誤讀時補共享警語 |
 
@@ -108,14 +115,16 @@ Artifact path notes:
 3. 更新 `docs/api-endpoints/swagger-spec/projects-spec.yaml`，補齊 `GET /modelRepository/projects/{projectId}`，並明確標示它對應 upstream `"/projects/{projectId}"` 的 service-root normalization。
 4. 更新 `docs/api-endpoints/swagger-spec/authentication-spec.yaml`，把 `/SASLogon/oauth/token` 的 password / refresh_token / client_credentials flow 分開描述，並使 `saslogon_token_request_gate` 的 truth posture 可被正確對照。
 5. 更新 `docs/api-endpoints/swagger-spec/jobs-spec.yaml`，把 `start_job` upstream empty-body contract 與 repo-local `{}` request shape 分開標示。
-6. 更新 `docs/request-shape-priority-workflow/request-contract-evidence-matrix.md`，修正 `get_champion_model`、`job_execution_jobs_*`、`projects_tables_link_request_gate`、`saslogon_*`、`casmanagement_*` 的 truth posture 與 evidence class 說法。
-7. 視需要最小幅度更新 `docs/request-shape-priority-workflow/checklist.md`。
-8. 完成 bounded static verification（no-write 靜態複核），確認 `get_project`、`obtain_access_token`、`start_job` 三個高優先衝突已被消除或轉成明確治理結論。
+6. 同步 `projects-spec.json`、`authentication-spec.json`、`jobs-spec.json` 與 `openapi-complete.yaml/json` 等 published outputs，避免 split specs 與 Swagger UI surface 漂移。
+7. 更新 `docs/request-shape-priority-workflow/request-contract-evidence-matrix.md`，修正 `get_champion_model`、`job_execution_jobs_*`、`projects_tables_link_request_gate`、`saslogon_*`、`casmanagement_*` 的 truth posture 與 evidence class 說法。
+8. 視需要最小幅度更新 `docs/request-shape-priority-workflow/checklist.md`。
+9. 完成 bounded static verification（no-write 靜態複核），確認 `get_project`、`obtain_access_token`、`start_job` 三個高優先衝突已被消除或轉成明確治理結論。
 ## Validation / Acceptance Checks
 
 - `projects-spec.yaml` 能明確對照 `get_project_by_id.request-flow.json` 與 upstream `modelRepository-openapi.yml` 的 `"/projects/{projectId}"`。
-- `authentication-spec.yaml` 不再只有 password / refresh token 描述；`client_credentials` flow 有正式 repo-local contract。
+- `authentication-spec.yaml` 不再只有 password / refresh token 描述；`client_credentials` flow 有正式 repo-local contract，且 form-body baseline 與 Basic Auth variant 不再互相重疊。
 - `jobs-spec.yaml` 不再把 `{}` body 描述成 upstream official truth。
+- `projects-spec.json`、`authentication-spec.json`、`jobs-spec.json` 與 `openapi-complete.yaml/json` 已與 split specs 同步，不留 scope drift。
 - `request-contract-evidence-matrix.md` 不再讓 `get_champion_model` 同時是 legacy-source fixture、又被無條件敘述成 `sasctl-direct`。
 - `job_execution_jobs_request_gate` 與 `job_execution_jobs_state_request_gate` 仍明確維持 `internal-wrapper-shape-only`。
 - `projects_tables_link_request_gate` 仍明確維持 superseded historical artifact。

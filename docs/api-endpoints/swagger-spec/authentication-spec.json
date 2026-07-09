@@ -140,7 +140,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "description": "upstream documented Basic Auth variant 使用的固定授權標頭。\n當 request body 僅包含 `grant_type=client_credentials` 時，應送出\n`Authorization: Basic c2FzLmNsaTo=`。\nrepo-local request gate 目前只凍結 form-body baseline，不以此 header 作為 gate truth。",
+            "schema": {
+              "type": "string"
+            },
+            "example": "Basic c2FzLmNsaTo="
+          }
+        ]
       }
     }
   },
@@ -272,7 +284,8 @@
             "type": "string",
             "description": "註冊 OAuth client 的 client_secret"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ClientCredentialsTokenResponse": {
         "type": "object",
@@ -313,7 +326,7 @@
       },
       "ClientCredentialsBasicAuthGrantRequest": {
         "type": "object",
-        "description": "client_credentials grant 請求體（upstream documented Basic Auth variant）",
+        "description": "client_credentials grant 請求體（upstream documented Basic Auth variant；需搭配固定 Authorization header）",
         "required": [
           "grant_type"
         ],
@@ -325,7 +338,8 @@
             ],
             "description": "OAuth grant type，固定為 \"client_credentials\""
           }
-        }
+        },
+        "additionalProperties": false
       }
     }
   }

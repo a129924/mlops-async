@@ -41,6 +41,18 @@ paths:
 
         **來源程式碼**：`utils/_async/_token.py`
       security: []
+      parameters:
+        - name: Authorization
+          in: header
+          required: false
+          description: |
+            upstream documented Basic Auth variant 使用的固定授權標頭。
+            當 request body 僅包含 `grant_type=client_credentials` 時，應送出
+            `Authorization: Basic c2FzLmNsaTo=`。
+            repo-local request gate 目前只凍結 form-body baseline，不以此 header 作為 gate truth。
+          schema:
+            type: string
+          example: Basic c2FzLmNsaTo=
       requestBody:
         required: true
         content:
@@ -1208,6 +1220,7 @@ components:
         - grant_type
         - client_id
         - client_secret
+      additionalProperties: false
       properties:
         grant_type:
           type: string
@@ -1223,9 +1236,10 @@ components:
 
     ClientCredentialsBasicAuthGrantRequest:
       type: object
-      description: client_credentials grant 請求體（upstream documented Basic Auth variant）
+      description: client_credentials grant 請求體（upstream documented Basic Auth variant；需搭配固定 Authorization header）
       required:
         - grant_type
+      additionalProperties: false
       properties:
         grant_type:
           type: string
