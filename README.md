@@ -8,6 +8,8 @@ This repository is currently a **project scaffold**. The package layout, tooling
 quality gates, and agent-governance files are in place; the public client API is
 not implemented yet.
 
+As of **v0.12.0**, the repository closes PR #46: the token-endpoint capability family now isolates client-credentials and password grants under `core/token_endpoint`, with `PasswordTokenEndpointClient` obtaining SAS Viya tokens through the password grant while preserving the existing `TokenEndpointClient` compatibility import and auth lifecycle boundaries.
+
 As of **v0.11.17**, the repository closes PR #45: the repo now treats non-authoritative request-contract surfaces as explicit release-governed truth boundaries, adds a repo-visible non-authoritative ledger, keeps wrapper and custom-client request gates as shape baselines only, and downgrades projects_tables_link_request_gate to historical-only usage outside topic-scoped runs, while runtime endpoint implementation, upstream spec expansion, and release-blocker remediation remain outside this release surface.
 As of **v0.11.16**, the repository closes `PR #42`: the repo now centralizes
 request-header policy for JSON-domain requests and token-endpoint requests
