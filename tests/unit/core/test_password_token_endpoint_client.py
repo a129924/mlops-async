@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import cast
-from urllib.parse import parse_qsl, urlencode
+from urllib.parse import parse_qsl, quote_plus, urlencode
 
 import mlops_async.core.auth as auth
 import mlops_async.core.token_storage as token_storage
@@ -132,7 +132,9 @@ def _basic_credentials_match(
     except (UnicodeDecodeError, ValueError):
         return False
 
-    return decoded_credentials == ":".join(expected_credentials)
+    return decoded_credentials == ":".join(
+        quote_plus(credential) for credential in expected_credentials
+    )
 
 
 def _credential_values_are_absent(
@@ -217,6 +219,32 @@ async def test_password_client_encodes_reserved_user_credentials_without_form_cl
     assert record.form_contract_is_valid
     assert record.form_encoding_is_valid
     assert record.form_field_names == ("grant_type", "username", "password")
+
+
+@pytest.mark.asyncio
+async def test_password_client_encodes_reserved_basic_credentials_per_rfc6749() -> None:
+    transport = _FakeTransport(
+        [_valid_token_payload()],
+        expected_form=(
+            ("grant_type", "password"),
+            ("username", _USERNAME),
+            ("password", _PASSWORD),
+        ),
+        expected_basic_credentials=(_RESERVED_CLIENT_ID, _RESERVED_CLIENT_SECRET),
+    )
+    client = PasswordTokenEndpointClient(
+        transport,
+        username=_USERNAME,
+        password=_PASSWORD,
+        client_id=_RESERVED_CLIENT_ID,
+        client_secret=_RESERVED_CLIENT_SECRET,
+    )
+
+    await client.fetch_access_token()
+
+    record = transport.requests[0]
+    assert record.authorization_scheme == "Basic"
+    assert record.basic_contract_is_valid
 
 
 def test_password_client_rejects_blank_credentials_without_echoing_values() -> None:

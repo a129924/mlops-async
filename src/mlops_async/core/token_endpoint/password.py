@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from base64 import b64encode
 from datetime import datetime, timezone
-from urllib.parse import urlencode
+from urllib.parse import quote_plus, urlencode
 
 from mlops_async.core.client import Client
 from mlops_async.core.headers import token_request_headers
@@ -63,7 +63,9 @@ class PasswordTokenEndpointClient:
         return await self.fetch_access_token()
 
     def _basic_authorization(self) -> str:
-        credentials = f"{self._client_id}:{self._client_secret}".encode()
+        credentials = (
+            f"{quote_plus(self._client_id)}:{quote_plus(self._client_secret)}"
+        ).encode("ascii")
         return f"Basic {b64encode(credentials).decode('ascii')}"
 
     def _form_body_for_password_grant(self) -> bytes:
