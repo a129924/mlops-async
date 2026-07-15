@@ -31,6 +31,7 @@ from mlops_async.core.types import HttpMethod, JSONValue
 _CLIENT_ID = "test-client-id"
 _CLIENT_SECRET = "test-client-secret"
 _RESERVED_CLIENT_ID = "test/client?draft=yes"
+_SAS_EC_CLIENT_ID = "sas.ec"
 _RESERVED_CLIENT_SECRET = "test-client&secret=1"
 
 
@@ -266,6 +267,20 @@ def test_client_credentials_client_rejects_blank_credentials() -> None:
                 client_id=client_id,
                 client_secret=client_secret,
             )
+
+
+@pytest.mark.parametrize("client_secret", ("", " ", "  "))
+def test_client_credentials_client_rejects_sas_ec_without_a_non_empty_secret(
+    client_secret: str,
+) -> None:
+    transport = _client_credentials_transport(responses=[])
+
+    with pytest.raises(CompatibilityTokenEndpointClientError, match="client_secret"):
+        TokenEndpointClient(
+            transport,
+            client_id=_SAS_EC_CLIENT_ID,
+            client_secret=client_secret,
+        )
 
 
 def test_client_credentials_client_rejects_non_string_credentials() -> None:

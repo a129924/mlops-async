@@ -36,6 +36,21 @@ def require_non_empty_string(value: object, *, field_name: str) -> str:
     return value
 
 
+def require_password_client_secret(value: object, *, client_id: str) -> str:
+    """Validate a password-grant secret with the narrow ``sas.ec`` exception.
+
+    This preserves sasctl 1.11.7's password-grant default: ``client_id``
+    defaults to ``"sas.ec"`` and ``client_secret`` to ``""`` before the
+    credentials are sent as HTTP Basic authentication to ``/SASLogon/oauth/token``.
+    It is a SAS Viya compatibility exception, not a general OAuth rule: only
+    the exact empty string for ``sas.ec`` is allowed; whitespace and every
+    other client ID remain invalid.
+    """
+    if client_id == "sas.ec" and isinstance(value, str) and value == "":
+        return value
+    return require_non_empty_string(value, field_name="client_secret")
+
+
 def parse_token_response(payload: JSONValue) -> _TokenResponse:
     """Validate and normalize the JSON payload returned by a token endpoint."""
     if not isinstance(payload, dict):

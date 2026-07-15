@@ -23,6 +23,7 @@ _RESERVED_USERNAME = "test/user?draft=yes"
 _RESERVED_PASSWORD = "test&password=1"
 _RESERVED_CLIENT_ID = "test/client"
 _RESERVED_CLIENT_SECRET = "test&client-secret=1"
+_SAS_EC_CLIENT_ID = "sas.ec"
 
 
 def _valid_token_payload() -> JSONValue:
@@ -278,6 +279,62 @@ def test_password_client_rejects_blank_credentials_without_echoing_values() -> N
             client_secret=client_secret,
         ):
             pytest.fail("credential validation error exposed a secret")
+
+
+@pytest.mark.asyncio
+async def test_password_client_accepts_sas_ec_with_an_empty_secret() -> None:
+    """Preserve sasctl's ``sas.ec`` plus empty-secret password-grant default."""
+    transport = _FakeTransport(
+        [_valid_token_payload()],
+        expected_form=(
+            ("grant_type", "password"),
+            ("username", _USERNAME),
+            ("password", _PASSWORD),
+        ),
+        expected_basic_credentials=(_SAS_EC_CLIENT_ID, ""),
+    )
+    client = PasswordTokenEndpointClient(
+        transport,
+        username=_USERNAME,
+        password=_PASSWORD,
+        client_id=_SAS_EC_CLIENT_ID,
+        client_secret="",
+    )
+
+    await client.fetch_access_token()
+
+    record = transport.requests[0]
+    assert record.authorization_scheme == "Basic"
+    assert record.basic_contract_is_valid
+    assert record.form_contract_is_valid
+
+
+@pytest.mark.parametrize(
+    ("client_id", "client_secret"),
+    (
+        (_SAS_EC_CLIENT_ID, " "),
+        (_SAS_EC_CLIENT_ID, "  "),
+        (_CLIENT_ID, ""),
+        (_CLIENT_ID, " "),
+        (_CLIENT_ID, "  "),
+    ),
+)
+def test_password_client_rejects_disallowed_empty_or_whitespace_secrets_without_echoing_values(
+    client_id: str,
+    client_secret: str,
+) -> None:
+    transport = _password_transport(responses=[])
+
+    with pytest.raises(TokenEndpointClientError, match="client_secret") as exc_info:
+        PasswordTokenEndpointClient(
+            transport,
+            username=_USERNAME,
+            password=_PASSWORD,
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+
+    assert str(exc_info.value) == "client_secret must be a non-empty string"
 
 
 def test_password_client_rejects_non_string_credentials_without_echoing_values() -> None:

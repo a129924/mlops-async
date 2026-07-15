@@ -13,6 +13,7 @@ from mlops_async.core.token_endpoint._shared import (
     access_token_from_response,
     parse_token_response,
     require_non_empty_string,
+    require_password_client_secret,
 )
 from mlops_async.core.token_storage import AccessToken
 from mlops_async.core.types import HttpMethod
@@ -36,7 +37,10 @@ class PasswordTokenEndpointClient:
         self._username = require_non_empty_string(username, field_name="username")
         self._password = require_non_empty_string(password, field_name="password")
         self._client_id = require_non_empty_string(client_id, field_name="client_id")
-        self._client_secret = require_non_empty_string(client_secret, field_name="client_secret")
+        self._client_secret = require_password_client_secret(
+            client_secret,
+            client_id=self._client_id,
+        )
         self._endpoint = endpoint
 
     @property
