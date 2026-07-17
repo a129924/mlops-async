@@ -31,7 +31,7 @@ async def test_password_token_e2e_validates_exact_success_contract() -> None:
         async with HttpClient(
             config.base_url,
             timeout=RequestTimeouts(total=30),
-            verify=True,
+            verify=config.verify,
         ) as http_client:
             http_client._client.event_hooks["response"].append(record_status)
             client = PasswordTokenEndpointClient(

@@ -3,12 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from ipaddress import ip_address
 from pathlib import Path
+import ssl
 from urllib.parse import urlsplit
+from warnings import warn
 
 __all__ = ["ViyaE2EConfig", "ViyaE2EConfigError", "load_viya_e2e_config"]
 
 _CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / ".env.test"
 _IGNORED_KEYS = frozenset({"RUN_VIYA_E2E"})
+_TLS_MODE_KEY = "VIYA_E2E_TLS_MODE"
+_CA_BUNDLE_KEY = "VIYA_E2E_CA_BUNDLE"
 _REQUIRED_KEYS = frozenset(
     {
         "VIYA_E2E_BASE_URL",
@@ -18,6 +22,7 @@ _REQUIRED_KEYS = frozenset(
         "VIYA_E2E_CLIENT_SECRET",
     }
 )
+_SUPPORTED_KEYS = _REQUIRED_KEYS | frozenset({_TLS_MODE_KEY, _CA_BUNDLE_KEY})
 
 
 class ViyaE2EConfigError(ValueError):
@@ -33,6 +38,7 @@ class ViyaE2EConfig:
     password: str
     client_id: str
     client_secret: str
+    verify: bool | ssl.SSLContext
 
 
 def load_viya_e2e_config(path: Path = _CONFIG_PATH) -> ViyaE2EConfig:
@@ -47,6 +53,7 @@ def load_viya_e2e_config(path: Path = _CONFIG_PATH) -> ViyaE2EConfig:
     client_id = _require_non_blank(values["VIYA_E2E_CLIENT_ID"], "client_id")
     client_secret = values["VIYA_E2E_CLIENT_SECRET"]
     _validate_client_secret(client_id, client_secret)
+    verify = _resolve_verify(values)
 
     return ViyaE2EConfig(
         base_url=base_url,
@@ -54,6 +61,7 @@ def load_viya_e2e_config(path: Path = _CONFIG_PATH) -> ViyaE2EConfig:
         password=password,
         client_id=client_id,
         client_secret=client_secret,
+        verify=verify,
     )
 
 
@@ -73,11 +81,13 @@ def _parse_config(path: Path) -> dict[str, str]:
         normalized_key = key.strip()
         if normalized_key in _IGNORED_KEYS:
             continue
-        if normalized_key not in _REQUIRED_KEYS:
+        if normalized_key not in _SUPPORTED_KEYS:
             raise ViyaE2EConfigError("config contains an unsupported key")
         if normalized_key in values:
             raise ViyaE2EConfigError("config contains a duplicate key")
-        values[normalized_key] = _parse_value(value)
+        values[normalized_key] = (
+            _parse_tls_mode(value) if normalized_key == _TLS_MODE_KEY else _parse_value(value)
+        )
     return values
 
 
@@ -100,6 +110,48 @@ def _parse_value(value: str) -> str:
     if normalized_value[-1] in "\"'":
         raise ViyaE2EConfigError("config contains an invalid quoted value")
     return normalized_value
+
+
+def _parse_tls_mode(value: str) -> str:
+    if not value:
+        return ""
+
+    if value[0] in "\"'":
+        if len(value) < 2 or value[-1] != value[0]:
+            raise ViyaE2EConfigError("config contains an invalid quoted value")
+        return value[1:-1]
+
+    if value[-1] in "\"'":
+        raise ViyaE2EConfigError("config contains an invalid quoted value")
+    return value
+
+
+def _resolve_verify(values: dict[str, str]) -> bool | ssl.SSLContext:
+    tls_mode = values.get(_TLS_MODE_KEY)
+    if tls_mode is None or tls_mode == "":
+        raise ViyaE2EConfigError("Viya E2E TLS mode is required")
+    if tls_mode not in {"system", "insecure", "ca_bundle"}:
+        raise ViyaE2EConfigError("Viya E2E TLS mode is invalid")
+
+    ca_bundle = values.get(_CA_BUNDLE_KEY, "")
+    if tls_mode != "ca_bundle" and ca_bundle.strip():
+        raise ViyaE2EConfigError("Viya E2E CA bundle is only valid in ca_bundle mode")
+    if tls_mode == "system":
+        return True
+    if tls_mode == "insecure":
+        warn(
+            "Viya E2E is running with TLS verification explicitly disabled",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return False
+    if not ca_bundle.strip():
+        raise ViyaE2EConfigError("Viya E2E CA bundle is required")
+
+    try:
+        return ssl.create_default_context(cafile=ca_bundle)
+    except OSError as exc:
+        raise ViyaE2EConfigError("Viya E2E CA bundle could not be loaded") from exc
 
 
 def _require_non_blank(value: str, field_name: str) -> str:

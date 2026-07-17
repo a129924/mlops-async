@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import inspect
+import ssl
 from collections.abc import Awaitable, Callable, Mapping
+from pathlib import Path
 from types import ModuleType
-from typing import NoReturn
+from typing import NoReturn, get_type_hints
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
@@ -86,6 +88,107 @@ def test_constructor_surface_is_locked_to_minimal_transport_parameters() -> None
     assert "client" not in parameters
     assert "params" not in parameters
     assert "options" not in parameters
+
+
+def test_constructor_verify_annotation_accepts_bool_or_ssl_context() -> None:
+    hints = get_type_hints(transport_http_client.HttpClient.__init__)
+
+    assert hints["verify"] == bool | ssl.SSLContext
+
+
+def test_constructor_passes_default_verify_true_to_async_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_kwargs: dict[str, object] = {}
+
+    def capture_async_client(**kwargs: object) -> object:
+        captured_kwargs.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(transport_http_client.httpx, "AsyncClient", capture_async_client)
+
+    _http_client_class()("https://example.com")
+
+    assert captured_kwargs["verify"] is True
+
+
+@pytest.mark.parametrize("verify", [True, False])
+def test_constructor_passes_explicit_bool_verify_to_async_client(
+    monkeypatch: pytest.MonkeyPatch,
+    verify: bool,
+) -> None:
+    captured_kwargs: dict[str, object] = {}
+
+    def capture_async_client(**kwargs: object) -> object:
+        captured_kwargs.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(transport_http_client.httpx, "AsyncClient", capture_async_client)
+
+    _http_client_class()("https://example.com", verify=verify)
+
+    assert captured_kwargs["verify"] is verify
+
+
+@pytest.mark.parametrize(
+    ("with_timeout", "with_transport"),
+    [(False, False), (False, True), (True, False), (True, True)],
+)
+def test_constructor_preserves_ssl_context_identity_in_every_client_branch(
+    monkeypatch: pytest.MonkeyPatch,
+    with_timeout: bool,
+    with_transport: bool,
+) -> None:
+    captured_kwargs: dict[str, object] = {}
+    verify = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    constructor_kwargs: dict[str, object] = {"verify": verify}
+    if with_timeout:
+        constructor_kwargs["timeout"] = RequestTimeouts(total=1.0)
+    if with_transport:
+        constructor_kwargs["transport"] = httpx.MockTransport(
+            lambda request: httpx.Response(204, request=request)
+        )
+
+    def capture_async_client(**kwargs: object) -> object:
+        captured_kwargs.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(transport_http_client.httpx, "AsyncClient", capture_async_client)
+
+    _http_client_class()("https://example.com", **constructor_kwargs)
+
+    assert captured_kwargs["verify"] is verify
+
+
+@pytest.mark.parametrize(
+    "invalid_verify",
+    ["company-ca.pem", Path("company-ca.pem"), None, object()],
+    ids=["str", "path", "none", "object"],
+)
+def test_constructor_rejects_unsupported_verify_before_creating_async_client(
+    monkeypatch: pytest.MonkeyPatch,
+    invalid_verify: object,
+) -> None:
+    async_client_created = False
+
+    def fail_if_async_client_is_created(**_kwargs: object) -> NoReturn:
+        nonlocal async_client_created
+        async_client_created = True
+        raise AssertionError("AsyncClient must not be created for invalid verify")
+
+    monkeypatch.setattr(
+        transport_http_client.httpx,
+        "AsyncClient",
+        fail_if_async_client_is_created,
+    )
+
+    with pytest.raises(TypeError, match=r"^verify must be bool or ssl\.SSLContext$"):
+        _http_client_class()(
+            "https://example.com",
+            **{"verify": invalid_verify},
+        )
+
+    assert async_client_created is False
 
 
 def test_http_client_nominally_inherits_client_protocol() -> None:
