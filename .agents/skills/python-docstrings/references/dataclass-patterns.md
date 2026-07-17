@@ -18,7 +18,7 @@ Document the **semantic role** of the dataclass in your domain. What problem doe
 @dataclass
 class YourStructure:
     """One-liner describing the structure's role.
-    
+
     Extended description of semantic purpose, invariants, or domain context.
     Include any cross-field constraints that matter to callers.
     """
@@ -30,9 +30,9 @@ class YourStructure:
 @dataclass
 class User:
     """An authenticated user identity.
-    
-    Represents a user that has been successfully authenticated and identified 
-    in the system. All fields are populated from the authentication token or 
+
+    Represents a user that has been successfully authenticated and identified
+    in the system. All fields are populated from the authentication token or
     session store.
     """
 ```
@@ -43,8 +43,8 @@ class User:
 @dataclass
 class PaymentOrder:
     """A pending or completed payment transaction.
-    
-    Captures the financial obligation between customer and merchant. 
+
+    Captures the financial obligation between customer and merchant.
     Invariant: total_amount must equal sum of line items. Immutable after creation.
     """
 ```
@@ -86,19 +86,19 @@ class Example:
 @dataclass
 class User:
     """An authenticated user identity."""
-    
+
     id: str
     """Unique user identifier. Primary key; immutable."""
-    
+
     email: str
     """User's email address. Serves as secondary identifier; must be unique."""
-    
+
     display_name: str
     """User's preferred display name (may differ from legal name)."""
-    
+
     roles: list[str]
     """List of assigned role names (e.g., 'admin', 'viewer'). Empty if no roles."""
-    
+
     last_login_at: datetime | None
     """Timestamp of the user's last successful login. None if never logged in."""
 ```
@@ -109,25 +109,25 @@ class User:
 @dataclass
 class PaymentOrder:
     """A pending or completed payment transaction."""
-    
+
     id: str
     """Unique transaction identifier assigned at creation."""
-    
+
     customer_id: str
     """Foreign key linking to the customer who placed this order."""
-    
+
     total_amount_cents: int
     """Order total in cents (not dollars). Positive integer. Immutable."""
-    
+
     status: str
     """Current order status: 'pending', 'processing', 'completed', 'failed', 'refunded'."""
-    
+
     items: list[OrderItem]
     """List of line items in this order. Must not be empty."""
-    
+
     created_at: datetime
     """Timestamp when the order was created. Immutable."""
-    
+
     notes: str | None
     """Optional customer notes or special instructions for this order."""
 ```
@@ -176,9 +176,9 @@ class PaymentOrder:
 @dataclass
 class CreateUserRequest:
     """Request to create a new user."""
-    
+
     email: str
-    """Email address; must be validated with the email_validator library and 
+    """Email address; must be validated with the email_validator library and
     checked against existing users using the uniqueness_check() function."""
 ```
 
@@ -193,7 +193,7 @@ class CreateUserRequest:
 @dataclass
 class CreateUserRequest:
     """Request to create a new user."""
-    
+
     email: str
     """Email address for the new user. Must be unique across all existing users."""
 ```
@@ -206,13 +206,13 @@ class CreateUserRequest:
 @dataclass
 class PaymentRequest:
     """Request to process a payment."""
-    
+
     amount_cents: int
     """Payment amount in cents. Must be a positive integer."""
-    
+
     currency: str
     """ISO 4217 currency code (e.g., 'USD', 'EUR'). Must be supported by processor."""
-    
+
     customer_id: str
     """ID of the customer making the payment. Must be an existing customer."""
 ```
@@ -232,13 +232,13 @@ class PaymentRequest:
 @dataclass
 class UserProfile:
     """A user's profile information."""
-    
+
     bio: str | None
     """Optional user biography. Empty or None if not provided."""
-    
+
     avatar_url: str | None
     """Optional URL to user's avatar image. None if no avatar has been uploaded."""
-    
+
     preferred_language: str
     """User's preferred language code (e.g., 'en-US'). Defaults to 'en' if not set."""
 ```
@@ -249,10 +249,10 @@ class UserProfile:
 @dataclass
 class Order:
     """A customer order."""
-    
+
     status: str
     """Order status. One of: 'pending', 'processing', 'completed', 'cancelled', 'refunded'."""
-    
+
     priority: int
     """Order priority level. 1 (high) to 5 (low). Higher numbers = lower priority."""
 ```
@@ -263,16 +263,16 @@ class Order:
 @dataclass
 class LineItem:
     """A single line in an order."""
-    
+
     product_id: str
     """ID of the product being ordered."""
-    
+
     quantity: int
     """Number of units ordered. Must be positive."""
-    
+
     unit_price_cents: int
     """Price per unit in cents. Captured at order time (may differ from current catalog price)."""
-    
+
     total_price_cents: int
     """Total for this line (quantity × unit_price_cents). Immutable; computed at creation."""
 ```
@@ -283,23 +283,23 @@ class LineItem:
 @dataclass
 class Address:
     """A postal address."""
-    
+
     street: str
     """Street address line."""
-    
+
     city: str
     """City or locality name."""
 
 @dataclass
 class Customer:
     """A registered customer."""
-    
+
     id: str
     """Unique customer identifier."""
-    
+
     billing_address: Address
     """Primary billing address for this customer. Required for payment processing."""
-    
+
     shipping_addresses: list[Address]
     """List of shipping addresses on file. May be empty (use billing address if needed)."""
 ```
@@ -314,10 +314,10 @@ class Customer:
 @dataclass
 class User:
     """An authenticated user."""
-    
+
     id: str
     """User's unique identifier."""
-    
+
     profile_id: str
     """Foreign key to the user's profile. One profile per user; must exist."""
 ```
@@ -328,13 +328,13 @@ class User:
 @dataclass
 class Order:
     """A customer order containing one or more items."""
-    
+
     id: str
     """Order's unique identifier."""
-    
+
     customer_id: str
     """Foreign key to the Customer who placed this order."""
-    
+
     line_items: list[LineItem]
     """Items in this order. Must contain at least one item."""
 ```
@@ -345,10 +345,10 @@ class Order:
 @dataclass
 class Project:
     """A project with team members."""
-    
+
     id: str
     """Project's unique identifier."""
-    
+
     team_member_ids: list[str]
     """IDs of team members assigned to this project. May be empty before launch."""
 ```
@@ -363,13 +363,13 @@ When a dataclass has **cross-field constraints** that matter to callers, documen
 @dataclass
 class DateRange:
     """A range of dates with validation invariants."""
-    
+
     start_date: date
     """Start of the date range."""
-    
+
     end_date: date
     """End of the date range."""
-    
+
     # Class-level constraint documented in class docstring:
     # Invariant: end_date must be >= start_date. This is enforced at construction.
 ```
@@ -380,14 +380,14 @@ Implement in docstring:
 @dataclass
 class DateRange:
     """A contiguous range of calendar dates.
-    
-    Invariant: end_date >= start_date. This constraint is enforced at construction 
+
+    Invariant: end_date >= start_date. This constraint is enforced at construction
     and may be assumed by all callers.
     """
-    
+
     start_date: date
     """Start of the date range (inclusive)."""
-    
+
     end_date: date
     """End of the date range (inclusive)."""
 ```
@@ -402,13 +402,13 @@ class DateRange:
 @dataclass(frozen=True)
 class UserIdentity:
     """An immutable user identity snapshot.
-    
+
     All fields are immutable after construction. Safe to cache or compare directly.
     """
-    
+
     id: str
     """User's unique identifier. Immutable."""
-    
+
     email: str
     """User's email at identity capture time. Immutable."""
 ```
@@ -419,13 +419,13 @@ class UserIdentity:
 @dataclass
 class UserProfile:
     """A mutable user profile.
-    
+
     Fields may be updated after construction (e.g., display name, preferences).
     """
-    
+
     id: str
     """User's unique identifier. Immutable."""
-    
+
     display_name: str
     """User's current display name. Mutable; callers may modify."""
 ```
@@ -440,10 +440,10 @@ class UserProfile:
 @dataclass
 class User:
     """A user."""
-    
+
     id: str
     """The unique identifier for the user. This is an immutable field that never changes."""
-    
+
     name: str
     """The name of the user. This is a string that represents the user's name."""
 ```
@@ -455,10 +455,10 @@ class User:
 @dataclass
 class User:
     """A user."""
-    
+
     id: str
     """Unique user identifier."""
-    
+
     name: str
     """User's preferred display name."""
 ```
@@ -471,9 +471,9 @@ class User:
 @dataclass
 class BankAccount:
     """A bank account."""
-    
+
     balance_cents: int
-    """Current balance in cents. Must be validated to ensure it's non-negative 
+    """Current balance in cents. Must be validated to ensure it's non-negative
     and doesn't exceed the maximum account balance of 999,999,999 cents."""
 ```
 
@@ -484,7 +484,7 @@ class BankAccount:
 @dataclass
 class BankAccount:
     """A bank account."""
-    
+
     balance_cents: int
     """Current account balance in cents. Non-negative."""
 ```

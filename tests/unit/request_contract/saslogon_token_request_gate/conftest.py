@@ -248,9 +248,7 @@ class SasLogonTokenClient:
     ) -> object:
         normalized_grant_type = _normalize_grant_type(grant_type)
         normalized_client_id = _normalize_non_empty_string(client_id, "client_id")
-        normalized_client_secret = _normalize_non_empty_string(
-            client_secret, "client_secret"
-        )
+        normalized_client_secret = _normalize_non_empty_string(client_secret, "client_secret")
         _reject_scope(scope)
 
         response = self._session.request(

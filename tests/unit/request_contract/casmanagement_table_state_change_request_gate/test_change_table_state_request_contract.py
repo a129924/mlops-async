@@ -66,9 +66,7 @@ def test_change_table_state_loaded_direct_identifiers_request_shape(
         ),
     )
 
-    result = casmanagement_table_state_change_contract.run(
-        case_change_table_state_loaded
-    )
+    result = casmanagement_table_state_change_contract.run(case_change_table_state_loaded)
 
     assert getattr(result, "state", None) == "loaded"
     assert casmanagement_table_state_change_contract.last_request is not None
@@ -77,9 +75,7 @@ def test_change_table_state_loaded_direct_identifiers_request_shape(
         == "/casManagement/servers/cas-shared-default/caslibs/"
         "CASUSER/tables/SCORING_INPUT/state"
     )
-    assert casmanagement_table_state_change_contract.last_request["query"] == {
-        "value": "loaded"
-    }
+    assert casmanagement_table_state_change_contract.last_request["query"] == {"value": "loaded"}
     assert casmanagement_table_state_change_contract.last_request["body"] == {
         "outputCaslibName": CASLIB,
         "outputTableName": TABLE_NAME,
@@ -346,9 +342,7 @@ def test_change_table_state_percent_encodes_reserved_identifier_characters(
         == "/casManagement/servers/cas-shared-default/caslibs/"
         "CAS%2FUSER%3Fdraft%3Dyes/tables/INPUT%2FTABLE%3Fdraft%3Dyes/state"
     )
-    assert casmanagement_table_state_change_contract.last_request["query"] == {
-        "value": "loaded"
-    }
+    assert casmanagement_table_state_change_contract.last_request["query"] == {"value": "loaded"}
     assert casmanagement_table_state_change_contract.last_request["body"] == {
         "outputCaslibName": reserved_caslib,
         "outputTableName": reserved_table_name,
@@ -483,7 +477,7 @@ def test_load_case_from_locator_rejects_multiple_cases_even_with_explicit_case_n
                                 }
                             }
                         ]
-                    }
+                    },
                 }
             }
         ),
@@ -491,9 +485,7 @@ def test_load_case_from_locator_rejects_multiple_cases_even_with_explicit_case_n
     )
 
     with pytest.raises(AssertionError, match="must define exactly one case"):
-        _load_case_from_locator(
-            "change_table_state.request-flow.json#loaded_direct_identifiers"
-        )
+        _load_case_from_locator("change_table_state.request-flow.json#loaded_direct_identifiers")
 
 
 def test_change_table_state_source_observed_headers_must_match_fixture_subset(
@@ -530,7 +522,7 @@ def test_change_table_state_source_observed_headers_must_match_fixture_subset(
                                         "outputCaslibName": CASLIB,
                                         "outputTableName": TABLE_NAME,
                                     },
-                                }
+                                },
                             }
                         ]
                     }
@@ -569,9 +561,7 @@ def test_change_table_state_source_observed_headers_must_match_fixture_subset(
             headers={"Content-Type": "application/json"},
         ),
         source_observed=SourceObservedFixture(
-            request_path=(
-                "change_table_state.request-flow.json#loaded_direct_identifiers"
-            ),
+            request_path=("change_table_state.request-flow.json#loaded_direct_identifiers"),
             response_path=None,
         ),
     )

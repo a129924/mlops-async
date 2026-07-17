@@ -30,10 +30,7 @@ def test_list_tables_limit_1000_start_0_request_shape(
         invoke=lambda: casmanagement_tables_list_contract.client.list_tables(caslib=CASLIB),
         expected=RequestShape(
             method="GET",
-            path=(
-                "/casManagement/dataSources/cas~fs~cas-shared-default~fs~"
-                f"{CASLIB}/tables"
-            ),
+            path=(f"/casManagement/dataSources/cas~fs~cas-shared-default~fs~{CASLIB}/tables"),
             query={"limit": "1000", "start": "0"},
             body=None,
             required_headers={
@@ -47,12 +44,8 @@ def test_list_tables_limit_1000_start_0_request_shape(
             headers={"Content-Type": "application/json"},
         ),
         source_observed=SourceObservedFixture(
-            request_path=(
-                f"{FIXTURE_ROOT}/list_tables.request-flow.json#limit_1000_start_0"
-            ),
-            response_path=(
-                f"{FIXTURE_ROOT}/list_tables.mock-responses.json#limit_1000_start_0"
-            ),
+            request_path=(f"{FIXTURE_ROOT}/list_tables.request-flow.json#limit_1000_start_0"),
+            response_path=(f"{FIXTURE_ROOT}/list_tables.mock-responses.json#limit_1000_start_0"),
         ),
     )
 
@@ -220,8 +213,7 @@ def test_list_tables_percent_encodes_reserved_caslib_characters(
         expected=RequestShape(
             method="GET",
             path=(
-                "/casManagement/dataSources/cas~fs~cas-shared-default~fs~"
-                f"{encoded_caslib}/tables"
+                f"/casManagement/dataSources/cas~fs~cas-shared-default~fs~{encoded_caslib}/tables"
             ),
             query={"limit": "1000", "start": "0"},
             body=None,

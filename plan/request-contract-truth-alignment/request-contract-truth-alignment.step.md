@@ -13,4 +13,3 @@
 - [X] 更新 `docs/request-shape-priority-workflow/request-contract-evidence-matrix.md`
 - [X] 視需要最小幅度更新 `docs/request-shape-priority-workflow/checklist.md`
 - [X] 完成 bounded static verification（no-write 靜態複核）
-

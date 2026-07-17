@@ -80,11 +80,7 @@ class _FakeTransport:
         del params, json_body, options
         request_headers = {} if headers is None else headers
         authorization = next(
-            (
-                value
-                for name, value in request_headers.items()
-                if name.lower() == "authorization"
-            ),
+            (value for name, value in request_headers.items() if name.lower() == "authorization"),
             None,
         )
         form_content = b"" if content is None else content
@@ -147,8 +143,7 @@ def _credential_values_are_absent(
     client_secret: str,
 ) -> bool:
     return not any(
-        value and value in message
-        for value in (username, password, client_id, client_secret)
+        value and value in message for value in (username, password, client_id, client_secret)
     )
 
 
@@ -193,8 +188,9 @@ async def test_password_client_posts_the_locked_password_grant_contract() -> Non
 
 
 @pytest.mark.asyncio
-async def test_password_client_encodes_reserved_user_credentials_without_form_client_credentials(
-) -> None:
+async def test_password_client_encodes_reserved_user_credentials_without_form_client_credentials() -> (  # noqa: E501
+    None
+):
     expected_form = (
         ("grant_type", "password"),
         ("username", _RESERVED_USERNAME),
@@ -371,9 +367,7 @@ async def test_password_client_rejects_invalid_token_payload() -> None:
 
 @pytest.mark.asyncio
 async def test_password_client_refresh_reobtains_without_refresh_grant() -> None:
-    transport = _password_transport(
-        responses=[_valid_token_payload(), _valid_token_payload()]
-    )
+    transport = _password_transport(responses=[_valid_token_payload(), _valid_token_payload()])
     client = _password_client(transport)
 
     initial_token = await client.fetch_access_token()

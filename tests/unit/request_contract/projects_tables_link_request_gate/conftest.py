@@ -81,13 +81,9 @@ class BlockedTopicScopeError(RuntimeError):
 
 def _normalize_project_id(project_id: object) -> str:
     if not isinstance(project_id, str):
-        raise BlockedTopicScopeError(
-            "Only a non-empty project_id string is allowed in this topic."
-        )
+        raise BlockedTopicScopeError("Only a non-empty project_id string is allowed in this topic.")
     if not project_id.strip():
-        raise BlockedTopicScopeError(
-            "Only a non-empty project_id string is allowed in this topic."
-        )
+        raise BlockedTopicScopeError("Only a non-empty project_id string is allowed in this topic.")
     return project_id
 
 

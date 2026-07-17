@@ -55,7 +55,7 @@ def pytest_configure(config: pytest.Config) -> None:
     if not _is_topic_scoped_pytest_run(config):
         return
 
-    cov_plugin = config.pluginmanager.getplugin('_cov')
+    cov_plugin = config.pluginmanager.getplugin("_cov")
     if cov_plugin is not None:
         cov_plugin.options.cov_fail_under = 0
 

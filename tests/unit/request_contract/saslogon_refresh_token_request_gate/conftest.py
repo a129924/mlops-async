@@ -70,9 +70,7 @@ def _normalize_non_empty_string(value: object, field_name: str) -> str:
 
 def _normalize_grant_type(grant_type: object) -> str:
     if not isinstance(grant_type, str) or grant_type != "refresh_token":
-        raise BlockedTopicScopeError(
-            "Only grant_type='refresh_token' is allowed in this topic."
-        )
+        raise BlockedTopicScopeError("Only grant_type='refresh_token' is allowed in this topic.")
     return grant_type
 
 
@@ -258,9 +256,7 @@ class SasLogonRefreshTokenClient:
         client_secret: object | None = None,
     ) -> object:
         normalized_grant_type = _normalize_grant_type(grant_type)
-        normalized_refresh_token = _normalize_non_empty_string(
-            refresh_token, "refresh_token"
-        )
+        normalized_refresh_token = _normalize_non_empty_string(refresh_token, "refresh_token")
         _reject_scope(scope)
         _reject_client_credentials_variants(client_id, client_secret)
 

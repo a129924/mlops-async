@@ -67,9 +67,9 @@ class PasswordTokenEndpointClient:
         return await self.fetch_access_token()
 
     def _basic_authorization(self) -> str:
-        credentials = (
-            f"{quote_plus(self._client_id)}:{quote_plus(self._client_secret)}"
-        ).encode("ascii")
+        credentials = (f"{quote_plus(self._client_id)}:{quote_plus(self._client_secret)}").encode(
+            "ascii"
+        )
         return f"Basic {b64encode(credentials).decode('ascii')}"
 
     def _form_body_for_password_grant(self) -> bytes:

@@ -87,9 +87,7 @@ def _normalize_endpoint_variant(endpoint_variant: object) -> str:
     if endpoint_variant == "list_tables":
         raise BlockedTopicScopeError("list_tables drift is blocked in this topic.")
     if endpoint_variant == "change_table_state":
-        raise BlockedTopicScopeError(
-            "change_table_state drift is blocked in this topic."
-        )
+        raise BlockedTopicScopeError("change_table_state drift is blocked in this topic.")
     raise BlockedTopicScopeError("Only get_table is allowed in this topic.")
 
 
@@ -111,9 +109,7 @@ def _split_fixture_locator(locator: str) -> tuple[Path, str | None]:
     try:
         resolved_path.relative_to(FIXTURE_DIR)
     except ValueError as exc:
-        raise AssertionError(
-            "Fixture locator must stay under the topic fixture root."
-        ) from exc
+        raise AssertionError("Fixture locator must stay under the topic fixture root.") from exc
 
     return resolved_path, raw_case_name or None
 
@@ -125,9 +121,7 @@ def _load_case_from_locator(locator: str) -> Mapping[str, object]:
     if not isinstance(cases, dict):
         raise TypeError(f"Fixture {fixture_path} must define a cases object.")
     if len(cases) != 1:
-        raise AssertionError(
-            f"Fixture {fixture_path} must define exactly one case for this topic."
-        )
+        raise AssertionError(f"Fixture {fixture_path} must define exactly one case for this topic.")
     if case_name is None:
         only_case = next(iter(cases.values()))
         if not isinstance(only_case, dict):
@@ -159,9 +153,7 @@ def _assert_source_observed_required_headers(
 ) -> None:
     expected_headers = expected_request.get("required_header_subset", {})
     if not isinstance(expected_headers, dict):
-        raise TypeError(
-            "Source-observed request required_header_subset must be a JSON object."
-        )
+        raise TypeError("Source-observed request required_header_subset must be a JSON object.")
 
     lowered_actual = {key.lower(): str(value) for key, value in actual_headers.items()}
     for header_name, expected_value in expected_headers.items():
@@ -291,10 +283,7 @@ class CASManagementTableGetClient:
         encoded_table_name = quote(normalized_table_name, safe="")
         response = self._session.request(
             "GET",
-            (
-                f"{BASE_URL}{GET_TABLE_PATH_PREFIX}{encoded_caslib}"
-                f"/tables/{encoded_table_name}"
-            ),
+            (f"{BASE_URL}{GET_TABLE_PATH_PREFIX}{encoded_caslib}/tables/{encoded_table_name}"),
             headers={
                 "Authorization": f"Bearer {DUMMY_TOKEN}",
                 "Accept": "application/json",

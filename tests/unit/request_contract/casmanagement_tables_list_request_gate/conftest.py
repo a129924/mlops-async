@@ -74,17 +74,13 @@ def _normalize_non_empty_string(value: object, field_name: str) -> str:
 
 def _normalize_limit(limit: object) -> int:
     if not isinstance(limit, int) or limit != ALLOWED_LIMIT:
-        raise BlockedTopicScopeError(
-            f"Only limit={ALLOWED_LIMIT} is allowed in this topic."
-        )
+        raise BlockedTopicScopeError(f"Only limit={ALLOWED_LIMIT} is allowed in this topic.")
     return limit
 
 
 def _normalize_start(start: object) -> int:
     if not isinstance(start, int) or start != ALLOWED_START:
-        raise BlockedTopicScopeError(
-            f"Only start={ALLOWED_START} is allowed in this topic."
-        )
+        raise BlockedTopicScopeError(f"Only start={ALLOWED_START} is allowed in this topic.")
     return start
 
 
@@ -96,9 +92,7 @@ def _normalize_extra_query(extra_query: object | None) -> dict[str, str]:
 
 def _reject_missing_canonical_query(include_default_query: object) -> None:
     if include_default_query is not True:
-        raise BlockedTopicScopeError(
-            "Bare GET without limit/start is blocked in this topic."
-        )
+        raise BlockedTopicScopeError("Bare GET without limit/start is blocked in this topic.")
 
 
 def _reject_request_body(body: object | None) -> None:
@@ -112,9 +106,7 @@ def _normalize_endpoint_variant(endpoint_variant: object) -> str:
     if endpoint_variant == "get_table":
         raise BlockedTopicScopeError("get_table drift is blocked in this topic.")
     if endpoint_variant == "change_table_state":
-        raise BlockedTopicScopeError(
-            "change_table_state drift is blocked in this topic."
-        )
+        raise BlockedTopicScopeError("change_table_state drift is blocked in this topic.")
     raise BlockedTopicScopeError("Only list_tables is allowed in this topic.")
 
 

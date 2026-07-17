@@ -30,5 +30,3 @@ created: 2026-07-06
 - [X] 7. Add `tests/unit/core/test_token_endpoint_client.py` covering obtain request shape, response translation, shared endpoint-spec source, and invalid response errors.
 - [X] 8. Update `tests/unit/core/test_token_manager.py`, `tests/unit/core/test_auth_contract.py`, and `tests/unit/core/test_requester_auth_boundary.py` to reflect the concrete token collaborator and to prove first authenticated request lazy-resolves the token.
 - [X] 9. Run bounded validation for the touched unit tests plus `ruff` and `pyright`.
-
-

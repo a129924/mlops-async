@@ -199,4 +199,3 @@ Topic 完成時，repo 應具備：
 2. `TokenEndpointClient` translates a valid JSON response into `AccessToken`.
 3. First authenticated request lazy-obtains a token and injects bearer auth.
 4. `Requester` keeps collision and content-type boundaries intact.
-

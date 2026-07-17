@@ -22,9 +22,7 @@ BASE_URL = "https://example.test"
 DUMMY_TOKEN = "fake-token"
 FIXTURE_DIR = Path(__file__).with_name("fixtures").resolve()
 TOPIC_PACKAGE_DIR = Path(__file__).resolve().parent
-CHANGE_TABLE_STATE_PATH_PREFIX = (
-    "/casManagement/servers/cas-shared-default/caslibs/"
-)
+CHANGE_TABLE_STATE_PATH_PREFIX = "/casManagement/servers/cas-shared-default/caslibs/"
 BODY_OVERRIDE_SENTINEL = object()
 
 
@@ -108,13 +106,9 @@ def _normalize_body_override(
     output_caslib = body_override.get("outputCaslibName")
     output_table_name = body_override.get("outputTableName")
     if output_caslib != caslib:
-        raise BlockedTopicScopeError(
-            "Request body outputCaslibName must match the path caslib."
-        )
+        raise BlockedTopicScopeError("Request body outputCaslibName must match the path caslib.")
     if output_table_name != table_name:
-        raise BlockedTopicScopeError(
-            "Request body outputTableName must match the path tableName."
-        )
+        raise BlockedTopicScopeError("Request body outputTableName must match the path tableName.")
     return {
         "outputCaslibName": str(output_caslib),
         "outputTableName": str(output_table_name),
@@ -149,9 +143,7 @@ def _split_fixture_locator(locator: str) -> tuple[Path, str | None]:
     try:
         resolved_path.relative_to(FIXTURE_DIR)
     except ValueError as exc:
-        raise AssertionError(
-            "Fixture locator must stay under the topic fixture root."
-        ) from exc
+        raise AssertionError("Fixture locator must stay under the topic fixture root.") from exc
 
     return resolved_path, raw_case_name or None
 
@@ -163,9 +155,7 @@ def _load_case_from_locator(locator: str) -> Mapping[str, object]:
     if not isinstance(cases, dict):
         raise TypeError(f"Fixture {fixture_path} must define a cases object.")
     if len(cases) != 1:
-        raise AssertionError(
-            f"Fixture {fixture_path} must define exactly one case for this topic."
-        )
+        raise AssertionError(f"Fixture {fixture_path} must define exactly one case for this topic.")
     if case_name is None:
         only_case = next(iter(cases.values()))
         if not isinstance(only_case, dict):
@@ -197,9 +187,7 @@ def _assert_source_observed_required_headers(
 ) -> None:
     expected_headers = expected_request.get("required_header_subset", {})
     if not isinstance(expected_headers, dict):
-        raise TypeError(
-            "Source-observed request required_header_subset must be a JSON object."
-        )
+        raise TypeError("Source-observed request required_header_subset must be a JSON object.")
 
     lowered_actual = {key.lower(): str(value) for key, value in actual_headers.items()}
     for header_name, expected_value in expected_headers.items():
@@ -435,7 +423,5 @@ def blocked_topic_scope_error() -> type[BlockedTopicScopeError]:
 
 
 @pytest.fixture
-def casmanagement_table_state_change_contract() -> (
-    CASManagementTableStateChangeContractHarness
-):
+def casmanagement_table_state_change_contract() -> CASManagementTableStateChangeContractHarness:
     return CASManagementTableStateChangeContractHarness()

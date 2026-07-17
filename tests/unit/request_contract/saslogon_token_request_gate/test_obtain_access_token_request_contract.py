@@ -37,9 +37,7 @@ def test_obtain_access_token_client_credentials_request_shape(
             path="/SASLogon/oauth/token",
             query={},
             body=(
-                "grant_type=client_credentials"
-                f"&client_id={CLIENT_ID}"
-                f"&client_secret={CLIENT_SECRET}"
+                f"grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}"
             ),
             required_headers={
                 "Accept": "application/json",
@@ -53,12 +51,10 @@ def test_obtain_access_token_client_credentials_request_shape(
         ),
         source_observed=SourceObservedFixture(
             request_path=(
-                f"{FIXTURE_ROOT}/obtain_access_token.request-flow.json"
-                "#client_credentials_basic"
+                f"{FIXTURE_ROOT}/obtain_access_token.request-flow.json#client_credentials_basic"
             ),
             response_path=(
-                f"{FIXTURE_ROOT}/obtain_access_token.mock-responses.json"
-                "#client_credentials_basic"
+                f"{FIXTURE_ROOT}/obtain_access_token.mock-responses.json#client_credentials_basic"
             ),
         ),
     )
@@ -71,8 +67,7 @@ def test_obtain_access_token_client_credentials_request_shape(
     assert saslogon_token_contract.last_request["path"] == "/SASLogon/oauth/token"
     assert saslogon_token_contract.last_request["query"] == {}
     assert (
-        saslogon_token_contract.last_request["body"]
-        == "grant_type=client_credentials"
+        saslogon_token_contract.last_request["body"] == "grant_type=client_credentials"
         f"&client_id={CLIENT_ID}"
         f"&client_secret={CLIENT_SECRET}"
     )
@@ -219,8 +214,7 @@ def test_obtain_access_token_percent_encodes_reserved_characters_in_form_body(
     assert isinstance(result, SimpleNamespace)
     assert saslogon_token_contract.last_request is not None
     assert (
-        saslogon_token_contract.last_request["body"]
-        == "grant_type=client_credentials"
+        saslogon_token_contract.last_request["body"] == "grant_type=client_credentials"
         "&client_id=client%2Fid%3Fdraft%3Dyes"
         "&client_secret=secret%26value%3D1"
     )

@@ -94,17 +94,17 @@ Guide developers to write clear, contract-first docstrings in Google Style forma
 ```python
 def authenticate_user(token: str, secret_key: str) -> User:
     """Authenticate a user using a JWT token.
-    
+
     Verifies signature against the secret key and extracts user identity.
     Primary entry point for REST API authentication.
-    
+
     Args:
         token: JWT-formatted bearer token from Authorization header.
         secret_key: HMAC secret key to verify token signature.
-    
+
     Returns:
         User object with id, email, and roles from token claims.
-    
+
     Raises:
         JWTError: Token signature invalid or expired.
         ValueError: Token malformed or missing required claims.
@@ -120,16 +120,16 @@ def authenticate_user(token: str, secret_key: str) -> User:
 ```python
 def process_order(order_id: int) -> Order:
     """Process an order to generate revenue for the platform.
-    
-    This is important for business growth. Called from payment service 
+
+    This is important for business growth. Called from payment service
     during checkout.
-    
+
     Args:
         order_id: The order ID. It's a number.
-    
+
     Returns:
         An Order object. Main data structure.
-    
+
     Raises:
         OrderNotFound: Probably from user deletion or race condition.
     """
