@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from json import JSONDecodeError, loads as json_loads
 from math import isfinite
+import ssl
 from types import TracebackType
 from typing import TypeGuard, cast
 
@@ -102,6 +103,13 @@ def _validate_default_headers(default_headers: Mapping[str, str] | None) -> dict
     return resolved_headers
 
 
+def _validate_verify(verify: object) -> bool | ssl.SSLContext:
+    # Narrowing helper: runtime callers can bypass the annotated public contract.
+    if not isinstance(verify, (bool, ssl.SSLContext)):
+        raise TypeError("verify must be bool or ssl.SSLContext")
+    return verify
+
+
 def _is_json_value(value: object) -> TypeGuard[JSONValue]:
     if value is None or isinstance(value, str | bool | int):
         return True
@@ -129,34 +137,35 @@ class HttpClient(Client):
         self,
         base_url: str | httpx.URL,
         timeout: RequestTimeouts = _DEFAULT_TIMEOUTS,
-        verify: bool = True,
+        verify: bool | ssl.SSLContext = True,
         transport: httpx.AsyncBaseTransport | None = None,
         default_headers: Mapping[str, str] | None = None,
     ) -> None:
         """Create a minimal internal HTTP client."""
+        resolved_verify = _validate_verify(verify)
         self._default_headers = _validate_default_headers(default_headers)
 
         wrapped_transport = _CallerOwnedAsyncTransport(transport) if transport is not None else None
         resolved_timeout = _timeouts_to_httpx(timeout)
 
         if resolved_timeout is None and wrapped_transport is None:
-            self._client = httpx.AsyncClient(base_url=base_url, verify=verify)
+            self._client = httpx.AsyncClient(base_url=base_url, verify=resolved_verify)
         elif resolved_timeout is None:
             self._client = httpx.AsyncClient(
                 base_url=base_url,
-                verify=verify,
+                verify=resolved_verify,
                 transport=wrapped_transport,
             )
         elif wrapped_transport is None:
             self._client = httpx.AsyncClient(
                 base_url=base_url,
-                verify=verify,
+                verify=resolved_verify,
                 timeout=resolved_timeout,
             )
         else:
             self._client = httpx.AsyncClient(
                 base_url=base_url,
-                verify=verify,
+                verify=resolved_verify,
                 timeout=resolved_timeout,
                 transport=wrapped_transport,
             )

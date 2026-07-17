@@ -1,0 +1,81 @@
+verdict: red-tests-ready
+d1_verdict:
+  verdict: non-trivial
+  reason: HttpClient TLS verify API typing, validation, config mode resolution, warnings, and errors add observable framework and E2E-support behavior.
+test_mapping:
+  - requirement_id: R1
+    test_case_name: test_constructor_verify_annotation_accepts_bool_or_ssl_context
+    coverage_category: public_contract
+  - requirement_id: R1
+    test_case_name: test_constructor_passes_default_verify_true_to_async_client
+    coverage_category: happy_path
+  - requirement_id: R2
+    test_case_name: test_constructor_passes_explicit_bool_verify_to_async_client
+    coverage_category: backward_compatibility
+  - requirement_id: R2
+    test_case_name: test_constructor_preserves_ssl_context_identity_in_every_client_branch
+    coverage_category: integration_points
+  - requirement_id: R3
+    test_case_name: test_constructor_rejects_unsupported_verify_before_creating_async_client
+    coverage_category: error_exception
+  - requirement_id: R4
+    test_case_name: test_load_config_requires_non_blank_tls_mode
+    coverage_category: boundary_edge
+  - requirement_id: R4
+    test_case_name: test_load_config_rejects_non_exact_tls_mode_without_echoing_value
+    coverage_category: error_exception
+  - requirement_id: R5
+    test_case_name: test_load_config_system_mode_uses_tls_verification
+    coverage_category: happy_path
+  - requirement_id: R5
+    test_case_name: test_load_config_insecure_mode_warns_once_and_disables_tls_verification
+    coverage_category: state_side_effects
+  - requirement_id: R6
+    test_case_name: test_load_config_ca_bundle_mode_builds_ssl_context_from_exact_path
+    coverage_category: integration_points
+  - requirement_id: R7
+    test_case_name: test_load_config_rejects_non_blank_ca_bundle_outside_ca_bundle_mode
+    coverage_category: error_exception
+  - requirement_id: R7
+    test_case_name: test_load_config_treats_blank_ca_bundle_as_not_provided
+    coverage_category: boundary_edge
+  - requirement_id: R8
+    test_case_name: test_load_config_ca_bundle_mode_requires_non_blank_ca_bundle
+    coverage_category: error_exception
+  - requirement_id: R8
+    test_case_name: test_load_config_translates_ca_load_error_without_exposing_path_or_cause
+    coverage_category: error_exception
+  - requirement_id: R9
+    test_case_name: test_load_config_ignores_run_opt_in_value
+    coverage_category: state_side_effects
+  - requirement_id: R9
+    test_case_name: test_password_token_e2e_validates_exact_success_contract
+    coverage_category: integration_points
+  - requirement_id: R10
+    test_case_name: test_password_token_e2e_validates_exact_success_contract
+    coverage_category: pass_existing_anti_fake_success
+  - requirement_id: R11
+    test_case_name: test_load_config_insecure_mode_warns_once_and_disables_tls_verification
+    coverage_category: state_side_effects
+  - requirement_id: R12
+    test_case_name: test_viya_e2e_config_verify_annotation_accepts_bool_or_ssl_context
+    coverage_category: public_contract
+  - requirement_id: R13
+    test_case_name: test_request_wraps_transport_failures_in_http_transport_exception
+    coverage_category: pass_existing_regression
+  - requirement_id: R13
+    test_case_name: test_aclose_does_not_close_injected_transport
+    coverage_category: pass_existing_regression
+validation_checks:
+  d1_decision: non-trivial
+  behavior_contract_source: plan/http-client-tls-trust/http-client-tls-trust.spec.md
+  requirements_mapped: true
+  public_contract_coverage: true
+  test_categories_present: true
+  expected_initial_status: red
+  production_code_modified: false
+  focused_command_exit_status: 1
+  focused_result: 32_failed_33_passed
+  red_failure_classification: missing_contract_implementation
+issues: []
+next_step: Implement the approved HttpClient and Viya E2E TLS contracts to make the focused RED tests pass without weakening existing anti-fake-success behavior.
