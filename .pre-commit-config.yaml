@@ -21,7 +21,7 @@ repos:
         pass_filenames: true
       - id: tach-check
         name: tach check
-        entry: uv run tach check
+        entry: uv run python -m tach check
         language: system
         types: [python]
         pass_filenames: false
