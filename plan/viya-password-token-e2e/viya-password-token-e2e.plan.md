@@ -1,133 +1,196 @@
 # Viya password token E2E
 
-## Goal
+本計畫在 analysis layer strict mode 下維護：
+`analysis/viya-password-token-e2e/technical-spec.md` 是 execution-facing source of
+truth，`analysis/viya-password-token-e2e/requirements.md` 是 business-intent guardrail。
+Human 已明確要求以現行 TLS implementation 與 post-merge evidence correction 覆蓋舊的
+hard-coded `verify=True` 敘述，五個 parent planning artifacts 必須同步為 current truth。
 
-在明確 process opt-in 時，以真實 HTTPS 呼叫 SAS Viya password-grant token endpoint；只在 HTTP `200`、非空 `access_token` 與正整數 `expires_in` 都成立時通過。
+## Goal / Outcome
 
-## Non-goals
+- 在明確 process opt-in 時，以真實 HTTPS 呼叫 SAS Viya password-grant token endpoint；
+  只在 HTTP `200`、非空 `access_token` 與 positive expiry 都成立時通過。
+- framework 使用者明確控制 TLS mode；成功結果精確區分 HTTPS request success、TLS
+  verification disabled 與 TLS trust verified。
+- 核心 E2E goal 已由 post-merge live evidence 支持；topic branch merge 到 `dev` 仍是
+  pending human boundary，不屬於已完成事項。
 
-- 不會呼叫第二個 protected proof endpoint。
-- 不會修改 `src/mlops_async/`、既有 client-credentials 流程或公開 API。
-- 不會加入 mock、fake transport、fallback token、`verify=False` 或 CI 排程。
-- 不會讀出、複製、提交或列印 `config/.env.test` 與任何 credential/token。
-- 不會更新 README、VERSION、pyproject.toml、uv.lock 或發行版本。
+## Scope
 
-## Current Context
+- **In scope**:
+  - `POST /SASLogon/oauth/token` 的單一 password grant 真實 E2E。
+  - process-only `RUN_VIYA_E2E=1` opt-in、Git-ignored test config loader 與 redacted
+    failure contract。
+  - exact TLS mode `system`、`insecure`、`ca_bundle` 到 `HttpClient.verify` 的 mapping。
+  - HTTP `200`、nonempty token、positive expiry、30 秒 total timeout 與 cancellation
+    propagation。
+  - 本計畫列出的 tests、analysis 與 plan artifacts。
 
-- `src/mlops_async/core/token_endpoint/password.py` 已有內部 `PasswordTokenEndpointClient`，會以 password grant 呼叫 `/SASLogon/oauth/token`。
-- `HttpClient` 可維持 TLS 驗證，`RequestTimeouts` 可提供總計 30 秒 timeout。
-- `config/.env.test` 已由 `.gitignore` 忽略，且本 worktree 不存在該檔案；它必須由授權者安全 provision。
+- **Out of scope**:
+  - protected proof endpoint、public `AuthClient`、refresh-token flow、client-credentials
+    行為或 production auth flow。
+  - mock、fake transport、fallback token、retry、fallback TLS mode、skip-as-success 或 CI
+    live E2E 排程。
+  - README、VERSION、release metadata、release action 或 dependency 變更。
+  - 在本次 planning convergence 修改 `src/`、`tests/`、config 或 release files。
 
-## Requirements
+## Locked Decisions
 
-1. 僅 process environment 的 `RUN_VIYA_E2E=1` 可以啟用 marked E2E；一般 pytest 必須 skip，`pytest -m viya_e2e` 未 opt-in 必須 fail。
-2. config loader 僅從 worktree `config/.env.test` 讀取 BASE_URL、USERNAME、PASSWORD、CLIENT_ID、CLIENT_SECRET，且忽略 config 中的 `RUN_VIYA_E2E`。
-3. client secret 只在 `client_id=sas.ec` 且值為空字串時有效；其他 client secret 必須非空白。
-4. E2E 僅接受非-loopback HTTPS origin，使用 `verify=True` 與 total timeout 30 秒。
-5. 真實 request 的唯一成功條件是 exact HTTP 200、非空 access token 與未過期的 token expiry；TLS、DNS、timeout、HTTP、JSON 或 schema 問題都必須 fail。
-6. assertion、traceback、log 與證據不得包含 username、password、client secret、Basic header、access token 或 response body。
+- `VIYA_E2E_TLS_MODE` 是 required exact value：
+  - `system` -> `verify=True`；
+  - `insecure` -> `verify=False` 且固定警告 TLS verification 已明確停用；
+  - `ca_bundle` -> 要求非空白 `VIYA_E2E_CA_BUNDLE`，以該 exact path 建立並傳入
+    `ssl.SSLContext`。
+- CA bundle 只允許在 `ca_bundle` mode；loader 不隱式讀取其他 CA environment
+  variables，不 fallback 或切換 mode。
+- 公司內部環境使用 `insecure` 是 framework 使用者的 explicit configuration，不是假
+  success；真實 transport、HTTP、JSON 或 schema failure 仍必須 fail。
+- `insecure` live success 的唯一正確摘要是
+  `live password-token E2E passed with TLS verification explicitly disabled`；不得宣稱
+  TLS trust verified。
+- E2E 只接受非-loopback HTTPS origin、exact HTTP `200`、nonempty token 與 positive
+  expiry；`RequestTimeouts(total=30)` 維持不變。
+- config 中的 `RUN_VIYA_E2E` 必須忽略；只有 process environment 能啟用真實網路。
+- `asyncio.CancelledError` 原樣傳播；其他 runtime failures 轉成不含敏感內容的 redacted
+  failure。
+- 本 topic 不新增 public API。`HttpClient` 的 `bool | ssl.SSLContext` contract 由
+  `http-client-tls-trust` topic 提供，本 E2E topic 只消費該 contract，不重開其
+  architecture／public contract decision。
+- 本 topic 不影響 stable-library surfaces；沒有 README、VERSION、release notes 或
+  release timing 變更。
 
-## Decisions
+## Boundaries / Exclusions
 
-- Async-planning status: triggered — cite trigger evidence: `PasswordTokenEndpointClient.fetch_access_token()`、`HttpClient.request()` 與 marked E2E 均為 async 外部 HTTP I/O，並有 30 秒 timeout 與 cancellation 邊界。
-- Module/package placement: test-only code 位於 `tests/conftest.py`、`tests/integration/viya_e2e_config.py` 與 `tests/integration/test_viya_password_token_e2e.py`。
-- New public API: no；不改 production package export 或 public client contract。
-- Interface changes: no；僅新增 pytest hook、測試 helper 與測試案例。
-- Breaking changes allowed: no；既有 unit tests 與 client-credentials 行為不得變更。
-- New dependencies: no；只使用既有 pytest 與 package 依賴。
-- Error handling strategy: config helper 只拋出不含 secret 的 `ViyaE2EConfigError`；E2E 將非 cancellation 的 runtime error 轉成 redacted `AssertionError`，`asyncio.CancelledError` 原樣傳播。
-- Typing strategy: 所有新 helper 與測試支援函式均使用完整 Python type annotations；不使用 `Any` 或 suppressions。
+- 不得讀出、複製、提交、列印或在 evidence 中揭露 `config/.env.test` 內容。
+- Evidence 不得包含 URL、username、password、client secret、Basic header、access
+  token、response body 或 CA bundle path。
+- HTTPS request success 只代表真實 HTTPS origin 回應且 token success contract 成立。
+- `insecure` 表示 HTTPS request 執行時未驗證 server certificate trust／identity。
+- TLS trust verified 只能由啟用 certificate verification 的成功 run 支持；本次 live
+  evidence 使用 `insecure`，不支持此結論。
+- Merge-to-dev、commit、push、PR、release 與 cleanup 由 Main Agent 在新的 human
+  authorization 下路由，不是 Plan-Creator 或 Plan-Reviewer 的職責。
 
-### Async boundary decision
+## Status / Allowed Transitions
 
-E2E 只在 async pytest test 內 await `PasswordTokenEndpointClient.fetch_access_token()`；不改 production async boundary。
+- **Current**: `review-ready`
+- **Reason**: bounded Plan-Creator convergence 已同步 current TLS contract 與已鎖定
+  post-merge evidence；下一步只能由獨立 Plan-Reviewer 審查。
+- **Execution model**: planning correction review 完成後，仍停在 merge-to-dev human
+  boundary；review PASS 本身不授權 commit、push、PR、merge 或 release。
+- **Allowed transitions**:
+  - `review-ready` -> `reviewer-in-progress`
+  - `reviewer-in-progress` -> `approved`
+  - `reviewer-in-progress` -> `needs-rework`
+  - `needs-rework` -> `creator-in-progress`
+  - `creator-in-progress` -> `review-ready`
+  - `approved` -> `creator-in-progress`
+  - `approved` -> `publish-in-progress`
+  - `publish-in-progress` -> `pr-open`
+  - `publish-in-progress` -> `merged`
+  - `pr-open` -> `needs-rework`
+  - `pr-open` -> `merged`
+  - `merged` -> terminal
 
-### Resource lifecycle decision
+Routing notes:
 
-每次 test 以 `async with HttpClient(...)` 建立並關閉真實 transport，不跨 test 共用 client 或 token。
+- Reviewer PASS 後，Main Agent 回報 planning artifacts 已收斂並停止在 merge-to-dev
+  human boundary。
+- Reviewer `needs-rework` 時，只能由 Plan-Creator bounded 修正，再交獨立
+  Plan-Reviewer 複審。
 
-### Concurrency model
+## Artifact Paths
 
-單一 test、單一 token request；不做並行、retry、pooling 或 background task。
+| Artifact | Path | Owner | Role |
+| --- | --- | --- | --- |
+| Business requirements | `analysis/viya-password-token-e2e/requirements.md` | Planning actor | Business guardrail 與 acceptance boundary |
+| Technical specification | `analysis/viya-password-token-e2e/technical-spec.md` | Planning actor | Strict-mode execution truth 與 evidence semantics |
+| Topic plan | `plan/viya-password-token-e2e/viya-password-token-e2e.plan.md` | Planning actor | Repo-visible execution與workflow contract |
+| Behavior specification | `plan/viya-password-token-e2e/viya-password-token-e2e.spec.md` | Creator | E2E acceptance scenarios 與 edge cases |
+| Step tracker | `plan/viya-password-token-e2e/viya-password-token-e2e.step.md` | Creator | Implementation completion evidence 與 pending merge boundary |
+| Test package marker | `tests/__init__.py` | Creator | 支援 test package import |
+| Pytest opt-in gate | `tests/conftest.py` | Creator | 註冊 marker 並強制 process-only opt-in |
+| Test config loader | `tests/integration/viya_e2e_config.py` | Creator | 驗證 secret-safe config 與 explicit TLS mode mapping |
+| Live E2E | `tests/integration/test_viya_password_token_e2e.py` | Creator | 執行單一真實 password grant 與 exact success assertions |
+| Config unit tests | `tests/unit/integration/test_viya_e2e_config.py` | Creator | 驗證 config、TLS mapping 與 redaction contract |
 
-### Failure model
+Artifact path notes:
 
-任何 config、transport、TLS、DNS、timeout、非 200、非 JSON 或 response schema 問題皆為 redacted test failure；不得轉為 pass、skip 或 fallback。
-
-### Cancellation / timeout policy
-
-`RequestTimeouts(total=30)` 是完整 request budget；`asyncio.CancelledError` 不攔截、不轉譯。
-
-### Validation plan
-
-單元測試驗證 loader；未 opt-in 時驗證 skip 與 explicit marker failure；配置存在且 opt-in 後才可執行真實 E2E，失敗不可偽裝成功。
-
-### Handoff notes for the implementer
-
-不得自行建立或輸出 `config/.env.test`；此檔不存在時不得聲稱 live E2E 成功。
-
-## Public Contract / API Changes
-
-沒有 public API change。`tests.integration.viya_e2e_config.load_viya_e2e_config(path: Path = ...) -> ViyaE2EConfig` 是 test-only helper；它可拋出 `ViyaE2EConfigError`，不屬於 package API。
-
-## Affected Files / Modules
-
-Likely affected files:
-
-- `tests/__init__.py`
-- `tests/conftest.py`
-- `tests/integration/viya_e2e_config.py`
-- `tests/integration/test_viya_password_token_e2e.py`
-- `tests/unit/integration/test_viya_e2e_config.py`
-- `analysis/viya-password-token-e2e/requirements.md`
-- `analysis/viya-password-token-e2e/technical-spec.md`
-- `plan/viya-password-token-e2e/viya-password-token-e2e.plan.md`
-- `plan/viya-password-token-e2e/viya-password-token-e2e.spec.md`
-- `plan/viya-password-token-e2e/viya-password-token-e2e.step.md`
-
-Candidate files to inspect:
-
-- `src/mlops_async/core/token_endpoint/password.py`
-- `src/mlops_async/core/http_client.py`
-- `pyproject.toml`
+- 本 topic 不修改 `README.md`、`VERSION`、`.github/copilot-instructions.md` 或 release
+  notes，因此不加入 `Stable library metadata`。
+- 本次 convergence 的 write scope 僅限上表前五個 planning artifacts；tests 是已完成
+  topic implementation evidence，不得在本輪修改。
+- 若後續工作需要超出上述 paths，必須先回到 plan alignment，不得自行擴張。
 
 ## Implementation Steps
 
-1. In `plan/viya-password-token-e2e/*` and the managed worktree, record the contract and verify `config/.env.test` is ignored without reading its content.
-2. Add `tests/integration/viya_e2e_config.py` and `tests/unit/integration/test_viya_e2e_config.py` for safe config parsing, required fields, URL safety and the `sas.ec` exception.
-3. Add `tests/__init__.py` and `tests/conftest.py` so `viya_e2e` is registered, ordinary runs skip without process opt-in, and explicit marker selection fails without it.
-4. Add `tests/integration/test_viya_password_token_e2e.py` to make the one real password-grant request, assert exact success, and redact all failure evidence.
-5. Run targeted tests, regression tests, non-E2E suite, ruff and pyright; run the actual E2E only after external secure provisioning and report absence as not executed.
+1. 建立 test-only config parser，驗證 required fields、HTTPS origin、`sas.ec` empty
+   secret exception 與 exact TLS mode mapping。
+2. 建立 pytest marker 與 process-only `RUN_VIYA_E2E=1` gate；一般 pytest skip，明確
+   選取 marker 卻未 opt-in 時 fail。
+3. 建立單一真實 password-token E2E，使用 `RequestTimeouts(total=30)`、loader 提供的
+   `bool | ssl.SSLContext`，並驗證 exact HTTP `200`、nonempty token、positive expiry。
+4. 保留 anti-fake-success 與 redaction contract：不 mock、不 fallback、不切換 TLS
+   mode；任何真實 failure 必須 fail，cancellation 原樣傳播。
+5. 完成 implementation review、code review、post-merge non-E2E 與單次授權 live E2E。
+6. 將五個 parent planning artifacts 回填為現行 TLS contract 與 validation evidence，
+   交由獨立 Plan-Reviewer 審查。
 
-## Test Plan
+Implementation step completion 由
+`plan/viya-password-token-e2e/viya-password-token-e2e.step.md` 的 `[X]` / `[ ]`
+contract 判定；merge-to-dev 不屬於已完成 implementation step。
 
-- Happy path: `tests/integration/test_viya_password_token_e2e.py` requires real HTTP 200, nonempty token and future expiry only after opt-in and secure config.
-- Invalid input: `tests/unit/integration/test_viya_e2e_config.py` rejects missing keys, malformed lines, non-HTTPS/loopback URLs and invalid client secret combinations without echoing values.
-- Edge case: the same unit test accepts only an exact empty secret for `sas.ec`; it rejects whitespace secret values.
-- Regression: existing `tests/unit/core/test_password_token_endpoint_client.py` and `tests/unit/core/test_token_endpoint_client.py` remain green.
-- Backward compatibility: non-E2E pytest skips marked test; explicit `pytest -m viya_e2e` without opt-in fails rather than issuing a request or pretending success.
-- Async validation: cancellation propagates, one transport is closed per test, and a total 30-second timeout is supplied.
+## Validation / Acceptance Checks
 
-## Validation Commands
+Current accepted post-merge evidence（本輪 planning convergence 前的 clean baseline）：
 
-- `uv run pytest --no-cov tests/unit/integration/test_viya_e2e_config.py -q`
-- `uv run pytest --no-cov tests/integration/test_viya_password_token_e2e.py -q`
-- `uv run pytest --no-cov -m viya_e2e -q` (expected nonzero when process opt-in is absent)
-- `uv run pytest --no-cov tests/unit/core/test_password_token_endpoint_client.py tests/unit/core/test_token_endpoint_client.py -q`
-- `uv run pytest --no-cov -m "not viya_e2e" -q`
-- `uv run ruff check tests`
-- `uv run pyright`
+- E2E branch `test/andrew/viya-password-token-e2e` @
+  `86d0b34c5df0d6cc19696e4f00c1682cc76ce500`，ahead/behind upstream `0/0`。
+- Non-E2E：pytest `311 passed, 9 skipped, 1 deselected`；Ruff passed；Pyright
+  `0 errors, 0 warnings`。
+- Live E2E：`1 passed, 320 deselected`；真實 network request、HTTP `200`、nonempty
+  token、positive expiry；結果為
+  `live password-token E2E passed with TLS verification explicitly disabled`。
+- 此 live evidence 支持 HTTPS request success 與 explicit insecure mode success；不支持
+  TLS trust verified。
 
-## Risks
+Reviewer acceptance checks：
 
-- 真實 Viya endpoint 或 TLS trust chain 不可用時，E2E 會正確失敗；它不可被 unit evidence 覆蓋。
-- config parser 若回顯輸入或 failure chain 未 redaction，可能使敏感資料出現在 CI / terminal。
-- `config/.env.test` 未 secure provision 時，live validation 保持未執行。
+- 五個 parent planning artifacts 對 `system` / `insecure` / `ca_bundle` mapping 一致，
+  且符合 current implementation。
+- 沒有 hard-coded `verify=True` 作為唯一 E2E path，也沒有把 `verify=False` 一概描述為
+  fake success。
+- Anti-fake-success、secret redaction、30 秒 timeout 與 cancellation contract 未弱化。
+- `.step.md` 使用 canonical `review-ready` phase，已驗證的 implementation steps 保持
+  `[X]`，merge-to-dev 保持 `[ ]`。
+- Branch 尚未 merge 到 `dev`，不得標記為 `merged` 或宣稱 release completed。
+- Diff 僅包含五個授權 planning artifacts；未修改 `src/`、`tests/`、config 或 release
+  files。
 
-## Rollback Plan
+## Reviewer Handoff
 
-以 Git 回復本 topic 所新增的 `tests/`、`analysis/viya-password-token-e2e/` 與 `plan/viya-password-token-e2e/` 檔案；不需 rollback production code 或 migration。
+```json
+{
+  "verdict": "approved|needs-rework",
+  "blocking_issues": [],
+  "copilot_feedback_triage": {
+    "ADDRESS": [],
+    "DISCUSS": [],
+    "SKIP": []
+  }
+}
+```
 
-## Open Questions
+## Post-merge / release actions
 
-- 外部授權者需在此 managed worktree 安全 provision `config/.env.test`，並以 process environment 設定 `RUN_VIYA_E2E=1` 後才可執行 live E2E；這不是本次 implementation 的 blocker，因為它不影響 test harness 完成。
+- E2E branch 尚未 merge 到 `dev`；此動作維持 pending，必須取得新的 human
+  authorization，且不得由 planning convergence 或 reviewer PASS 隱式授權。
+- Merge 到 `dev` 後，本 topic 沒有 VERSION、README、release notes 或其他 repository
+  release action；`merged` 是本 topic terminal state。
+- Worktree／branch cleanup 需由 Main Agent 依 human authorization 另行處理。
+
+## Open Questions / Unresolved Items
+
+- 唯一 unresolved item：是否授權將
+  `test/andrew/viya-password-token-e2e` merge 到 `dev`。在 human 明確授權前保持
+  pending，不影響本輪 planning artifact review。
