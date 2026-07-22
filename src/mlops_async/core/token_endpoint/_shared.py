@@ -62,9 +62,7 @@ def parse_token_response(payload: JSONValue) -> _TokenResponse:
     if not isinstance(access_token, str) or not access_token:
         raise TokenEndpointClientError("token response must include a non-empty access_token")
     if not isinstance(expires_in, int) or isinstance(expires_in, bool) or expires_in <= 0:
-        raise TokenEndpointClientError(
-            "token response must include a positive expires_in integer"
-        )
+        raise TokenEndpointClientError("token response must include a positive expires_in integer")
 
     return _TokenResponse(access_token=access_token, expires_in=expires_in)
 

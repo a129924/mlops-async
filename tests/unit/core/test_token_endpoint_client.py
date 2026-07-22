@@ -91,11 +91,7 @@ class _FakeTransport:
         del params, json_body, options
         request_headers = {} if headers is None else headers
         authorization = next(
-            (
-                value
-                for name, value in request_headers.items()
-                if name.lower() == "authorization"
-            ),
+            (value for name, value in request_headers.items() if name.lower() == "authorization"),
             None,
         )
         form_content = b"" if content is None else content
@@ -169,9 +165,7 @@ def test_compatibility_module_reexports_the_migrated_client_credentials_contract
 
 @pytest.mark.asyncio
 async def test_client_credentials_client_preserves_existing_request_contract() -> None:
-    transport = _client_credentials_transport(
-        responses=[_valid_token_payload()]
-    )
+    transport = _client_credentials_transport(responses=[_valid_token_payload()])
     client = TokenEndpointClient(
         transport,
         client_id=_CLIENT_ID,

@@ -21,7 +21,7 @@ repos:
         pass_filenames: true
       - id: tach-check
         name: tach check
-        entry: uv run tach check
+        entry: uv run python -m tach check
         language: system
         types: [python]
         pass_filenames: false
@@ -37,7 +37,7 @@ repos:
       - id: coverage-check
         name: coverage check (≥90%)
         language: system
-        entry: uv run pytest tests/unit/ --cov=src/mlops_async --cov-fail-under=90 --cov-report=json:.coverage-reports/coverage.json --cov-report=term-missing -q --no-header
+        entry: uv run python -m pytest tests/unit/ --cov=src/mlops_async --cov-fail-under=90 --cov-report=json:.coverage-reports/coverage.json --cov-report=term-missing -q --no-header
         pass_filenames: false
         always_run: true
 

@@ -4651,9 +4651,9 @@ paths:
           in: query
           required: false
           description: >
-            The maximum number of items to return in this request.  
+            The maximum number of items to return in this request.
 
-            The maximum value that can be specified is 1000.  
+            The maximum value that can be specified is 1000.
 
 
             __Note:__ The maximum value for the limit parameter was added with the 2026.07 release.

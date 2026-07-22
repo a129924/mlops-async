@@ -197,8 +197,9 @@ async def test_token_manager_treats_default_skew_window_as_expired_and_refreshes
 
 
 @pytest.mark.asyncio
-async def test_token_manager_refreshes_near_expiry_token_when_custom_manager_skew_is_large(
-) -> None:
+async def test_token_manager_refreshes_near_expiry_token_when_custom_manager_skew_is_large() -> (
+    None
+):
     near_expiry_token = token_storage.AccessToken(
         value="cached-token",
         expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
@@ -258,8 +259,9 @@ async def test_token_manager_refreshes_once_for_ten_concurrent_waiters() -> None
 
 
 @pytest.mark.asyncio
-async def test_token_manager_fetches_once_for_ten_concurrent_waiters_when_storage_is_empty(
-) -> None:
+async def test_token_manager_fetches_once_for_ten_concurrent_waiters_when_storage_is_empty() -> (
+    None
+):
     fetched_token = token_storage.AccessToken(
         value="fetched-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
@@ -353,4 +355,3 @@ async def test_token_manager_preserves_previous_token_state_on_refresh_cancellat
     assert fetcher.fetch_calls == 0
     assert fetcher.refresh_calls == 1
     assert fetcher.refresh_inputs == [previous_token]
-

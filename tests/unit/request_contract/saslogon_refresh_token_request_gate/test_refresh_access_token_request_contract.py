@@ -47,12 +47,10 @@ def test_refresh_access_token_request_shape(
         ),
         source_observed=SourceObservedFixture(
             request_path=(
-                f"{FIXTURE_ROOT}/refresh_access_token.request-flow.json"
-                "#refresh_token_basic"
+                f"{FIXTURE_ROOT}/refresh_access_token.request-flow.json#refresh_token_basic"
             ),
             response_path=(
-                f"{FIXTURE_ROOT}/refresh_access_token.mock-responses.json"
-                "#refresh_token_basic"
+                f"{FIXTURE_ROOT}/refresh_access_token.mock-responses.json#refresh_token_basic"
             ),
         ),
     )
@@ -144,9 +142,7 @@ def test_refresh_access_token_blocks_client_secret_drift(
     blocked_topic_scope_error: type[RuntimeError],
     saslogon_refresh_token_contract: SasLogonRefreshTokenContractHarness,
 ) -> None:
-    with pytest.raises(
-        blocked_topic_scope_error, match="client_secret is blocked in this topic"
-    ):
+    with pytest.raises(blocked_topic_scope_error, match="client_secret is blocked in this topic"):
         saslogon_refresh_token_contract.client.refresh_access_token(
             refresh_token=REFRESH_TOKEN,
             client_secret="secret-value-xyz",
@@ -168,8 +164,7 @@ def test_refresh_access_token_percent_encodes_reserved_characters_in_form_body(
             path="/SASLogon/oauth/token",
             query={},
             body=(
-                "grant_type=refresh_token"
-                "&refresh_token=refresh%2Ftoken%3Fdraft%3Dyes%26retry%3D1"
+                "grant_type=refresh_token&refresh_token=refresh%2Ftoken%3Fdraft%3Dyes%26retry%3D1"
             ),
             required_headers={
                 "Accept": "application/json",
@@ -184,15 +179,12 @@ def test_refresh_access_token_percent_encodes_reserved_characters_in_form_body(
         source_observed=None,
     )
 
-    result = saslogon_refresh_token_contract.run(
-        case_refresh_access_token_reserved_characters
-    )
+    result = saslogon_refresh_token_contract.run(case_refresh_access_token_reserved_characters)
 
     assert isinstance(result, SimpleNamespace)
     assert saslogon_refresh_token_contract.last_request is not None
     assert (
-        saslogon_refresh_token_contract.last_request["body"]
-        == "grant_type=refresh_token"
+        saslogon_refresh_token_contract.last_request["body"] == "grant_type=refresh_token"
         "&refresh_token=refresh%2Ftoken%3Fdraft%3Dyes%26retry%3D1"
     )
 

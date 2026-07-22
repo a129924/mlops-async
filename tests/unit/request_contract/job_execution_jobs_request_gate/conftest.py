@@ -59,6 +59,7 @@ def pytest_configure(config: pytest.Config) -> None:
     if cov_plugin is not None:
         cov_plugin.options.cov_fail_under = 0
 
+
 try:
     from mlops_async._api.job_execution_jobs import JobExecutionJobsClient
 except ModuleNotFoundError as error:

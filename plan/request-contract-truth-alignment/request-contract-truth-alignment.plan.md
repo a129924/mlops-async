@@ -155,5 +155,3 @@ Artifact path notes:
 ## Open Questions / Unresolved Items
 
 - `casmanagement_tables_list_request_gate` 與 `casmanagement_table_get_request_gate` 是否要另開新 topic 做 official family realignment；本 topic 只保留為 human-check follow-up，不阻擋目前規劃。
-
-
