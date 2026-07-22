@@ -16,9 +16,13 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
 
+@pytest.hookimpl(trylast=True)
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    del items
-    if config.option.markexpr.strip() == "viya_e2e" and not _is_opted_in():
+    if (
+        config.option.markexpr.strip()
+        and not _is_opted_in()
+        and any(item.get_closest_marker("viya_e2e") is not None for item in items)
+    ):
         raise pytest.UsageError("RUN_VIYA_E2E=1 is required for pytest -m viya_e2e")
 
 
