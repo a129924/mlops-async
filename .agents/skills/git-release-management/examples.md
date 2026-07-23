@@ -97,7 +97,7 @@ Repair:
 
 ## Verified sole-maintainer evidence
 
-### Positive: retrievable topology and PR-visible review evidence
+### Positive: complete topology and an external GitHub review object
 
 ```json
 {
@@ -106,6 +106,31 @@ Repair:
   "observed_at_utc": "<fresh-iso-8601-utc>",
   "freshness_max_age_seconds": "<positive-integer>",
   "query_scope": "<collaborator-and-permission-scope>",
+  "pagination": {
+    "strategy": "page-number",
+    "per_page_or_cursor": "<positive-integer-per-page>",
+    "page_count": 2,
+    "total_retrieved": 2,
+    "total_entries": 1,
+    "page_evidence": [
+      {
+        "request_page_or_cursor": 1,
+        "evidence_url": "<retrievable-page-1-api-endpoint>",
+        "retrieved_count": 1,
+        "next_page_or_cursor": 2,
+        "next_evidence": "<retrievable-link-header-proof-for-page-2>"
+      },
+      {
+        "request_page_or_cursor": 2,
+        "evidence_url": "<retrievable-page-2-api-endpoint>",
+        "retrieved_count": 1,
+        "next_page_or_cursor": null,
+        "next_evidence": "<retrievable-link-header-proof-that-next-is-absent>"
+      }
+    ],
+    "terminal_next_absent": true,
+    "pagination_complete": true
+  },
   "pr_author_login": "<pr-author-login>",
   "write_qualification_predicate": "role_name in [admin, maintain, write] OR permissions.admin == true OR permissions.maintain == true OR permissions.push == true",
   "permission_bearing_entries": [
@@ -127,34 +152,44 @@ Repair:
 
 ```json
 {
-  "reviewer_kind": "independent-agent",
-  "implementer_run_id": "<canonical-implementer-actor-or-run-id>",
-  "reviewer_run_id": "<different-reviewer-run-or-session-id>",
+  "reviewer_kind": "external-github-app",
+  "reviewer_login": "chatgpt-codex-connector[bot]",
+  "type": "Bot",
   "repository_full_name": "<owner/repository>",
   "pull_request_number": "<positive-integer>",
-  "evidence_surface": "pr-comment",
-  "evidence_url": "<retrievable-pr-comment-url>",
-  "published_at_utc": "<fresh-iso-8601-utc>",
+  "review_id": "<positive-integer>",
+  "review_url": "<retrievable-github-review-url>",
+  "submitted_at_utc": "<fresh-iso-8601-utc>",
   "reviewed_commit_sha": "<exact-latest-pr-head-sha>",
-  "verdict": "approved",
-  "blocking_issues": [],
-  "scope_verified": true,
-  "version_sources_verified": true,
-  "non_live_ci_contract_verified": true
+  "github_review_state": "COMMENTED",
+  "review_body": "{\"semantic_verdict\":\"approved\",\"blocking_issues\":[]}",
+  "semantic_verdict": "approved",
+  "blocking_issues": []
 }
 ```
 
 - Retrieve both URLs before deciding the gate.
 - Verify the topology endpoint belongs to the declared repository, the
-  permission-bearing collaborator entries are nonempty and fresh, all
-  roles/permissions are known, and the exact PR author is present.
+  permission-bearing collaborator entries are nonempty and fresh, and every
+  page is retrieved through authoritative terminal-next absence. Verify page
+  counts, totals, next evidence, and absence of failure, cursor loop, or
+  truncation before using the inventory.
+- Deduplicate a login repeated across pages only when its role and permissions
+  are identical. A contradiction blocks the path.
 - Apply the explicit predicate: `admin`, `maintain`, or `write`, or boolean
   `admin`, `maintain`, or `push` permission means write-qualified; `triage` and
   `read` alone do not. Derive exactly one write-qualified maintainer equal to
   the PR author, then exclude that author to derive an empty
   `qualified_non_author_reviewers` list.
-- Verify the review URL resolves to the same repository and PR, contains the
-  complete reviewer payload and timestamp, and names the exact latest PR head.
+- Retrieve the GitHub review object and verify the same repository and PR,
+  positive review id, exact allowlisted reviewer
+  `chatgpt-codex-connector[bot]`, exact `type=Bot`, reviewer different from the
+  PR author, valid submission time, exact latest PR head, literal actual state,
+  and exact body. Parse the body to semantic verdict `approved` and
+  `blocking_issues=[]`.
+- This positive placeholder deliberately records the actual state as
+  `COMMENTED`. It satisfies Option A only through the body semantics and must
+  not be described as GitHub `APPROVED`.
 - These placeholder examples do not disclose an actual private collaborator
   inventory, token, or secret.
 
@@ -166,24 +201,36 @@ Blocked sole-maintainer reviewer gate:
   entries plus `sole_maintainer_verified=true`
 - topology endpoint is missing, unretrievable, stale, scoped ambiguously, or
   contradicts the derived write-qualified or non-author inventory
+- pagination is unknown or incomplete, a middle page fails, a cursor loops,
+  results are truncated, page counts or totals mismatch, or authoritative
+  terminal-next-absent evidence is missing
+- the same login has conflicting roles or permissions across pages
 - PR author is missing or differs from the sole write-qualified maintainer
 - zero or multiple write-qualified maintainers are derived
 - a collaborator role or required permission is missing, unknown, non-boolean,
   or contradicts the other permission data
 - an empty `qualified_non_author_reviewers` list is self-asserted instead of
   derived by excluding the exact PR author
-- review evidence URL is missing, unretrievable, or not a PR body/comment URL
-- review evidence belongs to another repository or PR
+- review object or URL is missing or unretrievable
+- reviewer is not exact allowlisted `chatgpt-codex-connector[bot]`, actor type
+  is not `Bot`, or reviewer equals the PR author
+- review object belongs to another repository or PR, or its review id,
+  submission time, literal state, or exact body mismatches
 - reviewed commit differs from the latest PR head
-- publication timestamp or complete reviewer payload is missing or stale
+- review body is missing or unparseable, semantic verdict is not `approved`, or
+  `blocking_issues` is missing or nonempty
+- a PR-author body or comment copies the same JSON but no qualifying GitHub
+  review object exists
 ```
 
 - Refresh and re-retrieve GitHub topology evidence, validate the exact PR
-  author and known role/permission values, then re-derive both inventories and
-  the verdict.
-- Dispatch an independent Reviewer for the exact latest head, publish the full
-  evidence to that PR's body or comment, and retrieve it again.
-- Do not describe independent agent review as GitHub `APPROVED`.
+  author, complete pagination, consistent deduplication, and known
+  role/permission values, then re-derive both inventories and the verdict.
+- Obtain a new allowlisted external GitHub App or bot review object for the
+  exact latest head and retrieve the object again.
+- A local Reviewer result may be retained only as separately labeled
+  `preflight_only=true` advisory evidence; it cannot satisfy the gate.
+- Do not describe an actual `COMMENTED` object as GitHub `APPROVED`.
 
 ## Emergency path
 
@@ -209,6 +256,9 @@ Target tag: absent
   emergency evidence and every independent hard gate are confirmed.
 - It still fails if conversation resolution is not exact 0, the head is behind
   its base, or any other hard gate is red.
+- Missing pre-release reviewer evidence is the only bypass. An incomplete
+  topology query is not proof of sole-maintainer status and is not silently
+  converted into this route.
 
 ### Emergency does not excuse failing tests
 ```text

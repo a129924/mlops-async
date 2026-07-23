@@ -6,20 +6,29 @@ A verified sole-maintainer repository is not automatically an emergency.
 
 When retrievable, fresh GitHub collaborator and permission query provenance
 contains the exact PR author plus nonempty, fully classifiable
-permission-bearing entries, the normal sole-maintainer reviewer path derives
+permission-bearing entries, the normal sole-maintainer reviewer path first
+proves complete pagination through authoritative terminal-next absence.
+Unknown or incomplete pagination, a page failure, cursor loop, truncation,
+count mismatch, or contradictory cross-page duplicate login is `BLOCKED`.
+Only the complete, consistently deduplicated inventory may derive
 write-qualified maintainers using the fixed `admin`／`maintain`／`write` or
 `admin`／`maintain`／`push` permission predicate. It passes topology only when
 exactly one write-qualified maintainer exists, that login is the PR author, and
-excluding the author leaves no qualified non-author reviewer. The path then
-uses an independent Reviewer agent's structured approval for the latest PR
-head exact SHA. The structured review must be published to and re-retrieved
-from the same PR body or comment, with matching repository, PR, SHA, complete
-payload, and valid publication timestamp. That evidence:
+excluding the author leaves no qualified non-author reviewer.
 
-- is not GitHub `APPROVED`
-- must record dispatcher-verifiable, non-opaque canonical
-  `implementer_run_id` and `reviewer_run_id` identities that exist and are not
-  equal
+The path then requires an API-retrievable GitHub review object from exact
+allowlisted `chatgpt-codex-connector[bot]` with actor `type=Bot`; that reviewer
+must differ from the exact PR author. The object must bind the same repository,
+PR, positive review id, review URL, submission UTC, exact latest-head SHA,
+literal actual GitHub state, and exact review body. The body must parse to
+semantic verdict `approved` with `blocking_issues=[]`. That evidence:
+
+- preserves an actual `COMMENTED` state literally and never calls it GitHub
+  `APPROVED`
+- cannot be replaced by a PR-author body or comment carrying copied JSON
+- cannot be replaced by local Reviewer output; local review is only separately
+  labeled `preflight_only=true` advisory evidence and must not be mapped to a
+  GitHub actor, review, or approval
 - becomes stale after any implementation, rework, or base synchronization
   changes the head SHA
 - does not replace actual latest-head `python-ci`, conversation resolution
@@ -30,12 +39,16 @@ payload, and valid publication timestamp. That evidence:
 Do not use a ruleset approval count of `0`, chat, historical evidence, or a PR
 author claim as proof of sole-maintainer eligibility. If current GitHub topology
 evidence is unavailable, unretrievable, ambiguous, stale, contains no valid
-permission-bearing entries, omits the PR author, contains missing or unknown
+permission-bearing entries, has incomplete pagination or any page/cursor/count
+failure, omits the PR author, contains missing, unknown, or contradictory
 roles/permissions, does not derive exactly one write-qualified maintainer equal
 to the PR author, contradicts its derived inventories or verdict, or shows a
 qualified non-author reviewer, the normal sole-maintainer path is `BLOCKED`; it
-is not silently converted to emergency. The same applies when review evidence
-is missing, unretrievable, non-PR-visible, stale, incomplete, or mismatched.
+is not silently converted to emergency. The same applies when the external
+GitHub review object is missing, unretrievable, stale, submitted by the wrong
+actor or type, submitted by the PR author, lacks a parseable approved semantic
+verdict with empty blockers, or mismatches repository, PR, review id, URL,
+timestamp, SHA, state, or body.
 
 ## Allowed bypass
 
@@ -82,11 +95,12 @@ pre-release reviewer evidence and any linked administrative follow-up.
 - Conversation resolution (unresolved review threads exactly 0) is `BLOCKED`
   unless that exact condition is proven.
 - Sole-maintainer topology unverified: `BLOCKED`; refresh current GitHub
-  collaborator and permission evidence, validate nonempty permission-bearing
-  entries, the exact PR author, and the fixed write-qualified predicate, then
-  re-derive both inventories rather than misclassifying the repository as
-  emergency.
+  collaborator and permission evidence, retrieve every page through
+  authoritative terminal-next absence, validate consistent deduplication,
+  nonempty permission-bearing entries, the exact PR author, and the fixed
+  write-qualified predicate, then re-derive both inventories rather than
+  misclassifying the repository as emergency.
 - Reviewer evidence stale after a head-SHA change: `BLOCKED`; obtain a new
-  independent review for the exact latest head, publish it to the applicable PR
-  body or comment, and re-retrieve it; alternatively, use the fully evidenced
-  emergency path, which still satisfies every independent hard gate.
+  allowlisted external GitHub App or bot review object for the exact latest
+  head and re-retrieve it through the GitHub API; alternatively, use the fully
+  evidenced emergency path, which still satisfies every independent hard gate.

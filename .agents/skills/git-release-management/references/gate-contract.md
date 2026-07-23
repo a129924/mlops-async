@@ -20,22 +20,25 @@ This path passes only when a qualified non-author reviewer has submitted GitHub
 
 - The approval must apply to the current latest PR head.
 - A stale or dismissed approval does not pass.
-- Independent agent review does not replace GitHub `APPROVED` when a qualified
-  non-author reviewer exists.
+- Local `preflight_only=true` review does not replace GitHub `APPROVED` when a
+  qualified non-author reviewer exists.
 
 ### Verified sole-maintainer repository path
 
-This path passes only when both topology proof and independent review evidence
-are valid:
+This path passes only when both complete topology proof and authoritative
+external GitHub review evidence are valid:
 
 1. Current GitHub repository permission and collaborator evidence proves that
    exactly one write-qualified maintainer exists, that login is the exact PR
    author, and excluding that author derives no qualified non-author reviewer.
-2. An independent Reviewer agent approves the latest PR head exact SHA with
-   machine-consumable evidence that records dispatcher-verifiable,
-   non-opaque canonical actor/run identities for both the Implementer and
-   Reviewer. Both identities must exist and must not resolve to the same
-   actor/run.
+   The inventory may be derived only after all pages or cursors are retrieved
+   through authoritative terminal-next absence and cross-page duplicate logins
+   are consistently deduplicated.
+2. An allowlisted external GitHub App or bot submits an API-retrievable GitHub
+   review object for the latest PR head exact SHA. The initial exact allowlist
+   is `chatgpt-codex-connector[bot]` with actor `type=Bot`; that canonical login
+   must differ from the exact PR author. The exact review body must parse to
+   semantic verdict `approved` with `blocking_issues=[]`.
 
 Do not infer sole-maintainer eligibility from chat, historical snapshots, PR
 author claims, or a ruleset approval count of `0`. If current evidence is
@@ -52,6 +55,24 @@ must be retrieved from the stated GitHub API endpoint:
   "observed_at_utc": "<iso-8601-utc>",
   "freshness_max_age_seconds": "<positive-integer>",
   "query_scope": "<collaborator-and-permission-scope>",
+  "pagination": {
+    "strategy": "page-number|cursor",
+    "per_page_or_cursor": "<positive-integer-per-page-or-initial-cursor>",
+    "page_count": "<positive-integer>",
+    "total_retrieved": "<non-negative-integer>",
+    "total_entries": "<non-negative-integer-after-consistent-deduplication>",
+    "page_evidence": [
+      {
+        "request_page_or_cursor": "<page-number-or-cursor>",
+        "evidence_url": "<retrievable-page-api-endpoint>",
+        "retrieved_count": "<non-negative-integer>",
+        "next_page_or_cursor": "<next-value-or-null>",
+        "next_evidence": "<retrievable-header-or-page-info-proof>"
+      }
+    ],
+    "terminal_next_absent": true,
+    "pagination_complete": true
+  },
   "pr_author_login": "<pr-author-login>",
   "write_qualification_predicate": "role_name in [admin, maintain, write] OR permissions.admin == true OR permissions.maintain == true OR permissions.push == true",
   "permission_bearing_entries": [
@@ -75,10 +96,35 @@ Retrieve `evidence_url` and verify that it is a GitHub collaborator or
 permission API endpoint for `repository_full_name`. `observed_at_utc` must be a
 valid UTC timestamp whose age does not exceed the positive
 `freshness_max_age_seconds`. `query_scope` must state the collaborator and
-permission population queried. `pr_author_login` must be the exact current PR
-author. `permission_bearing_entries` must be nonempty and represent the
-retrieved collaborators; every entry must have a login, a recognized
-`role_name`, and boolean `admin`, `maintain`, and `push` permission values.
+permission population queried.
+
+`pagination` must record the page-number or cursor strategy, positive per-page
+size or initial cursor, positive `page_count`, non-negative `total_retrieved`,
+non-negative deduplicated `total_entries`, and one `page_evidence` entry for
+every successful request. `total_retrieved` must equal the sum of page
+`retrieved_count` values; `total_entries` must equal the length of the complete,
+consistently deduplicated permission-bearing inventory. Each page entry must
+bind its request page or cursor to a retrievable evidence URL, retrieved count,
+next page or cursor value, and authoritative next evidence such as a response
+header or page-info object. Follow every authoritative next value until the
+final page proves next absent. Only
+`terminal_next_absent=true` and `pagination_complete=true`, with page counts and
+retrieved totals matching the evidence, may supply the inventory.
+
+Unknown or incomplete pagination, a failed middle or terminal page, a repeated
+cursor, truncation, missing next evidence, missing terminal-next-absent proof,
+or a page-count or total mismatch is `BLOCKED`. A source-side cap or result
+limit is truncation unless authoritative pagination evidence proves the
+complete population was traversed.
+
+`pr_author_login` must be the exact current PR author.
+`permission_bearing_entries` must be nonempty and represent the complete
+retrieved collaborator inventory. When a login appears on more than one page,
+deduplicate it only if its `role_name` and all required permissions are
+identical. A contradictory role or permission for the same login is `BLOCKED`;
+do not choose a preferred entry. Every deduplicated entry must have a login, a
+recognized `role_name`, and boolean `admin`, `maintain`, and `push` permission
+values.
 
 The write-qualified predicate is fixed:
 
@@ -90,8 +136,8 @@ The write-qualified predicate is fixed:
 Missing role or permission values, unknown roles, non-boolean permission
 values, or contradictory role/permission data are `BLOCKED`.
 
-Derive `write_qualified_maintainers` from all retrieved
-`permission_bearing_entries` using that predicate. Derive
+Derive `write_qualified_maintainers` from the complete, consistently
+deduplicated `permission_bearing_entries` using that predicate. Derive
 `qualified_non_author_reviewers` by excluding the exact `pr_author_login` from
 `write_qualified_maintainers`. Do not accept either inventory as a
 self-asserted input.
@@ -99,68 +145,79 @@ self-asserted input.
 The sole-maintainer topology gate passes only when:
 
 1. provenance is current, retrievable, and scoped to the declared repository;
-2. permission-bearing collaborator entries are nonempty and fully classifiable;
-3. `write_qualified_maintainers` contains exactly one login;
-4. that exact login equals `pr_author_login`;
-5. `qualified_non_author_reviewers` is empty; and
-6. `sole_maintainer_verified=true` agrees with every derived value.
+2. pagination is complete through authoritative terminal-next absence, with no
+   failed page, loop, truncation, or count mismatch;
+3. permission-bearing collaborator entries are nonempty, consistently
+   deduplicated, and fully classifiable;
+4. `write_qualified_maintainers` contains exactly one login;
+5. that exact login equals `pr_author_login`;
+6. `qualified_non_author_reviewers` is empty; and
+7. `sole_maintainer_verified=true` agrees with every derived value.
 
 Arbitrary strings, empty entries plus a self-asserted boolean, missing PR
 author, a PR author different from the sole write-qualified maintainer, zero or
 multiple write-qualified maintainers, stale or unretrievable provenance,
-unclear query scope, malformed or unknown permissions, a self-asserted empty
-non-author inventory, or any derived mismatch make this path `BLOCKED`. When a
-qualified non-author reviewer exists, select the collaborative GitHub
-`APPROVED` path instead.
+unclear query scope, incomplete pagination, failed pages, cursor loops,
+truncation, count mismatch, contradictory duplicate logins, malformed or
+unknown permissions, a self-asserted empty non-author inventory, or any derived
+mismatch make this path `BLOCKED`. Only the complete inventory may derive the
+lists and verdict. When a qualified non-author reviewer exists, select the
+collaborative GitHub `APPROVED` path instead.
 
-Minimum independent agent review evidence:
+Minimum authoritative external GitHub review evidence:
 
 ```json
 {
-  "reviewer_kind": "independent-agent",
-  "implementer_run_id": "<canonical-implementer-actor-or-run-id>",
-  "reviewer_run_id": "<reviewer-run-or-session-id>",
+  "reviewer_kind": "external-github-app",
+  "reviewer_login": "chatgpt-codex-connector[bot]",
+  "type": "Bot",
   "repository_full_name": "<owner/repository>",
   "pull_request_number": "<positive-integer>",
-  "evidence_surface": "pr-body|pr-comment",
-  "evidence_url": "<retrievable-pr-body-or-comment-url>",
-  "published_at_utc": "<iso-8601-utc>",
+  "review_id": "<positive-integer>",
+  "review_url": "<retrievable-github-review-url>",
+  "submitted_at_utc": "<iso-8601-utc>",
   "reviewed_commit_sha": "<exact-latest-pr-head-sha>",
-  "verdict": "approved",
-  "blocking_issues": [],
-  "scope_verified": true,
-  "version_sources_verified": true,
-  "non_live_ci_contract_verified": true
+  "github_review_state": "<actual-github-review-state>",
+  "review_body": "{\"semantic_verdict\":\"approved\",\"blocking_issues\":[]}",
+  "semantic_verdict": "approved",
+  "blocking_issues": []
 }
 ```
 
-`implementer_run_id` and `reviewer_run_id` must map to canonical actor/run
-identities in the dispatcher execution record. A UUID, label, or session token
-without that mapping is opaque-only and does not prove separation. Missing,
-unverifiable, opaque-only, or equal identities make the normal
-sole-maintainer route `BLOCKED`.
+Retrieve `review_url` through the GitHub API and validate the review object
+itself. It must belong to the same `repository_full_name` and positive
+`pull_request_number`; carry a positive `review_id`; bind the canonical
+`reviewer_login` exactly to the allowlisted
+`chatgpt-codex-connector[bot]` with actor `type` exactly `Bot`; and prove that
+the reviewer is not the exact PR author. It must also carry a valid
+`submitted_at_utc`, the exact latest `reviewed_commit_sha`, the literal actual
+`github_review_state`, and the exact `review_body`.
 
-Retrieve `evidence_url` and verify that it resolves to the declared
-`evidence_surface`, which must be the applicable PR body or PR comment. The
-retrieved surface must belong to the same `repository_full_name` and positive
-`pull_request_number`, contain the complete reviewer payload, bind
-`reviewed_commit_sha` to the latest PR head exact SHA, and carry a valid
-`published_at_utc` within the applicable freshness policy.
+Parse the body rather than trusting copied top-level claims. The parsed body
+must yield `semantic_verdict=approved` and `blocking_issues=[]`, and those
+values must match the recorded derived fields. Missing body, unparseable or
+missing verdict, any non-approved verdict, missing or nonempty blockers, or any
+repository, PR, review id, URL, actor, type, timestamp, SHA, state, body, or
+derived-field mismatch makes the normal sole-maintainer route `BLOCKED`.
 
-Missing or unretrievable evidence, a non-PR URL, an invalid or stale timestamp,
-an omitted reviewer payload, or any repository, PR, or SHA mismatch makes the
-normal sole-maintainer route `BLOCKED`.
+Preserve the actual GitHub state literally. If the API object says
+`COMMENTED`, record `COMMENTED` and never call it GitHub `APPROVED`. The
+semantic verdict in the review body satisfies this Option A path without
+creating GitHub approval state.
+
+A PR-author body or comment containing the same JSON is not a GitHub review
+object and cannot qualify. Local Reviewer output may exist only as separately
+labeled `preflight_only=true` advisory evidence; it cannot satisfy the gate and
+must not be mapped to a GitHub actor, review, or approval.
 
 `reviewed_commit_sha` must equal the latest PR head SHA. Any implementation,
 rework, or base synchronization that changes the head SHA invalidates the old
-review and requires a new independent Reviewer run.
+review object and requires the allowlisted external GitHub App or bot to review
+the new exact SHA.
 
-`non_live_ci_contract_verified=true` means only that the Reviewer checked the CI
-contract. It does not prove or replace actual latest-head GitHub `python-ci`
-success.
-
-Independent agent review is not GitHub `APPROVED`. It does not authorize merge
-or tag creation.
+The external review object does not authorize merge or tag creation and does
+not replace actual latest-head GitHub `python-ci` success or any other
+independent hard gate.
 
 ## Pre-publish snapshot boundary
 
@@ -231,16 +288,19 @@ useful repair path.
 
 - Missing, stale, unretrievable, empty, unknown, or contradictory topology
   evidence: refresh the GitHub collaborator and permission API evidence,
-  validate the exact PR author, query scope, recognized roles, and boolean
-  permission-bearing entries, then re-derive `write_qualified_maintainers`,
-  `qualified_non_author_reviewers`, and the verdict; do not infer
-  sole-maintainer status.
+  traverse every page through authoritative terminal-next absence, reject page
+  failures, loops, truncation, count mismatches, and contradictory duplicate
+  logins, then validate the exact PR author, query scope, recognized roles, and
+  boolean permission-bearing entries before re-deriving
+  `write_qualified_maintainers`, `qualified_non_author_reviewers`, and the
+  verdict; do not infer sole-maintainer status.
 - Qualified non-author reviewer exists: use the collaborative GitHub
   `APPROVED` path.
-- Agent review is stale, malformed, unretrievable, non-PR-visible, mismatched,
-  or not independent: dispatch an independent Reviewer against the latest PR
-  head exact SHA, publish the complete payload to that PR's body or comment,
-  and re-retrieve it.
+- External GitHub review is stale, malformed, unretrievable, from the wrong
+  actor or type, authored by the PR author, mismatched, lacks a parseable
+  approved semantic verdict, or has blockers: obtain a new allowlisted external
+  GitHub App or bot review object against the latest PR head exact SHA and
+  re-retrieve it through the GitHub API.
 - Any independent hard gate is missing or failing: repair and re-run that gate;
   neither reviewer path nor emergency may bypass it.
 - Conversation resolution (unresolved review threads exactly 0) is not proven:

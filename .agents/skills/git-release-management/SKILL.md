@@ -11,8 +11,8 @@ inputs:
   - current workspace state including whether uncommitted changes exist
   - project version sources such as pyproject.toml, __version__.py, or package.json
   - pass/fail signals from testing, strict typing, lint, CI, the applicable normal reviewer path, and documentation updates
-  - retrievable current GitHub collaborator and permission query provenance plus exact PR author identity when sole-maintainer eligibility is evaluated
-  - repository full name, pull request number, latest PR head SHA, and retrievable PR-visible machine-consumable reviewer evidence
+  - retrievable current GitHub collaborator and permission query provenance with complete pagination plus exact PR author identity when sole-maintainer eligibility is evaluated
+  - repository full name, pull request number, latest PR head SHA, and a retrievable allowlisted external GitHub App or bot review object
   - whether the change includes API or contract changes that require synced documentation
   - whether an emergency marker and human confirmation exist
 outputs:
@@ -54,10 +54,10 @@ Do not use this skill when:
 - the pass/fail signals from testing, strict typing, lint, CI, the applicable normal reviewer path, and documentation updates
 - retrievable current GitHub collaborator and permission query provenance when
   sole-maintainer eligibility is evaluated, including observation time,
-  freshness limit, query scope, exact PR author identity, and
-  permission-bearing collaborator entries
+  freshness limit, query scope, complete page or cursor traversal, exact PR
+  author identity, and permission-bearing collaborator entries
 - the repository full name, pull request number, latest PR head SHA, and
-  retrievable PR-visible machine-consumable reviewer evidence
+  retrievable allowlisted external GitHub App or bot review object
 - whether the change includes API or contract changes that require synced documentation
 - whether an emergency marker and human confirmation exist
 
@@ -70,41 +70,51 @@ Do not use this skill when:
    - **Collaborative repository**: require a qualified non-author reviewer to submit GitHub `APPROVED` for the latest PR head.
    - **Verified sole-maintainer repository**: retrieve current GitHub collaborator
      and permission query evidence, validate its repository, observation time,
-     positive freshness limit, query scope, and nonempty permission-bearing
-     collaborator entries. Record the exact PR author. Treat a collaborator as
-     write-qualified only when its known role is `admin`, `maintain`, or
-     `write`, or its boolean GitHub permissions grant `admin`, `maintain`, or
-     `push`; `triage` and `read` alone are not write-qualified. Derive
-     `write_qualified_maintainers` from the entries, then derive
-     `qualified_non_author_reviewers` by excluding the exact PR author. The
-     sole-maintainer path is eligible only when exactly one write-qualified
-     maintainer remains, that login is the PR author, the derived non-author
-     list is empty, and the evidence is internally consistent. Then require an
-     independent Reviewer agent's structured approved evidence for the latest
-     PR head exact SHA.
+     positive freshness limit, query scope, and complete page-number or cursor
+     traversal through the authoritative terminal-next-absent signal. Record
+     the exact PR author. Deduplicate a repeated login only when its role and
+     permissions are identical on every page; contradictory duplicates are
+     `BLOCKED`. Only after pagination is proven complete, treat a collaborator
+     as write-qualified when its known role is `admin`, `maintain`, or `write`,
+     or its boolean GitHub permissions grant `admin`, `maintain`, or `push`;
+     `triage` and `read` alone are not write-qualified. Derive
+     `write_qualified_maintainers` from the complete deduplicated inventory,
+     then derive `qualified_non_author_reviewers` by excluding the exact PR
+     author. The sole-maintainer path is eligible only when exactly one
+     write-qualified maintainer remains, that login is the PR author, the
+     derived non-author list is empty, and the evidence is internally
+     consistent.
 6. Do not infer sole-maintainer eligibility from chat, historical evidence,
    arbitrary strings, empty inventory plus a self-asserted boolean, PR-author
    claims, or a ruleset approval count of `0`. Hard-block the sole-maintainer
    path when topology evidence is unavailable, unretrievable, ambiguous, stale,
-   scoped incorrectly, contradictory, contains no permission-bearing entries,
-   omits the PR author, contains missing or unknown role/permission values,
-   derives zero or multiple write-qualified maintainers, derives a sole
+   scoped incorrectly, incompletely paginated, truncated, contradictory,
+   contains a failed page, repeats a cursor, lacks authoritative terminal-next
+   evidence, has page-count or total mismatch, contains no permission-bearing
+   entries, omits the PR author, contains missing or unknown role/permission
+   values, derives zero or multiple write-qualified maintainers, derives a sole
    write-qualified maintainer other than the PR author, or shows a qualified
    non-author reviewer. Use the collaborative path when a qualified non-author
    reviewer exists.
-7. Require independent agent evidence to record both the Implementer and Reviewer
-   canonical actor/run identities from the dispatcher execution record. Both
-   identities must exist, be traceable, and be unequal. An opaque identifier
-   without a dispatcher-record mapping is not sufficient. Invalidate the
-   evidence whenever implementation, rework, or base synchronization changes the
-   PR head SHA; review the new exact SHA before continuing.
-8. Require sole-maintainer review evidence to be published in the applicable PR
-   body or PR comment and then retrieved from its `evidence_url`. Verify that
-   the retrieved PR-visible surface belongs to the same
-   `repository_full_name` and `pull_request_number`, contains the complete
-   reviewer payload, binds `reviewed_commit_sha` to the latest PR head, and has
-   a valid `published_at_utc` within the applicable freshness policy. Missing,
-   unretrievable, non-PR-visible, stale, or mismatched evidence is `BLOCKED`.
+7. On the verified sole-maintainer path, require an API-retrievable GitHub review
+   object submitted by the allowlisted external reviewer
+   `chatgpt-codex-connector[bot]` with actor `type` exactly `Bot`. The canonical
+   reviewer login must differ from the exact PR author. The object must bind the
+   same repository and PR, positive review id, retrievable review URL, valid
+   submission UTC, exact latest PR head SHA, actual GitHub review state, and
+   exact review body. The body must machine-parse to semantic verdict
+   `approved` and `blocking_issues=[]`.
+8. Preserve the API object's actual `github_review_state` literally. In
+   particular, an actual `COMMENTED` review remains `COMMENTED` and must never
+   be described as GitHub `APPROVED`; Option A relies on the parseable semantic
+   verdict in the body, not on a fabricated GitHub approval state. A wrong or
+   non-bot actor, PR-author actor, mismatched repository, PR, review id, URL,
+   timestamp, SHA, state, or body, missing semantic verdict, nonempty blockers,
+   stale or unretrievable object is `BLOCKED`. A PR-author body or comment that
+   repeats the same JSON is not a GitHub review object and cannot qualify.
+   Any implementation, rework, or base synchronization that changes the PR
+   head invalidates the prior object and requires a new review of the new exact
+   SHA.
 9. Treat repo-visible plan and step artifacts as a pre-publish `review-ready`
    snapshot. After that snapshot is committed, publish actual current PR head,
    CI, review, and conversation state only on the PR body or PR comments; do not
@@ -142,22 +152,26 @@ All of the following must be confirmed positive:
     - collaborative repository: qualified non-author GitHub `APPROVED` for the
       latest PR head; or
     - verified sole-maintainer repository: retrievable, fresh GitHub topology
-      proof with the exact PR author and nonempty permission-bearing
-      collaborator entries; the explicit predicate derives exactly one
-      write-qualified maintainer equal to that PR author and an empty
-      `qualified_non_author_reviewers` list; plus retrievable PR-visible
-      independent Reviewer agent approved evidence for the latest PR head exact
-      SHA.
+      proof with complete pagination, the exact PR author, and a nonempty,
+      consistently deduplicated permission-bearing collaborator inventory; the
+      explicit predicate derives exactly one write-qualified maintainer equal
+      to that PR author and an empty `qualified_non_author_reviewers` list; plus
+      an API-retrievable review object from allowlisted
+      `chatgpt-codex-connector[bot]` with `type=Bot`, a reviewer login different
+      from the PR author, and a body whose semantic verdict is `approved` with
+      `blocking_issues=[]` for the latest PR head exact SHA.
   - **Emergency route**: all four emergency evidence items are present and the
     only bypassed condition is missing pre-release reviewer evidence.
 - On the normal route, the applicable reviewer evidence is current and any
   changed head SHA has been re-reviewed.
-- On the normal sole-maintainer route, the dispatcher execution record proves
-  that `implementer_run_id` and `reviewer_run_id` are present, traceable
-  canonical actor/run identities and are not equal.
-- On the normal sole-maintainer route, the retrieved reviewer surface belongs
-  to the same repository and PR, contains the complete reviewer payload and
-  valid publication timestamp, and exactly matches the latest PR head SHA.
+- On the normal sole-maintainer route, every topology page was retrieved through
+  authoritative terminal-next absence; page counts, totals, cursors, and
+  consistent cross-page deduplication have been validated before deriving the
+  maintainer inventories or verdict.
+- On the normal sole-maintainer route, the retrieved GitHub review object
+  belongs to the same repository and PR, contains the allowlisted non-author
+  `Bot` actor, positive review id, review URL, exact body, valid submission
+  timestamp, literal actual GitHub state, and exact latest-head SHA.
 - Repo-visible plan and step artifacts remain a pre-publish `review-ready`
   snapshot; publish-time PR head, CI, review, and conversation truth is carried
   only by PR-visible evidence.
@@ -177,19 +191,22 @@ All of the following must be confirmed positive:
 - Two or more version sources disagree with each other or with the intended Git tag.
 - On a normal sole-maintainer route, GitHub topology provenance is unavailable,
   unretrievable, ambiguous, stale, scoped incorrectly, has empty or malformed
-  permission-bearing entries, omits the exact PR author, has missing or unknown
-  roles or permissions, derives anything other than exactly one
-  write-qualified maintainer equal to the PR author, or contradicts its derived
-  maintainer inventory, non-author reviewer list, or sole-maintainer verdict.
+  permission-bearing entries, has unknown or incomplete pagination, a failed
+  page, cursor loop, truncation, missing terminal-next-absent evidence,
+  page-count or total mismatch, contradictory duplicate logins, omits the exact
+  PR author, has missing or unknown roles or permissions, derives anything
+  other than exactly one write-qualified maintainer equal to the PR author, or
+  contradicts its derived maintainer inventory, non-author reviewer list, or
+  sole-maintainer verdict.
 - On a normal route, the applicable latest-head reviewer evidence is absent,
   stale, or malformed.
 - On a normal sole-maintainer route, reviewer evidence is missing,
-  unretrievable, not a PR body or PR comment, lacks a valid publication
-  timestamp, omits the reviewer payload, or mismatches the repository, PR, or
+  unretrievable, not a GitHub review object, submitted by an actor outside the
+  exact allowlist or whose `type` is not `Bot`, submitted by the PR author,
+  lacks a positive review id, retrievable review URL, valid submission
+  timestamp, exact body, literal actual GitHub state, semantic verdict
+  `approved`, or empty `blocking_issues`, or mismatches the repository, PR, or
   latest-head SHA.
-- On a normal sole-maintainer route, actor separation fails:
-  `implementer_run_id` or `reviewer_run_id` is missing, unverifiable,
-  opaque-only, or both identities resolve to the same actor/run.
 - On an emergency route, any emergency evidence item is missing or the requested
   bypass exceeds missing pre-release reviewer evidence.
 - Any non-bypassable gate is failing: actual latest-head `python-ci`,
@@ -203,10 +220,15 @@ All of the following must be confirmed positive:
 - An arbitrary string, empty permission-bearing inventory plus a boolean,
   self-asserted empty non-author list, or contradictory topology payload is
   used as proof of sole-maintainer eligibility.
-- Independent agent review is described as GitHub `APPROVED`, or is treated as merge or tag authorization.
+- An actual GitHub `COMMENTED` review is described as GitHub `APPROVED`, or any
+  reviewer evidence is treated as merge or tag authorization.
+- A local Reviewer result is used as authoritative gate evidence instead of
+  being labeled `preflight_only=true`, or is mapped to a GitHub actor, review,
+  or approval.
+- A PR-author body or comment carrying the same JSON is accepted as the
+  allowlisted external GitHub App or bot review object.
 - Repo-local plan or step content is treated as authoritative evidence for
   publish-time PR head, CI, review, or conversation state.
-- Agent evidence claims `non_live_ci_contract_verified=true` while actual latest-head `python-ci` is absent or failing.
 - Version sources are present but have not been compared. Version synchronization must be confirmed before any tagging command is provided.
 - A commit in the release range includes a breaking change but the proposed bump is `patch` or `minor`. Bump direction must be re-derived from accumulated commit semantics.
 - The user asks for safe tagging commands before CI or type-check signals have been provided. Do not provide tag commands under incomplete signal.
@@ -221,20 +243,30 @@ All of the following must be confirmed positive:
      or
    - verified sole-maintainer path: retrieve the GitHub collaborator and
      permission query provenance; verify repository, UTC observation time,
-     positive freshness limit, query scope, and nonempty permission-bearing
-     collaborator entries; verify the exact PR author and known role/permission
-     values; apply the explicit write-qualified predicate; derive
-     `write_qualified_maintainers`; exclude the exact PR author to derive
+     positive freshness limit, query scope, pagination strategy, per-page or
+     initial cursor, page count, total retrieved, deduplicated total entries,
+     every page evidence URL, request and next value, next evidence, and
+     authoritative terminal-next absence. Require every page to succeed and
+     reject loops, truncation, or count mismatch. Deduplicate repeated logins
+     only when role and permissions are identical; require total entries to
+     match the resulting complete inventory; verify the exact PR author and
+     known role/permission values from that inventory; apply the explicit
+     write-qualified predicate;
+     derive `write_qualified_maintainers`; exclude the exact PR author to derive
      `qualified_non_author_reviewers`; require exactly one write-qualified
      maintainer equal to the PR author and an empty non-author list; then
-     retrieve independent Reviewer agent evidence from the PR body or PR
-     comment for the latest head exact SHA.
+     retrieve the allowlisted external GitHub App or bot review object for the
+     latest head exact SHA.
 4. For the normal route, confirm applicable reviewer-evidence freshness and
-   re-review after every head-SHA change. For the sole-maintainer path, also
-   confirm dispatcher-record actor linkage: `implementer_run_id` and
-   `reviewer_run_id` are present, traceable canonical identities, and unequal;
-   confirm the retrieved surface has the same repository and PR, complete
-   reviewer payload, valid publication timestamp, and exact latest-head SHA.
+   re-review after every implementation, rework, or base-sync head-SHA change.
+   For the sole-maintainer path, confirm the API-retrieved object has the same
+   repository and PR, positive review id, retrievable review URL, allowlisted
+   canonical reviewer `chatgpt-codex-connector[bot]`, actor `type=Bot`, reviewer
+   login different from the exact PR author, valid submission UTC, exact
+   latest-head SHA, literal actual GitHub review state, and exact body that
+   parses to semantic verdict `approved` with `blocking_issues=[]`. An actual
+   `COMMENTED` state must remain `COMMENTED`; a PR body or comment is not a
+   qualifying review object.
 5. For the emergency route, confirm the explicit marker, recorded human
    confirmation, urgency explanation, and anomaly record, and confirm that only
    missing pre-release reviewer evidence is bypassed.
@@ -272,7 +304,10 @@ All of the following must be confirmed positive:
 
 ## Missing or Ambiguous Gate Signals
 - If current GitHub topology evidence cannot establish the applicable reviewer path: mark the reviewer gate BLOCKED. Do not infer sole-maintainer status from chat, history, or ruleset configuration.
-- If collaborative-path GitHub `APPROVED` or verified sole-maintainer agent evidence is missing, malformed, or stale: mark the reviewer gate BLOCKED and identify the exact missing or stale evidence.
+- If collaborative-path GitHub `APPROVED` or the verified sole-maintainer
+  allowlisted external GitHub review object is missing, malformed, or stale:
+  mark the reviewer gate BLOCKED and identify the exact missing or stale
+  evidence.
 - If CI, conversation resolution (unresolved review threads exactly 0),
   base-sync, test, type-check, lint, or docs-sync signal is absent: mark that
   gate as UNCONFIRMED; do not count an absent signal as PASS.
@@ -281,36 +316,50 @@ All of the following must be confirmed positive:
 ## Sole-Maintainer Evidence Failure
 - BLOCKED when GitHub collaborator or permission provenance is unavailable,
   unretrievable, ambiguous, stale, scoped incorrectly, contains no valid
-  permission-bearing collaborator entries, omits the exact PR author, contains
-  missing or unknown role/permission values, derives zero or multiple
+  permission-bearing collaborator entries, has unknown or incomplete
+  pagination, a page retrieval failure, cursor loop, truncation, missing
+  authoritative terminal-next-absent evidence, page-count or total mismatch,
+  or contradictory cross-page duplicate login, omits the exact PR author,
+  contains missing or unknown role/permission values, derives zero or multiple
   write-qualified maintainers, derives a sole write-qualified maintainer other
   than the PR author, contradicts its derived inventories or verdict, or shows
   any qualified non-author reviewer.
 - Report the repository, evidence URL or API endpoint, UTC observation time,
-  freshness limit, query scope, PR author, permission-entry validation result,
-  write-qualified predicate, derived `write_qualified_maintainers`,
+  freshness limit, query scope, pagination strategy, page count, total
+  retrieved, deduplicated total entries, page evidence and terminal proof, PR
+  author, cross-page
+  deduplication result, permission-entry validation result, write-qualified
+  predicate, derived `write_qualified_maintainers`,
   `qualified_non_author_reviewers`, and sole-maintainer verdict when available.
   Do not copy private collaborator inventory or credentials into repo examples.
 - Repair guidance: refresh retrievable GitHub topology evidence and re-derive
-  both inventories and the verdict from known GitHub roles and permissions; if
-  a qualified non-author reviewer exists, use the collaborative GitHub
-  `APPROVED` path.
+  every page through authoritative terminal-next absence, validate consistent
+  cross-page deduplication, then re-derive both inventories and the verdict from
+  known GitHub roles and permissions; if a qualified non-author reviewer
+  exists, use the collaborative GitHub `APPROVED` path.
 
-## Stale or Invalid Agent Review
+## Stale or Invalid External GitHub Review
 - BLOCKED on the normal sole-maintainer route when `reviewed_commit_sha` differs
-  from the latest PR head; when `repository_full_name`,
-  `pull_request_number`, `evidence_surface`, `evidence_url`, or
-  `published_at_utc` is missing or invalid; when the URL is unretrievable or
-  does not resolve to the same PR body or PR comment; when the retrieved
-  surface omits the complete reviewer payload; when repository, PR, SHA, or
-  freshness mismatches; when the dispatcher execution record cannot verify
-  both canonical `implementer_run_id` and `reviewer_run_id`; when either
-  identity is opaque-only; or when both identities resolve to the same
-  actor/run.
-- Any implementation, rework, or base synchronization that changes the head SHA invalidates prior agent review evidence.
-- Repair guidance: dispatch an independent Reviewer against the new exact
-  latest PR head, publish the complete structured verdict to that PR's body or
-  comment, and re-retrieve it for binding and freshness validation.
+  from the latest PR head; when `reviewer_kind`, `reviewer_login`, `type`,
+  `repository_full_name`, `pull_request_number`, `review_id`, `review_url`,
+  `submitted_at_utc`, `github_review_state`, or exact review body is missing or
+  invalid; when the object or URL is unretrievable; when the reviewer is not
+  exact allowlisted `chatgpt-codex-connector[bot]` with `type=Bot`, equals the
+  PR author, or the repository, PR, review id, URL, timestamp, SHA, state, or
+  body mismatches; when the body does not parse to
+  `semantic_verdict=approved`; or when `blocking_issues` is missing or nonempty.
+- Preserve the object's actual GitHub state literally. An actual `COMMENTED`
+  review is not GitHub `APPROVED`, even when its body carries the qualifying
+  semantic verdict. A PR-author body or comment with copied JSON is not a
+  qualifying GitHub review object.
+- Any implementation, rework, or base synchronization that changes the head SHA
+  invalidates the prior external review object.
+- Repair guidance: obtain a new review object from the allowlisted external
+  GitHub App or bot against the new exact latest PR head, then retrieve the API
+  object again and validate every binding plus the body semantics.
+- Local Reviewer output may be retained only as separately labeled
+  `preflight_only=true` advisory evidence. It cannot satisfy this gate and must
+  not be mapped to a GitHub actor, review, or approval.
 
 ## Emergency Path Misuse
 - If the emergency path is invoked but any required evidence item is missing: BLOCKED — do not allow the bypass.
@@ -325,7 +374,7 @@ All of the following must be confirmed positive:
 ## Failed Normal-Gate Condition
 - Report each failed condition with its current value and the required value.
 - Provide targeted repair commands for each failure (e.g., `git stash`, bump command, lint fix reference).
-- Do not let an agent-review JSON field substitute for actual GitHub
+- Do not let a reviewer-evidence JSON field substitute for actual GitHub
   `python-ci`, conversation resolution (unresolved review threads exactly 0),
   base synchronization, or any other hard-gate evidence.
 - Do not auto-tag or auto-push after repair; require user re-confirmation.
@@ -337,7 +386,10 @@ All of the following must be confirmed positive:
 
 # Boundaries
 - Do not invent missing reviewer evidence, sole-maintainer eligibility, passing test signals, or version alignment.
-- Do not call independent agent review GitHub `APPROVED`.
+- Do not call an actual GitHub `COMMENTED` review GitHub `APPROVED`.
+- Do not use local Reviewer output as authoritative normal-gate evidence. Keep
+  it separately labeled `preflight_only=true`, and do not map it to a GitHub
+  actor, review, or approval.
 - Do not infer sole-maintainer status from ruleset approvals `0`, chat, historical snapshots, or PR-author claims.
 - Do not accept arbitrary strings, empty permission-bearing entries plus a
   self-asserted boolean, a self-asserted empty non-author inventory, stale or
@@ -345,17 +397,20 @@ All of the following must be confirmed positive:
   role/permission values, or contradictory topology data as sole-maintainer
   proof.
 - Derive `write_qualified_maintainers` only from retrievable collaborator
-  entries using the explicit GitHub role/permission predicate. Derive
-  `qualified_non_author_reviewers` only by excluding the exact PR author. Do
-  not pass unless exactly one write-qualified maintainer exists and is the PR
-  author.
-- On the normal sole-maintainer route, require dispatcher-verifiable,
-  non-opaque canonical Implementer and Reviewer actor/run identities; do not let
-  them resolve to the same actor/run, and do not reuse review evidence after the
+  entries only after all pages have been retrieved through authoritative
+  terminal-next absence and repeated logins have been consistently
+  deduplicated. Derive `qualified_non_author_reviewers` only by excluding the
+  exact PR author. Do not pass unless exactly one write-qualified maintainer
+  exists and is the PR author.
+- On the normal sole-maintainer route, require an API-retrievable review object
+  from exact allowlisted `chatgpt-codex-connector[bot]` with `type=Bot`; require
+  the reviewer to differ from the PR author and bind the object to the same
+  repository, PR, review id, URL, submission UTC, exact latest head, literal
+  actual GitHub state, and exact body with semantic verdict `approved` and
+  `blocking_issues=[]`.
+- Do not accept a PR-author body or comment carrying copied reviewer JSON as a
+  qualifying GitHub review object, and do not reuse a review object after the
   PR head SHA changes.
-- On the normal sole-maintainer route, require retrievable PR-visible review
-  evidence bound to the same repository, PR, and exact latest head, with a
-  valid publication timestamp and complete reviewer payload.
 - Keep repo-visible plan and step artifacts as pre-publish `review-ready`
   snapshots; do not use them as authoritative publish-time PR-state evidence.
 - Do not auto-bypass any gate except missing pre-release reviewer evidence on the explicit emergency path.
