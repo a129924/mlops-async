@@ -1,6 +1,6 @@
 ---
 topic: solo-maintainer-release-governance
-phase: publish-in-progress
+phase: pr-open
 created: 2026-07-23
 ---
 
@@ -8,7 +8,8 @@ created: 2026-07-23
 
 > Completion gate 只讀取 `## Implementation Steps`。
 > Topic plan 已核准；creator-owned implementation 與 bounded validation 已完成，
-> 現在進入 `publish-in-progress`。PR、CI、merge、tag 與 release 均未執行。
+> READY PR 已建立並進入 `pr-open`；actual GitHub `python-ci` 尚待 current-head
+> check。merge、tag 與 release 均未執行。
 > 只有實際完成並有 evidence 的項目才可標記為 `[X]`。
 
 ## Implementation Steps
@@ -52,3 +53,9 @@ created: 2026-07-23
 - 上述 review／test evidence 僅證明本 topic 的 pre-commit implementation；
   不等於未來 release PR 的 exact-head independent review evidence，也不等於
   GitHub `APPROVED`。
+- READY PR：[#52](https://github.com/a129924/mlops-async/pull/52)。
+- PR 建立時 head：`816ab30e8d1829593542da35f0024ae09b4f2a45`。
+- Actual GitHub `python-ci`：pending current-head PR check。
+- 本次 bookkeeping commit 將改變 PR head；建立 PR 前針對
+  `816ab30e8d1829593542da35f0024ae09b4f2a45` 的 independent review 不涵蓋新
+  head，必須在 push 後重新執行 exact-head independent review。
