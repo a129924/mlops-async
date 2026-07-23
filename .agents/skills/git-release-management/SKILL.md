@@ -11,8 +11,8 @@ inputs:
   - current workspace state including whether uncommitted changes exist
   - project version sources such as pyproject.toml, __version__.py, or package.json
   - pass/fail signals from testing, strict typing, lint, CI, the applicable normal reviewer path, and documentation updates
-  - current GitHub repository permission and collaborator evidence when sole-maintainer eligibility is evaluated
-  - latest PR head SHA and machine-consumable reviewer evidence
+  - retrievable current GitHub collaborator and permission query provenance plus exact PR author identity when sole-maintainer eligibility is evaluated
+  - repository full name, pull request number, latest PR head SHA, and retrievable PR-visible machine-consumable reviewer evidence
   - whether the change includes API or contract changes that require synced documentation
   - whether an emergency marker and human confirmation exist
 outputs:
@@ -52,8 +52,12 @@ Do not use this skill when:
 - the current workspace state, including whether uncommitted changes exist
 - the project's current version sources such as `pyproject.toml`, `__version__.py`, or `package.json`
 - the pass/fail signals from testing, strict typing, lint, CI, the applicable normal reviewer path, and documentation updates
-- current GitHub repository permission and collaborator evidence when sole-maintainer eligibility is evaluated
-- the latest PR head SHA and machine-consumable reviewer evidence
+- retrievable current GitHub collaborator and permission query provenance when
+  sole-maintainer eligibility is evaluated, including observation time,
+  freshness limit, query scope, exact PR author identity, and
+  permission-bearing collaborator entries
+- the repository full name, pull request number, latest PR head SHA, and
+  retrievable PR-visible machine-consumable reviewer evidence
 - whether the change includes API or contract changes that require synced documentation
 - whether an emergency marker and human confirmation exist
 
@@ -64,25 +68,58 @@ Do not use this skill when:
 4. Derive the recommended bump direction from accumulated commit semantics: breaking changes outrank features, and features outrank fixes or maintenance.
 5. For the normal path, select exactly one reviewer path from current repository truth:
    - **Collaborative repository**: require a qualified non-author reviewer to submit GitHub `APPROVED` for the latest PR head.
-   - **Verified sole-maintainer repository**: require current GitHub repository permission and collaborator evidence proving that the qualified non-author reviewer inventory is empty, then require an independent Reviewer agent's structured approved evidence for the latest PR head exact SHA.
-6. Do not infer sole-maintainer eligibility from chat, historical evidence, PR-author claims, or a ruleset approval count of `0`. If current GitHub topology evidence is unavailable, ambiguous, stale, or shows a qualified non-author reviewer, hard-block the sole-maintainer path.
+   - **Verified sole-maintainer repository**: retrieve current GitHub collaborator
+     and permission query evidence, validate its repository, observation time,
+     positive freshness limit, query scope, and nonempty permission-bearing
+     collaborator entries. Record the exact PR author. Treat a collaborator as
+     write-qualified only when its known role is `admin`, `maintain`, or
+     `write`, or its boolean GitHub permissions grant `admin`, `maintain`, or
+     `push`; `triage` and `read` alone are not write-qualified. Derive
+     `write_qualified_maintainers` from the entries, then derive
+     `qualified_non_author_reviewers` by excluding the exact PR author. The
+     sole-maintainer path is eligible only when exactly one write-qualified
+     maintainer remains, that login is the PR author, the derived non-author
+     list is empty, and the evidence is internally consistent. Then require an
+     independent Reviewer agent's structured approved evidence for the latest
+     PR head exact SHA.
+6. Do not infer sole-maintainer eligibility from chat, historical evidence,
+   arbitrary strings, empty inventory plus a self-asserted boolean, PR-author
+   claims, or a ruleset approval count of `0`. Hard-block the sole-maintainer
+   path when topology evidence is unavailable, unretrievable, ambiguous, stale,
+   scoped incorrectly, contradictory, contains no permission-bearing entries,
+   omits the PR author, contains missing or unknown role/permission values,
+   derives zero or multiple write-qualified maintainers, derives a sole
+   write-qualified maintainer other than the PR author, or shows a qualified
+   non-author reviewer. Use the collaborative path when a qualified non-author
+   reviewer exists.
 7. Require independent agent evidence to record both the Implementer and Reviewer
    canonical actor/run identities from the dispatcher execution record. Both
    identities must exist, be traceable, and be unequal. An opaque identifier
    without a dispatcher-record mapping is not sufficient. Invalidate the
    evidence whenever implementation, rework, or base synchronization changes the
    PR head SHA; review the new exact SHA before continuing.
-8. Keep the reviewer path independent from every other hard gate: actual
+8. Require sole-maintainer review evidence to be published in the applicable PR
+   body or PR comment and then retrieved from its `evidence_url`. Verify that
+   the retrieved PR-visible surface belongs to the same
+   `repository_full_name` and `pull_request_number`, contains the complete
+   reviewer payload, binds `reviewed_commit_sha` to the latest PR head, and has
+   a valid `published_at_utc` within the applicable freshness policy. Missing,
+   unretrievable, non-PR-visible, stale, or mismatched evidence is `BLOCKED`.
+9. Treat repo-visible plan and step artifacts as a pre-publish `review-ready`
+   snapshot. After that snapshot is committed, publish actual current PR head,
+   CI, review, and conversation state only on the PR body or PR comments; do not
+   write those dynamic facts back into the same commit as authoritative truth.
+10. Keep the reviewer path independent from every other hard gate: actual
    latest-head `python-ci` success, conversation resolution (unresolved review
    threads exactly 0), head up-to-date with the base, base tests, strict typing,
    lint, documentation sync, version synchronization, clean workspace, and tag
    uniqueness.
-9. Treat `python-type-hints-strict` and `python-testing-pytest` as release-signing inputs, not as optional suggestions.
-10. If the PR changes more than one ecosystem in one release path, require linked version updates for each touched release surface instead of checking only one stack.
-11. For the emergency path, allow exactly one bypass: missing pre-release reviewer evidence. Verified sole-maintainer review is a normal path, not an emergency. All other gates from the normal path still apply unchanged.
-12. Require concrete emergency evidence before using the emergency path: an explicit marker such as `[emergency]` or `[skip-gate]`, a recorded human confirmation in the current workflow, a short explanation of why the path is urgent, and a release-note or equivalent anomaly record.
-13. Hard-block when the target tag already exists, when the workspace is dirty, when version sources conflict, or when any non-bypassable gate fails.
-14. When the gate fails, report each failed condition concretely and give repair guidance. When the gate passes, provide the safe next commands, but do not merge, tag, or push without explicit human authorization.
+11. Treat `python-type-hints-strict` and `python-testing-pytest` as release-signing inputs, not as optional suggestions.
+12. If the PR changes more than one ecosystem in one release path, require linked version updates for each touched release surface instead of checking only one stack.
+13. For the emergency path, allow exactly one bypass: missing pre-release reviewer evidence. Verified sole-maintainer review is a normal path, not an emergency. All other gates from the normal path still apply unchanged.
+14. Require concrete emergency evidence before using the emergency path: an explicit marker such as `[emergency]` or `[skip-gate]`, a recorded human confirmation in the current workflow, a short explanation of why the path is urgent, and a release-note or equivalent anomaly record.
+15. Hard-block when the target tag already exists, when the workspace is dirty, when version sources conflict, or when any non-bypassable gate fails.
+16. When the gate fails, report each failed condition concretely and give repair guidance. When the gate passes, provide the safe next commands, but do not merge, tag, or push without explicit human authorization.
 
 # Examples
 
@@ -104,7 +141,11 @@ All of the following must be confirmed positive:
   - **Normal route**: exactly one normal reviewer path is satisfied:
     - collaborative repository: qualified non-author GitHub `APPROVED` for the
       latest PR head; or
-    - verified sole-maintainer repository: current topology proof and
+    - verified sole-maintainer repository: retrievable, fresh GitHub topology
+      proof with the exact PR author and nonempty permission-bearing
+      collaborator entries; the explicit predicate derives exactly one
+      write-qualified maintainer equal to that PR author and an empty
+      `qualified_non_author_reviewers` list; plus retrievable PR-visible
       independent Reviewer agent approved evidence for the latest PR head exact
       SHA.
   - **Emergency route**: all four emergency evidence items are present and the
@@ -114,6 +155,12 @@ All of the following must be confirmed positive:
 - On the normal sole-maintainer route, the dispatcher execution record proves
   that `implementer_run_id` and `reviewer_run_id` are present, traceable
   canonical actor/run identities and are not equal.
+- On the normal sole-maintainer route, the retrieved reviewer surface belongs
+  to the same repository and PR, contains the complete reviewer payload and
+  valid publication timestamp, and exactly matches the latest PR head SHA.
+- Repo-visible plan and step artifacts remain a pre-publish `review-ready`
+  snapshot; publish-time PR head, CI, review, and conversation truth is carried
+  only by PR-visible evidence.
 - All non-bypassable gate signals are independently present and confirmed:
   actual latest-head `python-ci`, conversation resolution (unresolved review
   threads exactly 0), head up-to-date with base, base tests, strict type checks,
@@ -128,10 +175,18 @@ All of the following must be confirmed positive:
 - The target tag already exists in the repository — overwriting a tag is destructive and forbidden.
 - The workspace has uncommitted changes — a dirty workspace produces an unreliable release artifact.
 - Two or more version sources disagree with each other or with the intended Git tag.
-- On a normal sole-maintainer route, current GitHub topology evidence is
-  unavailable, ambiguous, stale, or inconsistent with that reviewer path.
+- On a normal sole-maintainer route, GitHub topology provenance is unavailable,
+  unretrievable, ambiguous, stale, scoped incorrectly, has empty or malformed
+  permission-bearing entries, omits the exact PR author, has missing or unknown
+  roles or permissions, derives anything other than exactly one
+  write-qualified maintainer equal to the PR author, or contradicts its derived
+  maintainer inventory, non-author reviewer list, or sole-maintainer verdict.
 - On a normal route, the applicable latest-head reviewer evidence is absent,
   stale, or malformed.
+- On a normal sole-maintainer route, reviewer evidence is missing,
+  unretrievable, not a PR body or PR comment, lacks a valid publication
+  timestamp, omits the reviewer payload, or mismatches the repository, PR, or
+  latest-head SHA.
 - On a normal sole-maintainer route, actor separation fails:
   `implementer_run_id` or `reviewer_run_id` is missing, unverifiable,
   opaque-only, or both identities resolve to the same actor/run.
@@ -145,7 +200,12 @@ All of the following must be confirmed positive:
 ## Red Flags — Treat as Immediate BLOCKED
 - The user invokes `[emergency]` or `[skip-gate]` to bypass tests, a dirty workspace, or an existing tag conflict. The emergency path allows only one bypass: missing pre-release reviewer evidence. All other gates remain hard requirements.
 - A ruleset approval count of `0`, a chat statement, a PR-author claim, or historical evidence is used as proof of sole-maintainer eligibility.
+- An arbitrary string, empty permission-bearing inventory plus a boolean,
+  self-asserted empty non-author list, or contradictory topology payload is
+  used as proof of sole-maintainer eligibility.
 - Independent agent review is described as GitHub `APPROVED`, or is treated as merge or tag authorization.
+- Repo-local plan or step content is treated as authoritative evidence for
+  publish-time PR head, CI, review, or conversation state.
 - Agent evidence claims `non_live_ci_contract_verified=true` while actual latest-head `python-ci` is absent or failing.
 - Version sources are present but have not been compared. Version synchronization must be confirmed before any tagging command is provided.
 - A commit in the release range includes a breaking change but the proposed bump is `patch` or `minor`. Bump direction must be re-derived from accumulated commit semantics.
@@ -159,12 +219,22 @@ All of the following must be confirmed positive:
    repository truth:
    - collaborative path: qualified non-author GitHub `APPROVED` on latest head;
      or
-   - verified sole-maintainer path: current topology evidence plus independent
-     Reviewer agent evidence on the latest head exact SHA.
+   - verified sole-maintainer path: retrieve the GitHub collaborator and
+     permission query provenance; verify repository, UTC observation time,
+     positive freshness limit, query scope, and nonempty permission-bearing
+     collaborator entries; verify the exact PR author and known role/permission
+     values; apply the explicit write-qualified predicate; derive
+     `write_qualified_maintainers`; exclude the exact PR author to derive
+     `qualified_non_author_reviewers`; require exactly one write-qualified
+     maintainer equal to the PR author and an empty non-author list; then
+     retrieve independent Reviewer agent evidence from the PR body or PR
+     comment for the latest head exact SHA.
 4. For the normal route, confirm applicable reviewer-evidence freshness and
    re-review after every head-SHA change. For the sole-maintainer path, also
    confirm dispatcher-record actor linkage: `implementer_run_id` and
-   `reviewer_run_id` are present, traceable canonical identities, and unequal.
+   `reviewer_run_id` are present, traceable canonical identities, and unequal;
+   confirm the retrieved surface has the same repository and PR, complete
+   reviewer payload, valid publication timestamp, and exact latest-head SHA.
 5. For the emergency route, confirm the explicit marker, recorded human
    confirmation, urgency explanation, and anomaly record, and confirm that only
    missing pre-release reviewer evidence is bypassed.
@@ -209,18 +279,38 @@ All of the following must be confirmed positive:
 - If the user cannot supply the signal: mark the overall release decision as BLOCKED and list the missing signals explicitly.
 
 ## Sole-Maintainer Evidence Failure
-- BLOCKED when current GitHub repository permission and collaborator evidence is unavailable, ambiguous, stale, or shows any qualified non-author reviewer.
-- Report the evidence source, observation time, PR author, write-qualified maintainer inventory, and qualified non-author reviewer inventory when available.
-- Repair guidance: refresh current GitHub topology evidence; if a qualified non-author reviewer exists, use the collaborative GitHub `APPROVED` path.
+- BLOCKED when GitHub collaborator or permission provenance is unavailable,
+  unretrievable, ambiguous, stale, scoped incorrectly, contains no valid
+  permission-bearing collaborator entries, omits the exact PR author, contains
+  missing or unknown role/permission values, derives zero or multiple
+  write-qualified maintainers, derives a sole write-qualified maintainer other
+  than the PR author, contradicts its derived inventories or verdict, or shows
+  any qualified non-author reviewer.
+- Report the repository, evidence URL or API endpoint, UTC observation time,
+  freshness limit, query scope, PR author, permission-entry validation result,
+  write-qualified predicate, derived `write_qualified_maintainers`,
+  `qualified_non_author_reviewers`, and sole-maintainer verdict when available.
+  Do not copy private collaborator inventory or credentials into repo examples.
+- Repair guidance: refresh retrievable GitHub topology evidence and re-derive
+  both inventories and the verdict from known GitHub roles and permissions; if
+  a qualified non-author reviewer exists, use the collaborative GitHub
+  `APPROVED` path.
 
 ## Stale or Invalid Agent Review
 - BLOCKED on the normal sole-maintainer route when `reviewed_commit_sha` differs
-  from the latest PR head, required structured fields are missing, the
-  dispatcher execution record cannot verify both canonical
-  `implementer_run_id` and `reviewer_run_id`, either identity is opaque-only, or
-  both identities resolve to the same actor/run.
+  from the latest PR head; when `repository_full_name`,
+  `pull_request_number`, `evidence_surface`, `evidence_url`, or
+  `published_at_utc` is missing or invalid; when the URL is unretrievable or
+  does not resolve to the same PR body or PR comment; when the retrieved
+  surface omits the complete reviewer payload; when repository, PR, SHA, or
+  freshness mismatches; when the dispatcher execution record cannot verify
+  both canonical `implementer_run_id` and `reviewer_run_id`; when either
+  identity is opaque-only; or when both identities resolve to the same
+  actor/run.
 - Any implementation, rework, or base synchronization that changes the head SHA invalidates prior agent review evidence.
-- Repair guidance: dispatch an independent Reviewer against the new exact latest PR head and record a fresh structured verdict.
+- Repair guidance: dispatch an independent Reviewer against the new exact
+  latest PR head, publish the complete structured verdict to that PR's body or
+  comment, and re-retrieve it for binding and freshness validation.
 
 ## Emergency Path Misuse
 - If the emergency path is invoked but any required evidence item is missing: BLOCKED — do not allow the bypass.
@@ -249,10 +339,25 @@ All of the following must be confirmed positive:
 - Do not invent missing reviewer evidence, sole-maintainer eligibility, passing test signals, or version alignment.
 - Do not call independent agent review GitHub `APPROVED`.
 - Do not infer sole-maintainer status from ruleset approvals `0`, chat, historical snapshots, or PR-author claims.
+- Do not accept arbitrary strings, empty permission-bearing entries plus a
+  self-asserted boolean, a self-asserted empty non-author inventory, stale or
+  unretrievable provenance, missing PR-author identity, unknown
+  role/permission values, or contradictory topology data as sole-maintainer
+  proof.
+- Derive `write_qualified_maintainers` only from retrievable collaborator
+  entries using the explicit GitHub role/permission predicate. Derive
+  `qualified_non_author_reviewers` only by excluding the exact PR author. Do
+  not pass unless exactly one write-qualified maintainer exists and is the PR
+  author.
 - On the normal sole-maintainer route, require dispatcher-verifiable,
   non-opaque canonical Implementer and Reviewer actor/run identities; do not let
   them resolve to the same actor/run, and do not reuse review evidence after the
   PR head SHA changes.
+- On the normal sole-maintainer route, require retrievable PR-visible review
+  evidence bound to the same repository, PR, and exact latest head, with a
+  valid publication timestamp and complete reviewer payload.
+- Keep repo-visible plan and step artifacts as pre-publish `review-ready`
+  snapshots; do not use them as authoritative publish-time PR-state evidence.
 - Do not auto-bypass any gate except missing pre-release reviewer evidence on the explicit emergency path.
 - Do not auto-bypass actual latest-head `python-ci`, conversation resolution
   (unresolved review threads exactly 0), base synchronization, tests, type

@@ -95,6 +95,96 @@ Repair:
 
 - Contract changes are not docs-optional in this release policy.
 
+## Verified sole-maintainer evidence
+
+### Positive: retrievable topology and PR-visible review evidence
+
+```json
+{
+  "repository_full_name": "<owner/repository>",
+  "evidence_url": "<retrievable-github-collaborator-or-permission-api-endpoint>",
+  "observed_at_utc": "<fresh-iso-8601-utc>",
+  "freshness_max_age_seconds": "<positive-integer>",
+  "query_scope": "<collaborator-and-permission-scope>",
+  "pr_author_login": "<pr-author-login>",
+  "write_qualification_predicate": "role_name in [admin, maintain, write] OR permissions.admin == true OR permissions.maintain == true OR permissions.push == true",
+  "permission_bearing_entries": [
+    {
+      "login": "<pr-author-login>",
+      "role_name": "admin",
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true
+      }
+    }
+  ],
+  "write_qualified_maintainers": ["<pr-author-login>"],
+  "qualified_non_author_reviewers": [],
+  "sole_maintainer_verified": true
+}
+```
+
+```json
+{
+  "reviewer_kind": "independent-agent",
+  "implementer_run_id": "<canonical-implementer-actor-or-run-id>",
+  "reviewer_run_id": "<different-reviewer-run-or-session-id>",
+  "repository_full_name": "<owner/repository>",
+  "pull_request_number": "<positive-integer>",
+  "evidence_surface": "pr-comment",
+  "evidence_url": "<retrievable-pr-comment-url>",
+  "published_at_utc": "<fresh-iso-8601-utc>",
+  "reviewed_commit_sha": "<exact-latest-pr-head-sha>",
+  "verdict": "approved",
+  "blocking_issues": [],
+  "scope_verified": true,
+  "version_sources_verified": true,
+  "non_live_ci_contract_verified": true
+}
+```
+
+- Retrieve both URLs before deciding the gate.
+- Verify the topology endpoint belongs to the declared repository, the
+  permission-bearing collaborator entries are nonempty and fresh, all
+  roles/permissions are known, and the exact PR author is present.
+- Apply the explicit predicate: `admin`, `maintain`, or `write`, or boolean
+  `admin`, `maintain`, or `push` permission means write-qualified; `triage` and
+  `read` alone do not. Derive exactly one write-qualified maintainer equal to
+  the PR author, then exclude that author to derive an empty
+  `qualified_non_author_reviewers` list.
+- Verify the review URL resolves to the same repository and PR, contains the
+  complete reviewer payload and timestamp, and names the exact latest PR head.
+- These placeholder examples do not disclose an actual private collaborator
+  inventory, token, or secret.
+
+### Negative: invalid provenance is blocked
+
+```text
+Blocked sole-maintainer reviewer gate:
+- topology evidence is an arbitrary string, or has empty permission-bearing
+  entries plus `sole_maintainer_verified=true`
+- topology endpoint is missing, unretrievable, stale, scoped ambiguously, or
+  contradicts the derived write-qualified or non-author inventory
+- PR author is missing or differs from the sole write-qualified maintainer
+- zero or multiple write-qualified maintainers are derived
+- a collaborator role or required permission is missing, unknown, non-boolean,
+  or contradicts the other permission data
+- an empty `qualified_non_author_reviewers` list is self-asserted instead of
+  derived by excluding the exact PR author
+- review evidence URL is missing, unretrievable, or not a PR body/comment URL
+- review evidence belongs to another repository or PR
+- reviewed commit differs from the latest PR head
+- publication timestamp or complete reviewer payload is missing or stale
+```
+
+- Refresh and re-retrieve GitHub topology evidence, validate the exact PR
+  author and known role/permission values, then re-derive both inventories and
+  the verdict.
+- Dispatch an independent Reviewer for the exact latest head, publish the full
+  evidence to that PR's body or comment, and retrieve it again.
+- Do not describe independent agent review as GitHub `APPROVED`.
+
 ## Emergency path
 
 ### Emergency can bypass reviewer timing, not core quality gates

@@ -1,28 +1,35 @@
 ---
 topic: solo-maintainer-release-governance
-phase: pr-open
+phase: review-ready
 created: 2026-07-23
 ---
 
 # solo-maintainer-release-governance — Step Tracking
 
 > Completion gate 只讀取 `## Implementation Steps`。
-> Topic plan 已核准；creator-owned implementation 與 bounded validation 已完成，
-> READY PR #52 曾合法進入 `pr-open`。Current-head
-> `40d09aeac922c7ed95374b4e7a661e54780d28c9` 的 exact-head Reviewer回傳
-> `needs-rework`；blocking issues是 emergency example缺少 conversation resolution
-> exact `0`／head up to date with base，以及 planning artifacts使用 self-referential
-> hash approval claims。Planning rework與 thread #8 bounded fix／validation已完成，
-> 現依 canonical `needs-rework` -> `creator-in-progress` -> `review-ready` 等待
-> 獨立 review。Latest working-tree Reviewer只因 inventory仍寫 `9` 而回傳
-> `needs-rework`；本次依 `reviewer-in-progress` -> `needs-rework` ->
-> `creator-in-progress` -> `review-ready` 更正。Current exact-six working-tree
-> review／test通過後，再依 `review-ready` -> `reviewer-in-progress` ->
-> `approved` -> `publish-in-progress` -> `pr-open` 完成 final bookkeeping。
-> Actual current-head GitHub `python-ci` success只滿足該 SHA的 CI gate。PR
-> external exact committed-head
-> review與 unresolved `10`
-> conversations維持 pending；merge、tag與 release均未執行。
+> 本文件是 repo-visible pre-publish `review-ready` snapshot；它不宣稱 snapshot
+> commit後的 actual PR head、CI、review或 conversation state。這些 dynamic facts
+> 只能發布於 PR body或 comment，不得回填到同一 commit形成 self-reference。
+> Historical／pre-publish observation：PR #52 observed head
+> `dbe86b96c0b403b24e24dfddd5fa0520049b027e`、observed `python-ci` success、
+> observed unresolved conversations `13`。Threads #11至#13使 workflow依
+> canonical `pr-open` -> `needs-rework` -> `creator-in-progress` ->
+> `review-ready`返回 planning review boundary。
+> 既有 Implementation Steps與 threads #11至#13的 `[X]`只代表先前有 evidence的
+> bounded work；publish後 exact-head review evidence、PR body count更新與全部
+> 13 threads reply／resolve仍是 pending。
+> Bounded implementation後，獨立 Implementation Reviewer回報單一 P1：
+> topology contract遺漏既有 locked PR author、write-qualified maintainer
+> inventory與 explicit qualification predicate。Workflow已依
+> `reviewer-in-progress` -> `needs-rework`返回 bounded Implementer修正邊界。
+> `/root/solo_governance_rework_implementer`完成該 P1且 validation通過後，workflow
+> 依 `needs-rework` -> `creator-in-progress` -> `review-ready`回到獨立
+> Implementation Reviewer boundary；此 pre-publish狀態不構成 approval。
+> 後續 planning consistency Reviewer指出 P1 plan topology schema／acceptance drift
+> 與 P2 stale pre-P1 hash／phase current-truth drift；兩項已依
+> `reviewer-in-progress` -> `needs-rework` -> `creator-in-progress` ->
+> `review-ready`完成 bounded planning correction，locked contract未改變。
+> Comment fix／reply／resolve已獲授權；merge、tag與 release未獲授權。
 > 只有實際完成並有 evidence 的項目才可標記為 `[X]`。
 
 ## Implementation Steps
@@ -64,7 +71,7 @@ created: 2026-07-23
   `816ab30e8d1829593542da35f0024ae09b4f2a45` 的 independent review明確標示
   stale，並在 publish後更新 new exact-head review；不得宣稱舊 evidence覆蓋
   current head或後續 rework SHA。
-- [ ] 對 PR #52 的 `10` 個 unresolved conversations逐項 triage；需要修改時交由
+- [ ] 對 PR #52 observed `13` 個 unresolved conversations逐項 triage；需要修改時交由
   Implementer bounded fix，完成 latest-head Reviewer複審後才可回覆並 resolve。
 - [X] 在 `gate-contract.md` 與 `SKILL.md` 加入 independent actor identity
   linkage：記錄可由 dispatcher execution record核對的 Reviewer與 Implementer
@@ -76,14 +83,15 @@ created: 2026-07-23
   `implementer_run_id` 與 `reviewer_run_id`；兩者必須能由 dispatcher execution
   record核對、存在、可追溯、non-opaque且不相等。Missing、unverifiable、
   opaque-only或 same actor／run一律 `BLOCKED`；`reviewed_commit_sha` 與原
-  verification fields保持不變。Current trace：
+  verification fields保持不變。Trace：
   `PRRT_kwDOSTt_386TO1VR`／`PRRC_kwDOSTt_387Y1BPR`。
 - [X] 將三個 core contract surfaces 的 gate naming統一為
   `conversation resolution (unresolved review threads exactly 0)` 語意。
   Trace：`PRRT_kwDOSTt_386TOHvQ`／`PRRC_kwDOSTt_387Y0BTt`。
 - [X] Prior phase-drift rework曾將 plan Current與 step phase同步為
   `review-ready`，並記錄 canonical `needs-rework` -> `creator-in-progress` ->
-  `review-ready`；current head的新 review已另回到 `needs-rework`。Trace：
+  `review-ready`；後續 historical head review曾另回到 `needs-rework`，不代表本
+  snapshot current phase。Trace：
   `PRRT_kwDOSTt_386TO1VJ`／`PRRC_kwDOSTt_387Y1BPI`。
 - [X] 修正 `.agents/skills/git-release-management/examples.md` 的 emergency
   example，使 conversation resolution exact `0` 與 head up to date with base
@@ -93,6 +101,28 @@ created: 2026-07-23
   SHA的 review，並將 evidence發布到 PR body或 comment；不得用 plan／step自身
   content hash宣稱 approved，也不新增 review ledger file。Trace：
   `PRRT_kwDOSTt_386TPHWl`／`PRRC_kwDOSTt_387Y1aJk`。
+- [X] 修正 published-head self-reference：repo plan／step只保留 pre-publish
+  `review-ready` snapshot；commit後 actual PR head、CI、review與 conversation
+  state只更新於 PR body或 comment。Trace：
+  `PRRT_kwDOSTt_386TSiGc`／`PRRC_kwDOSTt_387Y6PeK`／`DB3639146378`。
+- [X] 在 primary contract surfaces加入 PR-visible review evidence provenance：
+  `repository_full_name`、`pull_request_number`、`evidence_surface`、
+  `evidence_url`、`published_at_utc`必須可擷取並綁定同 repo／PR／exact
+  `reviewed_commit_sha`；missing、unretrievable、non-PR-visible或 mismatch均
+  `BLOCKED`。Trace：
+  `PRRT_kwDOSTt_386TSiGi`／`PRRC_kwDOSTt_387Y6PeS`／`DB3639146386`。
+- [X] 在 primary contract surfaces加入 independently verifiable topology proof：
+  GitHub collaborator／permission query provenance必須可擷取、fresh、scope明確，
+  含 nonempty permission-bearing entries，並可導出 qualified non-author reviewer
+  inventory與 sole-maintainer verdict；arbitrary strings、empty inventory加
+  boolean、stale／unretrievable或 contradictory evidence均 `BLOCKED`。Examples
+  只可使用 placeholders，不得含 private inventory或 secrets。Trace：
+  `PRRT_kwDOSTt_386TSiGn`／`PRRC_kwDOSTt_387Y6PeX`／`DB3639146391`。
+- [X] 依 Implementation Reviewer單一 P1執行 bounded fix：在 `SKILL.md`與
+  `gate-contract.md`明確加入既有 locked PR author、write-qualified maintainer
+  inventory與 explicit qualification predicate；`examples.md`依需要使用
+  non-private placeholders，`emergency-path.md`只做 consistency alignment。
+  修改範圍保持 exact六檔，不得新增 artifact、重新定義或弱化 locked requirement。
 
 ## Implementation Evidence
 
@@ -126,16 +156,17 @@ created: 2026-07-23
   GitHub `APPROVED`。
 - READY PR：[#52](https://github.com/a129924/mlops-async/pull/52)。
 - PR 建立時 head：`816ab30e8d1829593542da35f0024ae09b4f2a45`。
-- Current PR head：
-  `40d09aeac922c7ed95374b4e7a661e54780d28c9`。
-- Actual current-head GitHub `python-ci`：success；此結果不取代 reviewer verdict、
-  conversation resolution或其他 hard gates。
-- Current-head review（2026-07-23）：
-  exact-head Reviewer對
+- Historical／pre-publish observed PR head：
+  `dbe86b96c0b403b24e24dfddd5fa0520049b027e`。
+- Historical／pre-publish observed GitHub `python-ci`：success；此結果只描述
+  observed SHA，且不取代 reviewer verdict、conversation resolution或其他 hard
+  gates。
+- Historical review lineage（2026-07-23）：
+  earlier exact-head Reviewer曾對
   `40d09aeac922c7ed95374b4e7a661e54780d28c9` 回報 `needs-rework`；blocking
   issues是 thread #8 emergency example hard-gate omission與 thread #9
-  self-referential planning hash approval。該 review與 `python-ci` 均不涵蓋本次
-  uncommitted planning rework。
+  self-referential planning hash approval。該 review與 CI只屬歷史 evidence，
+  不涵蓋本次 planning rework或未來 snapshot commit。
 - Bounded rework Implementer（2026-07-23）：
   `/root/solo_governance_rework_implementer`；此 canonical run identity與前述
   Reviewer identity不同。
@@ -179,9 +210,39 @@ created: 2026-07-23
   `/root/solo_governance_tester` 回報 `PASS`，contract／JSON／scope／hygiene
   assertions `27/27 PASS`；first-verdict evidence mismatch已完成 bounded
   correction，無 remaining test blocker。
-- 本次 planning rework尚未 commit，current-head review與 `python-ci` 均不涵蓋此
-  working-tree diff；必須由獨立 Reviewer複審，publish後再以新 exact head取得
-  current-head review與 `python-ci`。
+- Threads #11至#13 bounded implementation（2026-07-23）：
+  `/root/solo_governance_rework_implementer` 僅更新核准的 existing contract
+  surfaces與本 step evidence。Thread #11的 pre-publish `review-ready` snapshot
+  boundary由 Plan-Creator完成且已驗證；threads #12／#13分別加入可擷取的
+  PR-visible review evidence provenance與 GitHub collaborator／permission
+  topology proof。Emergency route仍只可 bypass missing pre-release reviewer
+  evidence，所有 hard gates保持不變。
+- Threads #11至#13 bounded validation（2026-07-23）：兩個 gate JSON schema均
+  parse，review URL／surface／repo／PR／SHA／timestamp／retrieval與 topology
+  nonempty permission entries／freshness／contradiction正反例 assertions
+  `70/70 PASS`；相對 topic base tracked diff exact六檔，`git diff --check` PASS。
+  Locked plan SHA256維持
+  `A9D3359B134AED874787D53C704E7170F1B56250D80240E3DA2DF9AD06D6783B`。
+- Single-P1 bounded fix（2026-07-23）：
+  `/root/solo_governance_rework_implementer` 在既有 contract surfaces加入 exact
+  `pr_author_login`、固定 write-qualified predicate、derived
+  `write_qualified_maintainers`與 derived
+  `qualified_non_author_reviewers`。Predicate只接受 GitHub role
+  `admin`／`maintain`／`write`，或 boolean permission
+  `admin`／`maintain`／`push`；`triage`／`read` alone不合格。Sole path只在
+  exactly one write-qualified maintainer等於 PR author且 derived non-author list
+  為空時成立；第二位 qualified actor改走 collaborative path，missing／unknown／
+  stale／unretrievable／contradictory／self-asserted evidence均 `BLOCKED`。
+- Single-P1 bounded validation（2026-07-23）：topology schema／predicate／synthetic
+  derivation正反例 assertions `49/49 PASS`；既有 review provenance、snapshot、
+  emergency hard gates、exact六檔 scope與 hygiene assertions `50/50 PASS`。
+  先前 pre-P1 bookkeeping snapshot與當時 `needs-rework`狀態均是 historical、
+  non-current且不構成 approval。Current step phase與 plan Current均為
+  pre-publish `review-ready`；未完成 external publish或 13 conversations
+  reply／resolve。
+- 本次 planning rework尚未 commit；historical observed review與 `python-ci`均不
+  涵蓋此 working-tree diff。必須由獨立 Reviewer複審，publish後再以 actual exact
+  head取得 PR-visible review evidence與 `python-ci`。
 - PR body針對
   `816ab30e8d1829593542da35f0024ae09b4f2a45` 的 independent review已 stale，
   不涵蓋 current head或後續 rework SHA。
@@ -198,9 +259,17 @@ created: 2026-07-23
      non-opaque、traceable、different-actor requirement；
   6. Plan／step的 self-referential content-hash approval claims已移除，並鎖定
      external exact committed-head evidence requirement。
-- Current thread inventory：
-  - exact unresolved：`10`，由 `/root/pr52_comment_reviewer` thread-aware inventory
-    證明；
+- Historical／pre-publish observed thread inventory：
+  - exact unresolved：`13`；
+  - thread #11 published-head self-reference：
+    `PRRT_kwDOSTt_386TSiGc`／`PRRC_kwDOSTt_387Y6PeK`／`DB3639146378`，
+    source為 plan lines 149-151；
+  - thread #12 PR-visible review evidence provenance：
+    `PRRT_kwDOSTt_386TSiGi`／`PRRC_kwDOSTt_387Y6PeS`／`DB3639146386`，
+    source為 gate-contract lines 61-71；
+  - thread #13 independently verifiable topology proof：
+    `PRRT_kwDOSTt_386TSiGn`／`PRRC_kwDOSTt_387Y6PeX`／`DB3639146391`，
+    source為 gate-contract lines 47-55；
   - thread #10 second stale audit-trace hash assertion：
     `PRRT_kwDOSTt_386TPTpn`／`PRRC_kwDOSTt_387Y1rV9`／`DB3637949821`，
     source為 plan lines 190-192；current actionable，與 thread #9同 cluster但不是
@@ -216,16 +285,39 @@ created: 2026-07-23
     `PRRT_kwDOSTt_386TO1VR`／`PRRC_kwDOSTt_387Y1BPR`；
   - #1至#7內容已 addressed、outdated或 duplicate，但在 GitHub reply／resolve前
     仍計入 unresolved。
+- Historical bounded Implementation Reviewer verdict：`needs-rework`；single P1是
+  topology contract遺漏 locked PR author、write-qualified maintainer inventory與
+  explicit qualification predicate。已記錄 canonical
+  `reviewer-in-progress` -> `needs-rework`；不得由 Plan-Creator直接修改 skill或
+  reference implementation。
+- Single-P1 bounded implementation：
+  `/root/solo_governance_rework_implementer`回報完成；qualification predicate與
+  topology derivation contract已補齊，locked requirement未變更。Validation
+  evidence為 full assertions `49/49 PASS`、targeted assertions `50/50 PASS`與
+  additional predicate／derivation assertions `12/12 PASS`。此 run／verdict只證明
+  bounded implementation與 validation，不是 review approval，亦未使用 self-hash
+  approval claim。
+- Planning consistency findings已完成 bounded correction：
+  1. P1：plan topology minimum JSON與 acceptance已對齊 locked／implemented
+     `pr_author_login`、fixed `write_qualification_predicate`、derived
+     `write_qualified_maintainers`、derived
+     `qualified_non_author_reviewers`及 exact derivation／BLOCKED rules；
+  2. P2：移除 stale pre-P1 hash的 current-truth claim，並將當時
+     `needs-rework`明確標示為 historical、non-current、non-approval。
+  Workflow記錄為 `reviewer-in-progress` -> `needs-rework` ->
+  `creator-in-progress` -> `review-ready`。
 - Pending boundaries：
-  1. Bounded fix commit後仍須取得 external exact committed-head independent
+  1. 上述 single-P1 exact六檔修正仍須交由獨立 Implementation Reviewer複審；
+  2. Bounded fix commit後仍須取得 external exact committed-head independent
      review evidence，並發布到 PR body或 comment；不得使用 self-hash claim；
-  2. PR body舊 SHA review仍須明確標示 stale，並在 publish後更新 new exact-head
+  3. PR body舊 SHA review仍須明確標示 stale，並在 publish後更新 new exact-head
      review；
-  3. PR #52 unresolved conversations exact `10`，仍待獨立
+  4. PR #52 observed unresolved conversations exact `13`，仍待獨立
      triage／review／reply／resolve；
-  4. 本次 exact六檔 working-tree diff仍待獨立 Reviewer複審，不得以
-     `40d09aeac922c7ed95374b4e7a661e54780d28c9` 的 review evidence取代。
+  5. 本次 exact六檔 working-tree diff仍待獨立 Reviewer複審，不得以任何
+     historical head的 review evidence取代。
 - Human已明確授權 PR #52 comment review／fix／reply／resolve全部 unresolved
   actionable threads；merge與 tag仍是獨立 human boundary。
-- PR body unresolved count `9` 已 stale；external update至 current exact `10`仍
-  pending，不得由本 repo-local step宣稱完成。
+- PR body unresolved count `10` 已 stale；external update至 observed exact `13`
+  仍 pending，不得由本 repo-local step宣稱完成。Snapshot commit後的 actual
+  count只能在 PR body或 comment更新。

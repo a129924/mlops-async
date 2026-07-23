@@ -4,10 +4,17 @@
 
 A verified sole-maintainer repository is not automatically an emergency.
 
-When current GitHub repository permission and collaborator evidence proves that
-the qualified non-author reviewer inventory is empty, the normal
-sole-maintainer reviewer path uses an independent Reviewer agent's structured
-approval for the latest PR head exact SHA. That evidence:
+When retrievable, fresh GitHub collaborator and permission query provenance
+contains the exact PR author plus nonempty, fully classifiable
+permission-bearing entries, the normal sole-maintainer reviewer path derives
+write-qualified maintainers using the fixed `admin`／`maintain`／`write` or
+`admin`／`maintain`／`push` permission predicate. It passes topology only when
+exactly one write-qualified maintainer exists, that login is the PR author, and
+excluding the author leaves no qualified non-author reviewer. The path then
+uses an independent Reviewer agent's structured approval for the latest PR
+head exact SHA. The structured review must be published to and re-retrieved
+from the same PR body or comment, with matching repository, PR, SHA, complete
+payload, and valid publication timestamp. That evidence:
 
 - is not GitHub `APPROVED`
 - must record dispatcher-verifiable, non-opaque canonical
@@ -22,9 +29,13 @@ approval for the latest PR head exact SHA. That evidence:
 
 Do not use a ruleset approval count of `0`, chat, historical evidence, or a PR
 author claim as proof of sole-maintainer eligibility. If current GitHub topology
-evidence is unavailable, ambiguous, stale, or shows a qualified non-author
-reviewer, the normal sole-maintainer path is `BLOCKED`; it is not silently
-converted to emergency.
+evidence is unavailable, unretrievable, ambiguous, stale, contains no valid
+permission-bearing entries, omits the PR author, contains missing or unknown
+roles/permissions, does not derive exactly one write-qualified maintainer equal
+to the PR author, contradicts its derived inventories or verdict, or shows a
+qualified non-author reviewer, the normal sole-maintainer path is `BLOCKED`; it
+is not silently converted to emergency. The same applies when review evidence
+is missing, unretrievable, non-PR-visible, stale, incomplete, or mismatched.
 
 ## Allowed bypass
 
@@ -71,7 +82,11 @@ pre-release reviewer evidence and any linked administrative follow-up.
 - Conversation resolution (unresolved review threads exactly 0) is `BLOCKED`
   unless that exact condition is proven.
 - Sole-maintainer topology unverified: `BLOCKED`; refresh current GitHub
-  evidence rather than misclassifying the repository as emergency.
+  collaborator and permission evidence, validate nonempty permission-bearing
+  entries, the exact PR author, and the fixed write-qualified predicate, then
+  re-derive both inventories rather than misclassifying the repository as
+  emergency.
 - Reviewer evidence stale after a head-SHA change: `BLOCKED`; obtain a new
-  independent review for the exact latest head or use the fully evidenced
-  emergency path.
+  independent review for the exact latest head, publish it to the applicable PR
+  body or comment, and re-retrieve it; alternatively, use the fully evidenced
+  emergency path, which still satisfies every independent hard gate.
