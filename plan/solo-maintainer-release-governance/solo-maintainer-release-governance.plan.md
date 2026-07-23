@@ -79,6 +79,7 @@
   ```json
   {
     "reviewer_kind": "independent-agent",
+    "implementer_run_id": "<canonical-implementer-actor-or-run-id>",
     "reviewer_run_id": "<reviewer-run-or-session-id>",
     "reviewed_commit_sha": "<exact-latest-pr-head-sha>",
     "verdict": "approved",
@@ -89,6 +90,10 @@
   }
   ```
 
+- `implementer_run_id` 與 `reviewer_run_id` 必須是 dispatcher execution record可核對
+  的 canonical actor／run identity；兩者都必須存在、可追溯、non-opaque且不相等。
+  任一 identity缺失、unverifiable、只提供 opaque label，或兩者指向 same actor／run
+  時，independent agent evidence一律 `BLOCKED`。
 - `non_live_ci_contract_verified=true` 只表示 Reviewer 已核對 CI contract；它不能取代
   GitHub 上 latest head 的實際 `python-ci` success。
 - Actual `python-ci` success、unresolved review threads exact `0`、head 與 base
@@ -125,13 +130,16 @@
 
 ## Status / Allowed Transitions
 
-- **Current**：`needs-rework`。
+- **Current**：`pr-open`。
 - **Execution model**：planning、bounded governance implementation、pre-commit
-  review／test 與 publish 已完成，PR #52 曾合法進入 `pr-open`；current-head
-  Reviewer 對 SHA `bc8a730ef75b332ca174c1936b0a84f4ad8896ec` 回傳
-  `needs-rework`，因此依 canonical `pr-open` -> `needs-rework` route停止 publish
-  progression。後續只能依 `needs-rework` -> `creator-in-progress` 交由獨立
-  Implementer修正，再由 Reviewer 對新 SHA 複審。
+  review／test 與 publish 已完成，PR #52 曾合法進入 `pr-open`。Current-head
+  `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf` 的 exact-head Reviewer回傳
+  `needs-rework`；本輪只修正其 schema／state planning drift，已依 canonical
+  `needs-rework` -> `creator-in-progress` -> `review-ready` 完成 authoring，再由
+  Plan-Reviewer依 `review-ready` -> `reviewer-in-progress` -> `approved` 審查通過，
+  並經 `approved` -> `publish-in-progress` -> `pr-open` 完成 current planning
+  bookkeeping。Publish後的新 exact head仍必須重新取得 implementation current-head
+  review與 CI evidence。
 - **Allowed transitions**：
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -156,39 +164,55 @@ Routing notes：
   SHA 上重新取得 Reviewer verdict。
 - 本 topic 不需要 repo-visible review-log，也不宣告 round cap；review routing 使用
   standard workflow contract。
-- PR #52 current-head review evidence：
+- PR #52 current-head evidence：
   - reviewed SHA：
-    `bc8a730ef75b332ca174c1936b0a84f4ad8896ec`；
-  - reviewer run：`/root/solo_governance_impl_reviewer`；
+    `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf`；
   - verdict：`needs-rework`；
   - actual current-head `python-ci`：success，但只滿足 CI gate，不代表 overall
     reviewer／conversation／merge gate通過。
-- Current open blockers exact 為六項：
-  1. `.agents/skills/git-release-management/SKILL.md` 的 PASS／Required Checks
-     無條件要求 normal reviewer path，使 fully evidenced emergency仍不可能 PASS；
-     必須由 Implementer加入 fully evidenced emergency alternative，同時保留所有
-     non-bypassable hard gates。Trace：
-     `PRRT_kwDOSTt_386TOHa-`／`PRRC_kwDOSTt_387Y0A3Z`。
-  2. Topic plan／step 的 phase與 PR current state drift；本次 planning rework只修正
-     這兩個 planning artifacts，不標示 implementation fix完成。Primary trace：
-     `PRRT_kwDOSTt_386TOHbG`／`PRRC_kwDOSTt_387Y0A3g`；duplicate trace：
-     `PRRT_kwDOSTt_386TOHuq`／`PRRC_kwDOSTt_387Y0BS7`。Duplicate不需要另一個
-     獨立 fix。
-  3. PR body中對 SHA
-     `816ab30e8d1829593542da35f0024ae09b4f2a45` 的 review evidence已 stale，
-     不得宣稱覆蓋 current head。
-  4. PR #52 尚有 `5` 個 unresolved conversations；必須逐項 triage，必要時由
-     Implementer bounded fix，經 latest-head Reviewer複審後才能 resolve。
-  5. Independent actor identity linkage尚未形成可驗證 contract：
-     `gate-contract.md` 與 `SKILL.md` 的 schema／gate必須記錄可由 dispatcher
-     execution record核對的 Reviewer與 Implementer canonical actor／run identity；
-     兩者必須存在、可追溯且不相等。Missing、unverifiable或 same actor一律
-     `BLOCKED`，並繼續要求 exact-head freshness。Trace：
-     `PRRT_kwDOSTt_386TOHa2`／`PRRC_kwDOSTt_387Y0A3T`。
-  6. 三個 governance surfaces 的 canonical gate naming尚未一致；必須統一使用
-     `conversation resolution (unresolved review threads exactly 0)` 語意，不得以
-     較弱或含糊名稱替代。Trace：
-     `PRRT_kwDOSTt_386TOHvQ`／`PRRC_kwDOSTt_387Y0BTt`。
+- Current planning rework review：
+  - Plan-Reviewer run：`/root/solo_governance_plan_reviewer`；
+  - verdict：`approved`；
+  - blocking issues：`[]`；
+  - reviewed plan SHA256：
+    `B255CCBC95F3B9ADB5B349467360676E79D06D4725106FE45E3F6B6BC756B4A0`；
+  - reviewed step SHA256：
+    `2DD5F22697B06581CF5283CDA093D1005423FAA7D7EF28334EED23DBA0AE1450`。
+- 上述 Plan-Reviewer approval只覆蓋 planning rework；不得把
+  `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf` 的 implementation exact-head
+  `needs-rework` 改稱 approved，也不完成 PR body或 conversation-resolution gates。
+- Current thread inventory exact 為 `7`，由
+  `/root/pr52_comment_reviewer` 的 thread-aware inventory證明；所有 thread在
+  GitHub resolve前仍算 unresolved：
+  - 新 current schema thread：
+    `PRRT_kwDOSTt_386TO1VJ`／`PRRC_kwDOSTt_387Y1BPI`；
+  - 新 current state thread：
+    `PRRT_kwDOSTt_386TO1VR`／`PRRC_kwDOSTt_387Y1BPR`；
+  - 舊五個 threads是 outdated／duplicate／已 addressed evidence，但尚未在 GitHub
+    resolve：
+    - emergency：
+      `PRRT_kwDOSTt_386TOHa-`／`PRRC_kwDOSTt_387Y0A3Z`；
+    - identity：
+      `PRRT_kwDOSTt_386TOHa2`／`PRRC_kwDOSTt_387Y0A3T`；
+    - canonical naming：
+      `PRRT_kwDOSTt_386TOHvQ`／`PRRC_kwDOSTt_387Y0BTt`；
+    - phase：
+      `PRRT_kwDOSTt_386TOHbG`／`PRRC_kwDOSTt_387Y0A3g`；
+    - duplicate phase：
+      `PRRT_kwDOSTt_386TOHuq`／`PRRC_kwDOSTt_387Y0BS7`。
+- 本輪已完成的 planning rework：
+  1. Topic plan的 independent agent evidence JSON加入
+     `implementer_run_id`／`reviewer_run_id`，並鎖定 canonical、traceable、
+     non-opaque、different-actor hard-block語意；
+  2. Plan Current與 step phase同步為 `review-ready`，記錄 canonical
+     `needs-rework` -> `creator-in-progress` -> `review-ready`。
+- 尚未滿足的 PR boundaries：
+  1. PR body仍須把舊 SHA review標示 stale，並在 publish後更新 new exact-head
+     review evidence；
+  2. `conversation resolution (unresolved review threads exactly 0)` 尚未通過；
+     current unresolved exact為 `7`；
+  3. 本次 working-tree planning diff尚待獨立 review，不得以
+     `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf` 的 review或 CI代替。
 
 ## Artifact Paths
 
