@@ -10,11 +10,14 @@ sole-maintainer reviewer path uses an independent Reviewer agent's structured
 approval for the latest PR head exact SHA. That evidence:
 
 - is not GitHub `APPROVED`
-- must come from a Reviewer separate from the Implementer
+- must record dispatcher-verifiable, non-opaque canonical
+  `implementer_run_id` and `reviewer_run_id` identities that exist and are not
+  equal
 - becomes stale after any implementation, rework, or base synchronization
   changes the head SHA
-- does not replace actual latest-head `python-ci`, conversation resolution,
-  base synchronization, or any other hard gate
+- does not replace actual latest-head `python-ci`, conversation resolution
+  (unresolved review threads exactly 0), base synchronization, or any other
+  hard gate
 - does not authorize merge or post-merge tag creation
 
 Do not use a ruleset approval count of `0`, chat, historical evidence, or a PR
@@ -25,14 +28,14 @@ converted to emergency.
 
 ## Allowed bypass
 
-Emergency mode may bypass only one gate condition:
+The fully evidenced emergency route may bypass only one gate condition:
 
 - missing pre-release reviewer evidence
 
 It may not bypass:
 
 - actual latest-head GitHub `python-ci`
-- unresolved review threads exactly `0`
+- conversation resolution (unresolved review threads exactly 0)
 - latest PR head being up-to-date with the target base
 - failing tests
 - failing strict typing
@@ -65,6 +68,8 @@ pre-release reviewer evidence and any linked administrative follow-up.
   record: `BLOCKED`; supply the missing item or return to a normal reviewer path.
 - Any independent hard gate missing or failing: `BLOCKED`; emergency cannot
   bypass it.
+- Conversation resolution (unresolved review threads exactly 0) is `BLOCKED`
+  unless that exact condition is proven.
 - Sole-maintainer topology unverified: `BLOCKED`; refresh current GitHub
   evidence rather than misclassifying the repository as emergency.
 - Reviewer evidence stale after a head-SHA change: `BLOCKED`; obtain a new

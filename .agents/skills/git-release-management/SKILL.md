@@ -66,8 +66,17 @@ Do not use this skill when:
    - **Collaborative repository**: require a qualified non-author reviewer to submit GitHub `APPROVED` for the latest PR head.
    - **Verified sole-maintainer repository**: require current GitHub repository permission and collaborator evidence proving that the qualified non-author reviewer inventory is empty, then require an independent Reviewer agent's structured approved evidence for the latest PR head exact SHA.
 6. Do not infer sole-maintainer eligibility from chat, historical evidence, PR-author claims, or a ruleset approval count of `0`. If current GitHub topology evidence is unavailable, ambiguous, stale, or shows a qualified non-author reviewer, hard-block the sole-maintainer path.
-7. Require the independent Reviewer agent to be separate from the Implementer. Invalidate its evidence whenever implementation, rework, or base synchronization changes the PR head SHA; review the new exact SHA before continuing.
-8. Keep the reviewer path independent from every other hard gate: actual latest-head `python-ci` success, unresolved review threads equal to `0`, head up-to-date with the base, base tests, strict typing, lint, documentation sync, version synchronization, clean workspace, and tag uniqueness.
+7. Require independent agent evidence to record both the Implementer and Reviewer
+   canonical actor/run identities from the dispatcher execution record. Both
+   identities must exist, be traceable, and be unequal. An opaque identifier
+   without a dispatcher-record mapping is not sufficient. Invalidate the
+   evidence whenever implementation, rework, or base synchronization changes the
+   PR head SHA; review the new exact SHA before continuing.
+8. Keep the reviewer path independent from every other hard gate: actual
+   latest-head `python-ci` success, conversation resolution (unresolved review
+   threads exactly 0), head up-to-date with the base, base tests, strict typing,
+   lint, documentation sync, version synchronization, clean workspace, and tag
+   uniqueness.
 9. Treat `python-type-hints-strict` and `python-testing-pytest` as release-signing inputs, not as optional suggestions.
 10. If the PR changes more than one ecosystem in one release path, require linked version updates for each touched release surface instead of checking only one stack.
 11. For the emergency path, allow exactly one bypass: missing pre-release reviewer evidence. Verified sole-maintainer review is a normal path, not an emergency. All other gates from the normal path still apply unchanged.
@@ -91,11 +100,24 @@ Do not use this skill when:
 
 ## PASS (all gates satisfied — safe to provide tagging commands)
 All of the following must be confirmed positive:
-- Exactly one normal reviewer path is satisfied:
-  - collaborative repository: qualified non-author GitHub `APPROVED` for the latest PR head; or
-  - verified sole-maintainer repository: current topology proof and independent Reviewer agent approved evidence for the latest PR head exact SHA
-- The reviewer evidence is current, the Reviewer is independent from the Implementer, and any changed head SHA has been re-reviewed
-- All other required gate signals are independently present and confirmed: actual latest-head `python-ci`, unresolved review threads exactly `0`, head up-to-date with base, base tests, strict type checks, lint, documentation sync, version sync, clean workspace, and tag uniqueness
+- Exactly one mutually exclusive release route is satisfied:
+  - **Normal route**: exactly one normal reviewer path is satisfied:
+    - collaborative repository: qualified non-author GitHub `APPROVED` for the
+      latest PR head; or
+    - verified sole-maintainer repository: current topology proof and
+      independent Reviewer agent approved evidence for the latest PR head exact
+      SHA.
+  - **Emergency route**: all four emergency evidence items are present and the
+    only bypassed condition is missing pre-release reviewer evidence.
+- On the normal route, the applicable reviewer evidence is current and any
+  changed head SHA has been re-reviewed.
+- On the normal sole-maintainer route, the dispatcher execution record proves
+  that `implementer_run_id` and `reviewer_run_id` are present, traceable
+  canonical actor/run identities and are not equal.
+- All non-bypassable gate signals are independently present and confirmed:
+  actual latest-head `python-ci`, conversation resolution (unresolved review
+  threads exactly 0), head up-to-date with base, base tests, strict type checks,
+  lint, documentation sync, version sync, clean workspace, and tag uniqueness.
 - All version sources agree with the intended tag
 - No uncommitted changes in the workspace
 - The target tag does not yet exist in the repository
@@ -106,9 +128,19 @@ All of the following must be confirmed positive:
 - The target tag already exists in the repository — overwriting a tag is destructive and forbidden.
 - The workspace has uncommitted changes — a dirty workspace produces an unreliable release artifact.
 - Two or more version sources disagree with each other or with the intended Git tag.
-- Current GitHub topology evidence is unavailable, ambiguous, stale, or inconsistent with the selected reviewer path.
-- The latest-head reviewer evidence is absent, stale, malformed, or produced by the Implementer.
-- Any non-bypassable gate is failing: actual latest-head `python-ci`, conversation resolution, base synchronization, base tests, strict type checks, lint, documentation sync, version sync, clean workspace, or tag uniqueness.
+- On a normal sole-maintainer route, current GitHub topology evidence is
+  unavailable, ambiguous, stale, or inconsistent with that reviewer path.
+- On a normal route, the applicable latest-head reviewer evidence is absent,
+  stale, or malformed.
+- On a normal sole-maintainer route, actor separation fails:
+  `implementer_run_id` or `reviewer_run_id` is missing, unverifiable,
+  opaque-only, or both identities resolve to the same actor/run.
+- On an emergency route, any emergency evidence item is missing or the requested
+  bypass exceeds missing pre-release reviewer evidence.
+- Any non-bypassable gate is failing: actual latest-head `python-ci`,
+  conversation resolution (unresolved review threads exactly 0), base
+  synchronization, base tests, strict type checks, lint, documentation sync,
+  version sync, clean workspace, or tag uniqueness.
 
 ## Red Flags — Treat as Immediate BLOCKED
 - The user invokes `[emergency]` or `[skip-gate]` to bypass tests, a dirty workspace, or an existing tag conflict. The emergency path allows only one bypass: missing pre-release reviewer evidence. All other gates remain hard requirements.
@@ -121,14 +153,26 @@ All of the following must be confirmed positive:
 - The emergency path is invoked without all four required evidence items: explicit marker, recorded human confirmation, short urgency explanation, and release-note or anomaly record.
 
 ## Required Checks Before Gate Decision
-1. Confirm release path: normal or emergency.
+1. Confirm exactly one release route: normal or emergency.
 2. Confirm version-source inventory: list all found version files; verify mutual agreement and agreement with the intended tag.
-3. Confirm the normal reviewer path from current GitHub repository truth:
-   - collaborative path: qualified non-author GitHub `APPROVED` on latest head; or
-   - verified sole-maintainer path: current topology evidence plus independent Reviewer agent evidence on the latest head exact SHA.
-4. Confirm evidence freshness, Reviewer/Implementer separation, and re-review after every head-SHA change.
-5. Confirm independent hard-gate signals: actual latest-head `python-ci`, unresolved threads exactly `0`, base synchronization, tests, type checks, lint, docs sync, version sync, clean workspace, and tag uniqueness.
-6. For multi-ecosystem PRs: confirm linked version updates exist for every touched release surface.
+3. For the normal route, confirm the reviewer path from current GitHub
+   repository truth:
+   - collaborative path: qualified non-author GitHub `APPROVED` on latest head;
+     or
+   - verified sole-maintainer path: current topology evidence plus independent
+     Reviewer agent evidence on the latest head exact SHA.
+4. For the normal route, confirm applicable reviewer-evidence freshness and
+   re-review after every head-SHA change. For the sole-maintainer path, also
+   confirm dispatcher-record actor linkage: `implementer_run_id` and
+   `reviewer_run_id` are present, traceable canonical identities, and unequal.
+5. For the emergency route, confirm the explicit marker, recorded human
+   confirmation, urgency explanation, and anomaly record, and confirm that only
+   missing pre-release reviewer evidence is bypassed.
+6. Confirm independent hard-gate signals: actual latest-head `python-ci`,
+   conversation resolution (unresolved review threads exactly 0), base
+   synchronization, tests, type checks, lint, docs sync, version sync, clean
+   workspace, and tag uniqueness.
+7. For multi-ecosystem PRs: confirm linked version updates exist for every touched release surface.
 
 ## On Soft Fail (SOFT FAIL — proceed with explicit limitation)
 - A version file is absent entirely — degrade to tag-only mode; state the degradation explicitly before continuing.
@@ -159,7 +203,9 @@ All of the following must be confirmed positive:
 ## Missing or Ambiguous Gate Signals
 - If current GitHub topology evidence cannot establish the applicable reviewer path: mark the reviewer gate BLOCKED. Do not infer sole-maintainer status from chat, history, or ruleset configuration.
 - If collaborative-path GitHub `APPROVED` or verified sole-maintainer agent evidence is missing, malformed, or stale: mark the reviewer gate BLOCKED and identify the exact missing or stale evidence.
-- If CI, conversation-resolution, base-sync, test, type-check, lint, or docs-sync signal is absent: mark that gate as UNCONFIRMED; do not count an absent signal as PASS.
+- If CI, conversation resolution (unresolved review threads exactly 0),
+  base-sync, test, type-check, lint, or docs-sync signal is absent: mark that
+  gate as UNCONFIRMED; do not count an absent signal as PASS.
 - If the user cannot supply the signal: mark the overall release decision as BLOCKED and list the missing signals explicitly.
 
 ## Sole-Maintainer Evidence Failure
@@ -168,7 +214,11 @@ All of the following must be confirmed positive:
 - Repair guidance: refresh current GitHub topology evidence; if a qualified non-author reviewer exists, use the collaborative GitHub `APPROVED` path.
 
 ## Stale or Invalid Agent Review
-- BLOCKED when `reviewed_commit_sha` differs from the latest PR head, the reviewer run/session identifier is absent, required structured fields are missing, or Reviewer and Implementer are not separate.
+- BLOCKED on the normal sole-maintainer route when `reviewed_commit_sha` differs
+  from the latest PR head, required structured fields are missing, the
+  dispatcher execution record cannot verify both canonical
+  `implementer_run_id` and `reviewer_run_id`, either identity is opaque-only, or
+  both identities resolve to the same actor/run.
 - Any implementation, rework, or base synchronization that changes the head SHA invalidates prior agent review evidence.
 - Repair guidance: dispatch an independent Reviewer against the new exact latest PR head and record a fresh structured verdict.
 
@@ -185,7 +235,9 @@ All of the following must be confirmed positive:
 ## Failed Normal-Gate Condition
 - Report each failed condition with its current value and the required value.
 - Provide targeted repair commands for each failure (e.g., `git stash`, bump command, lint fix reference).
-- Do not let an agent-review JSON field substitute for actual GitHub `python-ci`, conversation resolution, base synchronization, or any other hard-gate evidence.
+- Do not let an agent-review JSON field substitute for actual GitHub
+  `python-ci`, conversation resolution (unresolved review threads exactly 0),
+  base synchronization, or any other hard-gate evidence.
 - Do not auto-tag or auto-push after repair; require user re-confirmation.
 
 ## Execution Limitation
@@ -197,9 +249,15 @@ All of the following must be confirmed positive:
 - Do not invent missing reviewer evidence, sole-maintainer eligibility, passing test signals, or version alignment.
 - Do not call independent agent review GitHub `APPROVED`.
 - Do not infer sole-maintainer status from ruleset approvals `0`, chat, historical snapshots, or PR-author claims.
-- Do not let Reviewer and Implementer be the same actor, and do not reuse review evidence after the PR head SHA changes.
+- On the normal sole-maintainer route, require dispatcher-verifiable,
+  non-opaque canonical Implementer and Reviewer actor/run identities; do not let
+  them resolve to the same actor/run, and do not reuse review evidence after the
+  PR head SHA changes.
 - Do not auto-bypass any gate except missing pre-release reviewer evidence on the explicit emergency path.
-- Do not auto-bypass actual latest-head `python-ci`, conversation resolution, base synchronization, tests, type checks, lint, documentation-sync checks, version sync, clean workspace, or tag uniqueness.
+- Do not auto-bypass actual latest-head `python-ci`, conversation resolution
+  (unresolved review threads exactly 0), base synchronization, tests, type
+  checks, lint, documentation-sync checks, version sync, clean workspace, or tag
+  uniqueness.
 - Reviewer evidence never authorizes merge or tag creation. Require explicit human merge and post-merge tag authorization.
 - Do not manage ordinary feature-branch naming or commit-body wording.
 - Do not assume a fixed project layout when no version files exist; degrade only to tag-only mode.

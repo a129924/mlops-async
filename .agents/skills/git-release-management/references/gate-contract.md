@@ -1,7 +1,13 @@
 # Release gate contract
 
-A release or PR is green only when exactly one applicable normal reviewer path
-and every independent hard gate are confirmed against current evidence.
+A release or PR is green only when exactly one mutually exclusive route is
+confirmed against current evidence:
+
+- a normal route with exactly one applicable normal reviewer path; or
+- a fully evidenced emergency route that bypasses only missing pre-release
+  reviewer evidence.
+
+Every independent hard gate remains mandatory on both routes.
 
 ## Normal reviewer gate
 
@@ -24,8 +30,11 @@ are valid:
 
 1. Current GitHub repository permission and collaborator evidence proves that
    the qualified non-author reviewer inventory is exactly empty.
-2. An independent Reviewer agent, separate from the Implementer, approves the
-   latest PR head exact SHA with machine-consumable evidence.
+2. An independent Reviewer agent approves the latest PR head exact SHA with
+   machine-consumable evidence that records dispatcher-verifiable,
+   non-opaque canonical actor/run identities for both the Implementer and
+   Reviewer. Both identities must exist and must not resolve to the same
+   actor/run.
 
 Do not infer sole-maintainer eligibility from chat, historical snapshots, PR
 author claims, or a ruleset approval count of `0`. If current evidence is
@@ -51,7 +60,8 @@ Minimum independent agent review evidence:
 ```json
 {
   "reviewer_kind": "independent-agent",
-  "reviewer_run_id": "<reviewer-run-or-session-id>",
+  "implementer_run_id": "/root/<canonical-implementer-run-identity>",
+  "reviewer_run_id": "/root/<canonical-reviewer-run-identity>",
   "reviewed_commit_sha": "<exact-latest-pr-head-sha>",
   "verdict": "approved",
   "blocking_issues": [],
@@ -60,6 +70,12 @@ Minimum independent agent review evidence:
   "non_live_ci_contract_verified": true
 }
 ```
+
+`implementer_run_id` and `reviewer_run_id` must map to canonical actor/run
+identities in the dispatcher execution record. A UUID, label, or session token
+without that mapping is opaque-only and does not prove separation. Missing,
+unverifiable, opaque-only, or equal identities make the normal
+sole-maintainer route `BLOCKED`.
 
 `reviewed_commit_sha` must equal the latest PR head SHA. Any implementation,
 rework, or base synchronization that changes the head SHA invalidates the old
@@ -74,11 +90,11 @@ or tag creation.
 
 ## Independent hard gates
 
-Either normal reviewer path is green only when all of these are independently
-confirmed:
+Both the normal and emergency routes are green only when all of these are
+independently confirmed:
 
 - actual latest-head GitHub `python-ci` success
-- unresolved review threads exactly `0`
+- conversation resolution (unresolved review threads exactly 0)
 - latest PR head up-to-date with the target base
 - base tests passing
 - strict type checks passing
@@ -96,13 +112,14 @@ gates pass.
 
 ## Emergency path
 
-The emergency path may bypass exactly one normal-path condition:
+The fully evidenced emergency route may bypass exactly one normal-path
+condition:
 
 - missing pre-release reviewer evidence
 
 Verified sole-maintainer review is a normal reviewer path, not an emergency.
 
-The emergency path still requires all independent hard gates plus:
+The emergency route still requires all independent hard gates plus:
 
 - explicit emergency marker
 - recorded human confirmation
@@ -134,3 +151,5 @@ useful repair path.
   Reviewer against the latest PR head exact SHA.
 - Any independent hard gate is missing or failing: repair and re-run that gate;
   neither reviewer path nor emergency may bypass it.
+- Conversation resolution (unresolved review threads exactly 0) is not proven:
+  an unresolved-thread count above 0 or an ambiguous signal is `BLOCKED`.

@@ -125,10 +125,13 @@
 
 ## Status / Allowed Transitions
 
-- **Current**：`planned`。
-- **Execution model**：planning artifacts 完成後先進入獨立 plan review；plan
-  approval 後依 `approved` -> `creator-in-progress` 路由 bounded governance
-  implementation。Implementation 完成後必須再進入獨立 review，通過後才能 publish。
+- **Current**：`needs-rework`。
+- **Execution model**：planning、bounded governance implementation、pre-commit
+  review／test 與 publish 已完成，PR #52 曾合法進入 `pr-open`；current-head
+  Reviewer 對 SHA `bc8a730ef75b332ca174c1936b0a84f4ad8896ec` 回傳
+  `needs-rework`，因此依 canonical `pr-open` -> `needs-rework` route停止 publish
+  progression。後續只能依 `needs-rework` -> `creator-in-progress` 交由獨立
+  Implementer修正，再由 Reviewer 對新 SHA 複審。
 - **Allowed transitions**：
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -153,6 +156,39 @@ Routing notes：
   SHA 上重新取得 Reviewer verdict。
 - 本 topic 不需要 repo-visible review-log，也不宣告 round cap；review routing 使用
   standard workflow contract。
+- PR #52 current-head review evidence：
+  - reviewed SHA：
+    `bc8a730ef75b332ca174c1936b0a84f4ad8896ec`；
+  - reviewer run：`/root/solo_governance_impl_reviewer`；
+  - verdict：`needs-rework`；
+  - actual current-head `python-ci`：success，但只滿足 CI gate，不代表 overall
+    reviewer／conversation／merge gate通過。
+- Current open blockers exact 為六項：
+  1. `.agents/skills/git-release-management/SKILL.md` 的 PASS／Required Checks
+     無條件要求 normal reviewer path，使 fully evidenced emergency仍不可能 PASS；
+     必須由 Implementer加入 fully evidenced emergency alternative，同時保留所有
+     non-bypassable hard gates。Trace：
+     `PRRT_kwDOSTt_386TOHa-`／`PRRC_kwDOSTt_387Y0A3Z`。
+  2. Topic plan／step 的 phase與 PR current state drift；本次 planning rework只修正
+     這兩個 planning artifacts，不標示 implementation fix完成。Primary trace：
+     `PRRT_kwDOSTt_386TOHbG`／`PRRC_kwDOSTt_387Y0A3g`；duplicate trace：
+     `PRRT_kwDOSTt_386TOHuq`／`PRRC_kwDOSTt_387Y0BS7`。Duplicate不需要另一個
+     獨立 fix。
+  3. PR body中對 SHA
+     `816ab30e8d1829593542da35f0024ae09b4f2a45` 的 review evidence已 stale，
+     不得宣稱覆蓋 current head。
+  4. PR #52 尚有 `5` 個 unresolved conversations；必須逐項 triage，必要時由
+     Implementer bounded fix，經 latest-head Reviewer複審後才能 resolve。
+  5. Independent actor identity linkage尚未形成可驗證 contract：
+     `gate-contract.md` 與 `SKILL.md` 的 schema／gate必須記錄可由 dispatcher
+     execution record核對的 Reviewer與 Implementer canonical actor／run identity；
+     兩者必須存在、可追溯且不相等。Missing、unverifiable或 same actor一律
+     `BLOCKED`，並繼續要求 exact-head freshness。Trace：
+     `PRRT_kwDOSTt_386TOHa2`／`PRRC_kwDOSTt_387Y0A3T`。
+  6. 三個 governance surfaces 的 canonical gate naming尚未一致；必須統一使用
+     `conversation resolution (unresolved review threads exactly 0)` 語意，不得以
+     較弱或含糊名稱替代。Trace：
+     `PRRT_kwDOSTt_386TOHvQ`／`PRRC_kwDOSTt_387Y0BTt`。
 
 ## Artifact Paths
 
