@@ -133,13 +133,12 @@
 - **Current**：`pr-open`。
 - **Execution model**：planning、bounded governance implementation、pre-commit
   review／test 與 publish 已完成，PR #52 曾合法進入 `pr-open`。Current-head
-  `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf` 的 exact-head Reviewer回傳
-  `needs-rework`；本輪只修正其 schema／state planning drift，已依 canonical
-  `needs-rework` -> `creator-in-progress` -> `review-ready` 完成 authoring，再由
-  Plan-Reviewer依 `review-ready` -> `reviewer-in-progress` -> `approved` 審查通過，
-  並經 `approved` -> `publish-in-progress` -> `pr-open` 完成 current planning
-  bookkeeping。Publish後的新 exact head仍必須重新取得 implementation current-head
-  review與 CI evidence。
+  `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 exact-head Reviewer回傳
+  `needs-rework`，single blocker是兩組 current thread IDs 的 schema／state labels
+  swapped；audit-trace correction已依 canonical `pr-open` -> `needs-rework` ->
+  `creator-in-progress` -> `review-ready` -> `reviewer-in-progress` -> `approved` ->
+  `publish-in-progress` -> `pr-open` 完成 authoring、Plan-Reviewer審查與 final
+  bookkeeping。後續新 exact head仍須重新取得 implementation review與 CI evidence。
 - **Allowed transitions**：
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -166,8 +165,10 @@ Routing notes：
   standard workflow contract。
 - PR #52 current-head evidence：
   - reviewed SHA：
-    `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf`；
+    `def877f0090c3057f37d4e0cfba677b880d5fc3e`；
   - verdict：`needs-rework`；
+  - single blocker：current phase/state thread與 reviewer-schema／
+    `implementer_run_id` thread labels swapped；
   - actual current-head `python-ci`：success，但只滿足 CI gate，不代表 overall
     reviewer／conversation／merge gate通過。
 - Current planning rework review：
@@ -179,14 +180,25 @@ Routing notes：
   - reviewed step SHA256：
     `2DD5F22697B06581CF5283CDA093D1005423FAA7D7EF28334EED23DBA0AE1450`。
 - 上述 Plan-Reviewer approval只覆蓋 planning rework；不得把
-  `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf` 的 implementation exact-head
+  `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 implementation exact-head
   `needs-rework` 改稱 approved，也不完成 PR body或 conversation-resolution gates。
+- Audit-trace correction review：
+  - Plan-Reviewer run：`/root/solo_governance_plan_reviewer`；
+  - verdict：`approved`；
+  - blocking issues：`[]`；
+  - reviewed plan SHA256：
+    `74055E6345E0E950AA362FD510CCD8064ECFDBCE68D2E5ECC67D3424FBE2DB3E`；
+  - reviewed step SHA256：
+    `CFC4EC8CFDF66231480924B6F1D5354545E930DC366523B77680A98884B5F046`。
+- Audit correction approval只接受 trace mapping與 canonical status progression；
+  `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 implementation exact-head
+  `needs-rework`仍是歷史 evidence，PR body與 unresolved `7` conversations仍 pending。
 - Current thread inventory exact 為 `7`，由
   `/root/pr52_comment_reviewer` 的 thread-aware inventory證明；所有 thread在
   GitHub resolve前仍算 unresolved：
-  - 新 current schema thread：
+  - 新 current phase/state thread：
     `PRRT_kwDOSTt_386TO1VJ`／`PRRC_kwDOSTt_387Y1BPI`；
-  - 新 current state thread：
+  - 新 current reviewer-schema／`implementer_run_id` thread：
     `PRRT_kwDOSTt_386TO1VR`／`PRRC_kwDOSTt_387Y1BPR`；
   - 舊五個 threads是 outdated／duplicate／已 addressed evidence，但尚未在 GitHub
     resolve：
@@ -212,7 +224,7 @@ Routing notes：
   2. `conversation resolution (unresolved review threads exactly 0)` 尚未通過；
      current unresolved exact為 `7`；
   3. 本次 working-tree planning diff尚待獨立 review，不得以
-     `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf` 的 review或 CI代替。
+     `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 review或 CI代替。
 
 ## Artifact Paths
 

@@ -9,13 +9,13 @@ created: 2026-07-23
 > Completion gate 只讀取 `## Implementation Steps`。
 > Topic plan 已核准；creator-owned implementation 與 bounded validation 已完成，
 > READY PR #52 曾合法進入 `pr-open`。Current-head
-> `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf` 的 exact-head Reviewer回傳
-> `needs-rework`；本輪 schema／state planning fixes已依 canonical
-> `needs-rework` -> `creator-in-progress` -> `review-ready` 完成，再經
-> `review-ready` -> `reviewer-in-progress` -> `approved` ->
-> `publish-in-progress` -> `pr-open` 完成 planning review與 canonical
+> `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 exact-head Reviewer回傳
+> `needs-rework`，single blocker是兩組 current thread IDs 的 schema／state labels
+> swapped；audit-trace correction已依 canonical `pr-open` -> `needs-rework` ->
+> `creator-in-progress` -> `review-ready` -> `reviewer-in-progress` -> `approved` ->
+> `publish-in-progress` -> `pr-open` 完成 authoring、Plan-Reviewer審查與
 > bookkeeping。Actual current-head GitHub `python-ci` success只滿足該 SHA 的 CI
-> gate；publish後的新 exact head仍須重新取得 independent review與 CI evidence。
+> gate；後續新 exact head仍須重新取得 independent review與 CI evidence。
 > PR body與 unresolved `7` conversations維持 pending；merge、tag與 release均未執行。
 > 只有實際完成並有 evidence 的項目才可標記為 `[X]`。
 
@@ -68,13 +68,13 @@ created: 2026-07-23
   record核對、存在、可追溯、non-opaque且不相等。Missing、unverifiable、
   opaque-only或 same actor／run一律 `BLOCKED`；`reviewed_commit_sha` 與原
   verification fields保持不變。Current trace：
-  `PRRT_kwDOSTt_386TO1VJ`／`PRRC_kwDOSTt_387Y1BPI`。
+  `PRRT_kwDOSTt_386TO1VR`／`PRRC_kwDOSTt_387Y1BPR`。
 - [X] 將三個 governance surfaces 的 gate naming統一為
   `conversation resolution (unresolved review threads exactly 0)` 語意。
   Trace：`PRRT_kwDOSTt_386TOHvQ`／`PRRC_kwDOSTt_387Y0BTt`。
 - [X] 將 plan Current與 step phase同步為 `review-ready`，並記錄 canonical
   `needs-rework` -> `creator-in-progress` -> `review-ready`。Current trace：
-  `PRRT_kwDOSTt_386TO1VR`／`PRRC_kwDOSTt_387Y1BPR`。
+  `PRRT_kwDOSTt_386TO1VJ`／`PRRC_kwDOSTt_387Y1BPI`。
 
 ## Implementation Evidence
 
@@ -87,8 +87,20 @@ created: 2026-07-23
   回報 `approved`、`blocking_issues=[]`。
 - Planning phase已依 `review-ready` -> `reviewer-in-progress` -> `approved` ->
   `publish-in-progress` -> `pr-open` bookkeeping；此結果不改寫
-  `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf` 的 implementation exact-head
+  `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 implementation exact-head
   `needs-rework`，也不完成 PR body或 conversation resolution。
+- Audit-trace correction Plan-Reviewer（2026-07-23）：
+  `/root/solo_governance_plan_reviewer` 對 plan SHA256
+  `74055E6345E0E950AA362FD510CCD8064ECFDBCE68D2E5ECC67D3424FBE2DB3E`
+  與 step SHA256
+  `CFC4EC8CFDF66231480924B6F1D5354545E930DC366523B77680A98884B5F046`
+  回報 `approved`、`blocking_issues=[]`。
+- Audit correction已依 `needs-rework` -> `creator-in-progress` -> `review-ready` ->
+  `reviewer-in-progress` -> `approved` -> `publish-in-progress` -> `pr-open`
+  bookkeeping；此結果保留
+  `def877f0090c3057f37d4e0cfba677b880d5fc3e` implementation exact-head
+  `needs-rework` historical evidence，且 PR body與 unresolved `7` conversations
+  仍 pending。
 - Scenario contract assertions：`27/27 PASS`，涵蓋 collaborative、
   sole-maintainer valid／invalid identity、fully evidenced emergency、
   missing evidence／hard gate、exact-head stale與 conversation exact 0。
@@ -115,13 +127,14 @@ created: 2026-07-23
 - READY PR：[#52](https://github.com/a129924/mlops-async/pull/52)。
 - PR 建立時 head：`816ab30e8d1829593542da35f0024ae09b4f2a45`。
 - Current PR head：
-  `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf`。
+  `def877f0090c3057f37d4e0cfba677b880d5fc3e`。
 - Actual current-head GitHub `python-ci`：success；此結果不取代 reviewer verdict、
   conversation resolution或其他 hard gates。
 - Current-head review（2026-07-23）：
   exact-head Reviewer對
-  `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf` 回報 `needs-rework`；該 review與
-  `python-ci` 均不涵蓋本次 uncommitted planning diff。
+  `def877f0090c3057f37d4e0cfba677b880d5fc3e` 回報 `needs-rework`；single
+  blocker是兩組 current thread IDs 的 schema／state labels swapped。該 review與
+  `python-ci` 均不涵蓋本次 uncommitted audit-trace correction。
 - Bounded rework Implementer（2026-07-23）：
   `/root/solo_governance_rework_implementer`；此 canonical run identity與前述
   Reviewer identity不同。
@@ -161,9 +174,9 @@ created: 2026-07-23
 - Current thread inventory：
   - exact unresolved：`7`，由 `/root/pr52_comment_reviewer` thread-aware inventory
     證明；
-  - new current schema：
+  - new current phase/state：
     `PRRT_kwDOSTt_386TO1VJ`／`PRRC_kwDOSTt_387Y1BPI`；
-  - new current state：
+  - new current reviewer schema／`implementer_run_id`：
     `PRRT_kwDOSTt_386TO1VR`／`PRRC_kwDOSTt_387Y1BPR`；
   - 舊五個 emergency／identity／naming／phase／duplicate-phase threads已是
     outdated、duplicate或 addressed evidence，但在 GitHub resolve前仍計入
@@ -174,4 +187,4 @@ created: 2026-07-23
   2. PR #52 unresolved conversations exact `7`，仍待獨立
      triage／review／reply／resolve；
   3. 本次 planning diff仍待獨立 Reviewer複審，不得以
-     `0e90dfed8147029f4e816b38942eb9b0ec4e3cbf` 的 review evidence取代。
+     `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 review evidence取代。
