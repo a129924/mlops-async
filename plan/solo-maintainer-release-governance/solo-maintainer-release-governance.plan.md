@@ -17,7 +17,7 @@
     取得獨立 Reviewer agent 對最新 PR head exact SHA 的結構化 approved evidence。
 - 保留所有非 reviewer gates 的 hard-gate 性質，並使 sole-maintainer path 不會被誤稱
   為 GitHub approval、emergency bypass、merge authorization 或 tag authorization。
-- Repository-visible outcome 是三個 `git-release-management` governance surfaces
+- Repository-visible outcome 是四個 `git-release-management` governance surfaces
   對 dual normal reviewer gate、sole-maintainer proof、stale-review invalidation 與
   emergency boundary 提供一致、可執行的合約。
 
@@ -32,6 +32,8 @@
   - 更新
     `.agents/skills/git-release-management/references/emergency-path.md`，明確區分
     sole-maintainer normal path 與只允許 bypass reviewer evidence 的 emergency path。
+  - 更新 `.agents/skills/git-release-management/examples.md` 的 emergency example，
+    明確要求 conversation resolution exact `0` 與 head up to date with base。
   - 維護本 topic 的 plan 與 step tracker。
 - **Out of scope**：
   - 修改 GitHub ruleset、branch protection、required approvals、required checks 或
@@ -50,6 +52,13 @@
 - Topic base exact 為 `origin/dev` 的
   `59cc292e10fdc0144d9caf9d343dd264a8cff9b5`；topic branch 為
   `fix/andrew/solo-maintainer-release-gate`。
+- Written artifact set exact 為六檔：
+  `plan/solo-maintainer-release-governance/solo-maintainer-release-governance.plan.md`、
+  `plan/solo-maintainer-release-governance/solo-maintainer-release-governance.step.md`、
+  `.agents/skills/git-release-management/SKILL.md`、
+  `.agents/skills/git-release-management/references/gate-contract.md`、
+  `.agents/skills/git-release-management/references/emergency-path.md`、
+  `.agents/skills/git-release-management/examples.md`。Deleted：None。
 - 本 topic 不涉及 stable-library surfaces；不修改 `README.md`、`VERSION`、release
   notes 或 release timing，也不執行 release。
 - GitHub ruleset 的 required approvals 保持 `0`；本 topic 不執行任何 settings
@@ -73,6 +82,11 @@
 - Independent Reviewer agent 必須與 Implementer 分離，並審查 latest PR head exact
   SHA。每次 implementation／rework／sync 造成 head SHA 改變，舊 agent review
   立即失效，必須對新 SHA 重新審查。
+- 合格 independent review evidence必須針對 exact committed PR head SHA，並發布於
+  PR body或 PR comment，形成 external、可稽核且非自我參照的 evidence。
+  `plan.md`／`step.md` 不得以自身 content hash聲稱已 approved；本 topic不新增
+  review ledger file。缺少 external exact committed-head evidence時 reviewer gate
+  維持 pending／`BLOCKED`。
 - Sole-maintainer agent review evidence 至少使用下列 machine-consumable contract；
   `reviewer_run_id` 記錄可追溯的 reviewer run 或 session identifier：
 
@@ -133,12 +147,19 @@
 - **Current**：`pr-open`。
 - **Execution model**：planning、bounded governance implementation、pre-commit
   review／test 與 publish 已完成，PR #52 曾合法進入 `pr-open`。Current-head
-  `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 exact-head Reviewer回傳
-  `needs-rework`，single blocker是兩組 current thread IDs 的 schema／state labels
-  swapped；audit-trace correction已依 canonical `pr-open` -> `needs-rework` ->
-  `creator-in-progress` -> `review-ready` -> `reviewer-in-progress` -> `approved` ->
-  `publish-in-progress` -> `pr-open` 完成 authoring、Plan-Reviewer審查與 final
-  bookkeeping。後續新 exact head仍須重新取得 implementation review與 CI evidence。
+  `40d09aeac922c7ed95374b4e7a661e54780d28c9` 的 exact-head Reviewer回傳
+  `needs-rework`，blocking issues是 emergency example缺少兩個 hard gates，以及
+  planning artifacts使用 self-referential hash approval claims。Planning rework與
+  thread #8 bounded implementation／validation已完成，現依 canonical
+  `needs-rework` -> `creator-in-progress` -> `review-ready` 等待獨立 review。
+  Latest working-tree Reviewer只因 thread inventory仍寫 `9` 而回傳
+  `needs-rework`；本次 inventory correction依
+  `reviewer-in-progress` -> `needs-rework` -> `creator-in-progress` ->
+  `review-ready` 收斂。Current exact-six working-tree review／test通過後，再依
+  `review-ready` -> `reviewer-in-progress` -> `approved` ->
+  `publish-in-progress` -> `pr-open` 完成 final bookkeeping。
+  Thread #9要求的 external exact committed-head evidence只能在 commit後產生，仍
+  pending。
 - **Allowed transitions**：
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -165,43 +186,60 @@ Routing notes：
   standard workflow contract。
 - PR #52 current-head evidence：
   - reviewed SHA：
-    `def877f0090c3057f37d4e0cfba677b880d5fc3e`；
+    `40d09aeac922c7ed95374b4e7a661e54780d28c9`；
   - verdict：`needs-rework`；
-  - single blocker：current phase/state thread與 reviewer-schema／
-    `implementer_run_id` thread labels swapped；
+  - blocking issues：thread #8 emergency example hard-gate omission；thread #9
+    self-referential planning hash approval；
   - actual current-head `python-ci`：success，但只滿足 CI gate，不代表 overall
     reviewer／conversation／merge gate通過。
-- Current planning rework review：
-  - Plan-Reviewer run：`/root/solo_governance_plan_reviewer`；
-  - verdict：`approved`；
-  - blocking issues：`[]`；
-  - reviewed plan SHA256：
-    `B255CCBC95F3B9ADB5B349467360676E79D06D4725106FE45E3F6B6BC756B4A0`；
-  - reviewed step SHA256：
-    `2DD5F22697B06581CF5283CDA093D1005423FAA7D7EF28334EED23DBA0AE1450`。
-- 上述 Plan-Reviewer approval只覆蓋 planning rework；不得把
-  `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 implementation exact-head
-  `needs-rework` 改稱 approved，也不完成 PR body或 conversation-resolution gates。
-- Audit-trace correction review：
-  - Plan-Reviewer run：`/root/solo_governance_plan_reviewer`；
-  - verdict：`approved`；
-  - blocking issues：`[]`；
-  - reviewed plan SHA256：
-    `74055E6345E0E950AA362FD510CCD8064ECFDBCE68D2E5ECC67D3424FBE2DB3E`；
-  - reviewed step SHA256：
-    `CFC4EC8CFDF66231480924B6F1D5354545E930DC366523B77680A98884B5F046`。
-- Audit correction approval只接受 trace mapping與 canonical status progression；
-  `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 implementation exact-head
-  `needs-rework`仍是歷史 evidence，PR body與 unresolved `7` conversations仍 pending。
-- Current thread inventory exact 為 `7`，由
+- Historical internal plan reviews保留為 workflow history，但不構成 external
+  reviewer gate evidence；所有以 plan／step自身 content hash表達 approval的 claims
+  已移除。只有 PR body或 comment中針對 exact committed PR head SHA的獨立 review
+  evidence可供 current reviewer gate使用。
+- Current working-tree rework evidence：
+  - Implementer run：`/root/solo_governance_rework_implementer`；
+  - emergency example SHA256：
+    `CA691C00D92ECBDEBC9C6EE22962AA3B513D43704FA4918BA5DB3CCFA3767664`；
+  - Implementer-delivered pre-bookkeeping step snapshot SHA256：
+    `44E4CC762C187723FCF517727EFA786F8D05BFAE1B30374303B3BCD9D0684989`；
+  - contract／JSON／scope／hygiene assertions：`35/35 PASS`；
+  - emergency example targeted assertions：`21/21 PASS`；
+  - tracked diff exact六檔、non-ignored untracked `0`。
+- 上述 hashes只識別 Implementer-delivered artifacts／snapshot，不構成 review
+  approval，也不能替代 commit後發布於 PR body或 comment的 external exact-head
+  evidence。
+- Final exact-six working-tree gates：
+  - Reviewer run：`/root/solo_governance_impl_reviewer`；
+  - Reviewer verdict：`APPROVED`，blocking issues `[]`；
+  - Tester run：`/root/solo_governance_tester`；
+  - Tester verdict：`PASS`；
+  - full contract／scope assertions：`35/35 PASS`；
+  - targeted emergency example assertions：`21/21 PASS`。
+- 上述 run verdicts只覆蓋 current uncommitted exact-six working-tree diff；沒有使用
+  plan／step self-content hash，也不建立 ledger，不能替代 commit後發布於 PR body
+  或 comment的 external exact committed-head review。
+- Latest working-tree Reviewer verdict：
+  - verdict：`needs-rework`；
+  - single blocker：unresolved count／thread inventory drift；
+  - substantive governance／examples contract blocker：None。
+- Current thread inventory exact 為 `10`，由
   `/root/pr52_comment_reviewer` 的 thread-aware inventory證明；所有 thread在
   GitHub resolve前仍算 unresolved：
-  - 新 current phase/state thread：
+  - thread #10 second stale audit-trace hash assertion：
+    `PRRT_kwDOSTt_386TPTpn`／`PRRC_kwDOSTt_387Y1rV9`／`DB3637949821`，
+    source為 plan lines 190-192；此 thread current actionable，與 thread #9同屬
+    self-hash cluster但不是 pure duplicate。既有移除全部 self-referential approval
+    claims的修正已 substantive address其內容，但 GitHub resolve前仍 unresolved；
+  - thread #8 emergency example：
+    `PRRT_kwDOSTt_386TPHWi`／`PRRC_kwDOSTt_387Y1aJg`；
+  - thread #9 external exact committed-head review evidence：
+    `PRRT_kwDOSTt_386TPHWl`／`PRRC_kwDOSTt_387Y1aJk`；
+  - previous #6 phase/state thread：
     `PRRT_kwDOSTt_386TO1VJ`／`PRRC_kwDOSTt_387Y1BPI`；
-  - 新 current reviewer-schema／`implementer_run_id` thread：
+  - previous #7 reviewer-schema／`implementer_run_id` thread：
     `PRRT_kwDOSTt_386TO1VR`／`PRRC_kwDOSTt_387Y1BPR`；
-  - 舊五個 threads是 outdated／duplicate／已 addressed evidence，但尚未在 GitHub
-    resolve：
+  - previous #1 至 #5 threads內容已 addressed、outdated或 duplicate，但尚未在 GitHub
+    reply／resolve：
     - emergency：
       `PRRT_kwDOSTt_386TOHa-`／`PRRC_kwDOSTt_387Y0A3Z`；
     - identity：
@@ -212,19 +250,30 @@ Routing notes：
       `PRRT_kwDOSTt_386TOHbG`／`PRRC_kwDOSTt_387Y0A3g`；
     - duplicate phase：
       `PRRT_kwDOSTt_386TOHuq`／`PRRC_kwDOSTt_387Y0BS7`。
-- 本輪已完成的 planning rework：
+- Prior addressed planning rework history：
   1. Topic plan的 independent agent evidence JSON加入
      `implementer_run_id`／`reviewer_run_id`，並鎖定 canonical、traceable、
      non-opaque、different-actor hard-block語意；
-  2. Plan Current與 step phase同步為 `review-ready`，記錄 canonical
-     `needs-rework` -> `creator-in-progress` -> `review-ready`。
+  2. Earlier phase drift曾同步至 `review-ready`；current head的新 review已另依
+     `pr-open` -> `needs-rework` 記錄，不沿用舊 phase。
+- Current rework completion：
+  1. Thread #8 emergency example已加入 conversation resolution exact `0` 與 head
+     up to date with base；
+  2. Exact六檔 bounded validation已通過；
+  3. Workflow依 `needs-rework` -> `creator-in-progress` -> `review-ready` 前進。
+  4. Thread #10 substantive內容已由 existing removal of all self-referential
+     approval claims處理，inventory已從 `9` 更正為 `10`。
 - 尚未滿足的 PR boundaries：
-  1. PR body仍須把舊 SHA review標示 stale，並在 publish後更新 new exact-head
-     review evidence；
+  1. Bounded fix commit後，必須由獨立 Reviewer審查 new exact PR head SHA，且
+     evidence須發布至 PR body或 comment；不得使用 plan／step self-hash claim。
   2. `conversation resolution (unresolved review threads exactly 0)` 尚未通過；
-     current unresolved exact為 `7`；
+     current unresolved exact為 `10`；
   3. 本次 working-tree planning diff尚待獨立 review，不得以
-     `def877f0090c3057f37d4e0cfba677b880d5fc3e` 的 review或 CI代替。
+     `40d09aeac922c7ed95374b4e7a661e54780d28c9` 的 review或 CI代替。
+- Human已明確授權 PR #52 comment review／fix／reply／resolve全部 unresolved
+  actionable threads；此授權不包含 merge或 tag，兩者仍是獨立 human boundary。
+- PR body中 unresolved count `9` 已 stale；external PR body／comment update仍
+  pending，必須改為 current exact `10`，且不得由本 repo-local bookkeeping假稱完成。
 
 ## Artifact Paths
 
@@ -235,10 +284,11 @@ Routing notes：
 | Release skill contract | `.agents/skills/git-release-management/SKILL.md` | Implementer | Normal reviewer-path sensing、gate decision 與 failure handling |
 | Release gate reference | `.agents/skills/git-release-management/references/gate-contract.md` | Implementer | Dual normal reviewer gate 與 hard-gate contract |
 | Emergency reference | `.agents/skills/git-release-management/references/emergency-path.md` | Implementer | Sole-maintainer normal path與 emergency bypass boundary |
+| Release examples | `.agents/skills/git-release-management/examples.md` | Implementer | Emergency example的 conversation-resolution與 base up-to-date hard gates |
 
 Artifact path notes：
 
-- 上表是本 topic 唯一 executable write inventory，exact 五檔。
+- 上表是本 topic 唯一 executable write inventory，exact 六檔；Deleted：None。
 - 本 topic 明確不修改 `README.md`、`VERSION`、
   `.github/copilot-instructions.md`、release notes 或 release metadata。
 - `.github/workflows/ci.yml`、existing release plans 與 GitHub settings 均是
@@ -260,25 +310,31 @@ Artifact path notes：
    verified sole-maintainer 是 normal path、不是 emergency，並保留 emergency 只能
    bypass reviewer evidence 的既有 marker、human、urgency、anomaly 與 hard-gate
    requirements。
-4. 對三個 governance surfaces 執行一致性收斂：不得把 agent review 稱為 GitHub
+4. 對既有三個 core contract surfaces執行一致性收斂：不得把 agent review稱為 GitHub
    `APPROVED`，不得以 ruleset approvals `0` 推定 sole maintainer，不得弱化
    `python-ci`、conversation resolution 或任何既有 non-bypassable gate。
-5. 更新
+5. 僅更新 `.agents/skills/git-release-management/examples.md` 的 emergency example，
+   明確加入 `conversation resolution (unresolved review threads exactly 0)` 與
+   release PR head up to date with base，且不得弱化其他 emergency hard gates。
+6. 更新
    `plan/solo-maintainer-release-governance/solo-maintainer-release-governance.step.md`
-   的 implementation checkboxes；只在 exact 五檔 bounded diff、contract checks 與
+   的 implementation checkboxes；只在 exact 六檔 bounded diff、contract checks 與
    applicable repository hygiene checks實際完成後標示完成。
 
 ## Validation / Acceptance Checks
 
 Contract checks：
 
-- 三個 governance surfaces 對 normal reviewer gate 的語意一致：collaborative path
+- 三個 core contract surfaces 對 normal reviewer gate 的語意一致：collaborative path
   需要 qualified non-author GitHub `APPROVED`；sole-maintainer path 需要 current
   GitHub topology proof 與 latest-head independent agent review evidence。
 - 無法取得或無法判定 current maintainer inventory 時，結果為 `BLOCKED`，不得從聊天、
   ruleset approval count 或歷史 evidence 推定 sole-maintainer eligibility。
 - Agent evidence 包含 locked minimum fields與 reviewer run/session identifier；
   `reviewed_commit_sha` 必須 equal latest PR head SHA，否則為 stale 並 `BLOCKED`。
+- Independent review evidence發布於 PR body或 comment，且
+  `reviewed_commit_sha` exact等於 committed current PR head；plan／step content
+  hash、working-tree hash或 repo-local self-approval claim不能替代 external evidence。
 - Reviewer／Implementer 角色分離；rework 或 base sync 改變 SHA 後必須重新 review。
 - 文案明確區分 independent agent approval 與 GitHub `APPROVED`，且 agent evidence
   不授權 merge／tag。
@@ -287,6 +343,9 @@ Contract checks：
   均保持獨立 hard gates，不得由 agent JSON 欄位替代。
 - Emergency contract保持現有單一 bypass boundary；sole-maintainer path 不要求或產生
   emergency marker，emergency 也不能 bypass其他 hard gates。
+- `examples.md` 的 emergency example明確包含 conversation resolution
+  （unresolved review threads exact `0`）與 head up to date with base，且其餘
+  hard gates與 emergency evidence requirements保持不變。
 - GitHub ruleset required approvals 保持 `0`，本 topic沒有 settings write。
 
 Scenario test cases：
@@ -306,12 +365,14 @@ Scenario test cases：
    BLOCKED，且不得用任一 reviewer path bypass。
 8. Missing reviewer evidence 改走 emergency，但缺少 marker、human confirmation、
    urgency explanation 或 anomaly record 任一項：BLOCKED。
+9. Emergency evidence齊全，但 unresolved review threads非 `0`或 head落後 base：
+   BLOCKED；example不得把任一條件表達為 optional。
 
 Repository checks：
 
 - `git diff --check` 通過。
 - 相對 topic base 的 tracked diff 與 non-ignored untracked file union exact 等於
-  `Artifact Paths` 的五檔；沒有 source、tests、CI、config、reference、release
+  `Artifact Paths` 的六檔；沒有 source、tests、CI、config、其他 reference、release
   metadata 或 settings drift。
 - Applicable Markdown／repository hygiene checks 通過；不得讀取 secret config 或
   執行 live E2E。

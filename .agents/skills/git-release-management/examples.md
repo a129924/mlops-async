@@ -101,16 +101,24 @@ Repair:
 ```text
 PR title: [emergency] restore partner-login callback
 Human confirmation: present
+Urgency explanation: present
 Release note exception entry: present
-CI: green
+Latest-head CI: green
+Conversation resolution: unresolved review threads exactly 0
+Head/base synchronization: head up to date with base
 Tests: green
 Typing: green
 Lint: green
+Documentation: synchronized
+Version sources and intended tag: synchronized
 Workspace: clean
+Target tag: absent
 ```
 
-- This can proceed without waiting for ordinary reviewer timing.
-- It still fails if any core gate is red.
+- This can proceed without waiting for ordinary reviewer timing only after all
+  emergency evidence and every independent hard gate are confirmed.
+- It still fails if conversation resolution is not exact 0, the head is behind
+  its base, or any other hard gate is red.
 
 ### Emergency does not excuse failing tests
 ```text
