@@ -13,18 +13,19 @@ supports framework-user-controlled TLS verification through `bool` or
 `ssl.SSLContext`, the real Viya password-token E2E keeps an explicit opt-in and
 anti-fake-success guard, Python-module workflow launchers behave consistently,
 and the repository has a formal single-context `python-ci` quality gate. The
-recorded internal live E2E success explicitly disabled TLS verification; it
-demonstrates a successful HTTPS password-token request, not verified TLS trust.
+recorded internal live E2E succeeded with TLS verification explicitly disabled;
+this demonstrates only that the HTTPS password-token request succeeded and does
+not constitute evidence that TLS trust was verified.
 Live E2E remains excluded from both formal `python-ci` and this release's local
 validation.
 
 v0.13.0 完成 PR #47 至 PR #50：`HttpClient` 的 TLS verification 現由框架使用者
 透過 `bool` 或 `ssl.SSLContext` 明確控制；真實 Viya password-token E2E 保留明確
 opt-in 與 anti-fake-success guard；Python module workflow launchers 已一致化；repo
-也建立單一 `python-ci` context 的正式品質 gate。公司內部環境的 live E2E 成功是
-明確停用 TLS verification 後完成 HTTPS password-token request，並不代表 TLS trust
-已驗證。Live E2E 仍明確排除於正式 `python-ci` 與本 release 的 local validation
-之外。
+也建立單一 `python-ci` context 的正式品質 gate。公司內部環境的 live E2E 是在明確
+停用 TLS verification 的情況下成功；這只證明 HTTPS password-token request 成功，
+並不構成 TLS trust 已驗證的證據。Live E2E 仍明確排除於正式 `python-ci` 與本
+release 的 local validation 之外。
 
 As of **v0.12.0**, the repository closes PR #46: the token-endpoint capability family now isolates client-credentials and password grants under `core/token_endpoint`, with `PasswordTokenEndpointClient` obtaining SAS Viya tokens through the password grant while preserving the existing `TokenEndpointClient` compatibility import and auth lifecycle boundaries.
 
