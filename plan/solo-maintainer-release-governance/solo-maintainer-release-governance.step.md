@@ -7,32 +7,53 @@ created: 2026-07-23
 # solo-maintainer-release-governance — Step Tracking
 
 > Completion gate 只讀取 `## Implementation Steps`。
-> 本文件是 repo-visible pre-publish `review-ready` snapshot；它不宣稱 snapshot
-> commit後的 actual PR head、CI、review或 conversation state。這些 dynamic facts
-> 只能發布於 PR body或 comment，不得回填到同一 commit形成 self-reference。
-> 本輪 pre-publish observation：PR #52 head
-> `f4a40cb74e0261dab3b98e3a2a6b2894a966bc8b` 的 `python-ci` success，complete
-> thread inventory為 unresolved `15`；PR body count `13` 已 stale。
-> Threads #14／#15使 planning workflow先依 canonical `review-ready` ->
+> 本文件是完成 Implementation Steps 13–16後的 repo-visible pre-publish
+> `review-ready` snapshot；它不宣稱 commit後 actual PR head、CI、review或
+> conversation state。這些 dynamic facts只能發布於 PR body或 comment，不得回填到
+> 同一 commit形成 self-reference。
+> 本輪 external rework trigger：PR #52 head
+> `8740a9086aba085194d1cc60377cbddc61b76909` 的 `python-ci`為`SUCCESS`；
+> allowlisted bot review `4768947922` actual state為`COMMENTED`，但 semantic
+> schema不合格並新增三個 P1 threads；complete thread inventory unresolved
+> exact `18`。
+> Historical threads #14／#15 round使 planning workflow先依 canonical
+> `review-ready` ->
 > `reviewer-in-progress` -> `needs-rework`記錄 blockers，再依 human-authorized
 > Option A authoring走 `needs-rework` -> `creator-in-progress` -> `review-ready`。
-> Final plan Current與本檔 phase均為 pre-publish `review-ready`；不構成 reviewer
-> approval或 publish後 current truth。
-> 後續 Tester回報 single P1 `FAIL`：pagination minimum JSON缺少 deduplicated
+> 該 historical round當時的 plan Current與本檔 phase均為 pre-publish
+> `review-ready`；不構成 reviewer approval或 publish後 current truth。
+> Historical Tester後續回報 single P1 `FAIL`：pagination minimum JSON缺少 deduplicated
 > `total_entries`及`page_count`／`total_retrieved`／`total_entries`
 > reconciliation gate。本次只修改 plan／step的 bounded fix已依 canonical
 > reviewer／test gate -> `needs-rework` -> `creator-in-progress` ->
-> `review-ready`完成；final兩檔仍為 pre-publish `review-ready`。
-> Plan-Reviewer其後回報 single `needs-rework`：plan current truth仍將 threads
+> `review-ready`完成；當時兩檔回到 pre-publish `review-ready`。
+> Historical Plan-Reviewer其後回報 single `needs-rework`：plan current truth仍將 threads
 > #14／#15 substantive implementation／local validation列為 pending。本次只同步
 > plan／step，依 `reviewer-in-progress` -> `needs-rework` ->
-> `creator-in-progress` -> `review-ready`完成；final兩檔仍為 pre-publish
+> `creator-in-progress` -> `review-ready`完成；當時兩檔回到 pre-publish
 > `review-ready`。
 > #1至#13內容已 addressed但仍 unresolved；#14／#15的 bounded contract
-> implementation與validation已完成。Publish後 allowlisted external GitHub App／bot
-> exact-new-head review、new-head CI與全部15 threads reply／resolve仍為 pending。
+> implementation與validation已完成。當時 publish後 allowlisted external GitHub
+> App／bot exact-new-head review、new-head CI與全部15 threads reply／resolve仍為
+> pending；此段是 current three-P1 rework前的 historical state。
 > Local subagent Reviewer結果只能標示 `preflight_only=true`並作 advisory，不得
 > 映射為 authoritative GitHub actor／review／approval。
+> 新三個 P1使 external PR state依 canonical `pr-open` -> `needs-rework`進入修正；
+> 本次 Plan-Creator只更新 plan／step，並依`needs-rework` ->
+> `creator-in-progress`停在 creator completion gate。Implementer已在 exact四個
+> skill surfaces完成 three-P1 contract，核對 exact-six written inventory與
+> Deleted=None，並完成 bounded static validation；因此依 canonical
+> `creator-in-progress` -> `review-ready`完成 creator-owned steps。獨立
+> Reviewer／Tester validation、publish、new exact-head bot review與全部18 threads
+> reply／resolve是分離的後續 pending boundaries。
+> Implementation Reviewer其後回報唯一 planning schema drift：plan minimum schema
+> 缺少 exact
+> `review_body={"semantic_verdict":"approved","blocking_issues":[]}`，且 acceptance
+> contract尚未要求保存、解析及核對 derived fields。本次 bounded correction只修改
+> plan／step，依 canonical `review-ready` -> `reviewer-in-progress` ->
+> `needs-rework` -> `creator-in-progress` -> `review-ready`完成。Steps 13–16的
+> `[X]` implementation evidence與四個 skill artifacts未變；獨立 Reviewer／Tester
+> validation及所有 external boundaries仍為 pending。
 > Comment fix／reply／resolve已獲授權；merge、tag與 release未獲授權。
 > 只有實際完成並有 evidence 的項目才可標記為 `[X]`。
 
@@ -78,31 +99,59 @@ created: 2026-07-23
 - [X] 12. 在 existing exact六檔 surfaces完成 human-authorized Option A rework；
   初始 allowlist exact為`chatgpt-codex-connector[bot]`／`type=Bot`，reviewer不得是
   PR author，local preflight只能`preflight_only=true`。
+- [X] 13. 由 Implementer依`PRRT_kwDOSTt_386TaKiK`在既有四個 skill surfaces
+  實作 actual review state exact allowlist：只接受`COMMENTED`或`APPROVED`；
+  `CHANGES_REQUESTED`、`DISMISSED`與其他未允許／adverse states一律
+  `BLOCKED`。
+- [X] 14. 由 Implementer依`PRRT_kwDOSTt_386TaKiM`將 policy-owned
+  `review_freshness_max_age_seconds`鎖為 exact `3600`，要求 evidence不得自行
+  放寬，並對 missing／future／stale／mismatched freshness fail closed。
+- [X] 15. 由 Implementer依`PRRT_kwDOSTt_386TaKiO`將 collaborator query scope
+  鎖為 repository-wide permission-bearing collaborator population，保留 complete
+  pagination、terminal/count reconciliation、consistent-login deduplication與
+  conflict fail-closed。
+- [X] 16. 由 Implementer在完成 steps 13–15後更新 creator-owned completion
+  evidence，確認 written inventory仍為 exact六檔、Deleted為None，且沒有
+  workflow、signing、key、secret、attestation、settings、release metadata或其他
+  scope drift。只有 steps 13–16皆有實際 evidence時才能轉為`review-ready`。
 
 ## PR Rework Checklist
 
 - [X] #1至#13的 substantive content已 addressed；GitHub尚未 resolve，因此 complete
   inventory仍將它們計入 unresolved。
-- [X] 本輪 planning authoring已依
+- [X] 先前 threads #14／#15 planning authoring已依
   `review-ready` -> `reviewer-in-progress` -> `needs-rework` ->
   `creator-in-progress` -> `review-ready`完成；plan Current與 step phase final均為
-  pre-publish `review-ready`。
+  當時的 pre-publish `review-ready`；此為 historical evidence，不代表 current
+  three-P1 rework phase。
 - [X] Thread #14 complete collaborator pagination contract已完成 bounded
   implementation與validation：
   `PRRT_kwDOSTt_386TT3Io`／`PRRC_kwDOSTt_387Y8IP5`／`DB3639641081`。
 - [X] Thread #15 Option A authoritative external reviewer identity boundary已完成
   bounded implementation與validation：
   `PRRT_kwDOSTt_386TT3Iq`／`PRRC_kwDOSTt_387Y8IP8`／`DB3639641084`。
+- [X] Thread `PRRT_kwDOSTt_386TaKiK` review state allowlist／adverse-state
+  fail-closed已完成 bounded implementation與 creator-owned static validation。
+- [X] Thread `PRRT_kwDOSTt_386TaKiM` policy-owned exact 3600-second freshness
+  maximum已完成 bounded implementation與 creator-owned static validation。
+- [X] Thread `PRRT_kwDOSTt_386TaKiO` repository-wide permission-bearing
+  collaborator population與 complete pagination scope已完成 bounded
+  implementation與 creator-owned static validation。
+- [ ] Steps 13–16全部完成並轉為`review-ready`後，由獨立 Reviewer／Tester驗證
+  three-P1 delta與既有 Option A、emergency及所有 hard gates一致；此項不屬於
+  `## Implementation Steps` creator completion gate。
 - [ ] Publish後取得 allowlisted
   `chatgpt-codex-connector[bot]`／`type=Bot`對 actual exact new PR head的可擷取
   GitHub review object；reviewer不得是 PR author，object body semantic verdict須為
-  `approved`且 blocking issues為空。Actual `COMMENTED`必須維持`COMMENTED`，不得
-  稱為 GitHub `APPROVED`。Local `preflight_only=true`結果不能替代。
+  `approved`且 blocking issues為空。Actual state只允許`COMMENTED`或`APPROVED`；
+  `COMMENTED`必須維持`COMMENTED`且不得稱為 GitHub `APPROVED`。
+  `CHANGES_REQUESTED`、`DISMISSED`或其他未允許／adverse states一律不得通過。
+  Local `preflight_only=true`結果不能替代。
 - [ ] 確認 actual new PR head的 `python-ci` success；現有 success只綁定本輪
   pre-publish observed head，不能預先覆蓋 publish後 head。
-- [ ] 逐項 reply並 resolve complete inventory中的全部15 threads，再以完整 pagination
-  重取 authoritative inventory確認 unresolved exact `0`；PR body count `13`已
-  stale，需 external update。
+- [ ] 逐項 reply並 resolve complete inventory中的全部18 threads，再以完整
+  pagination重取 authoritative inventory確認 unresolved exact `0`；任何舊 count
+  均不得作 current evidence。
 - [ ] Merge與 tag各自取得新的 explicit human authorization；本次 comment
   review／fix／reply／resolve授權不涵蓋兩者。
 
@@ -138,9 +187,9 @@ created: 2026-07-23
   pre-publish review boundary。此記錄不構成 Tester retest PASS。
 - Plan-Reviewer後續 single `needs-rework`指出 plan pending boundary與 step evidence
   不一致；本次已將 threads #14／#15 substantive implementation與 local validation
-  同步為 complete。External exact-new-head review、new-head CI與全部15 threads
-  reply／resolve未完成，仍是唯一 external pending gates；此 bounded fix不構成
-  Plan-Reviewer re-review approval。
+  同步為 complete。當時 external exact-new-head review、new-head CI與全部15
+  threads reply／resolve未完成；此為 current three-P1 rework前的 historical
+  boundary，且該 bounded fix不構成 Plan-Reviewer re-review approval。
 - Current exact-six repository local-path guard：PASS；使用既有 worktree Python
   environment執行，未讀取 secret、未執行 live E2E或 external mutation。
 - Tracked diff 與 non-ignored untracked union：相對 topic base exact六檔，PASS。
@@ -302,15 +351,34 @@ created: 2026-07-23
      `needs-rework`明確標示為 historical、non-current、non-approval。
   Workflow記錄為 `reviewer-in-progress` -> `needs-rework` ->
   `creator-in-progress` -> `review-ready`。
+- Three-P1 bounded implementation evidence：
+  1. exact四個 skill surfaces均明確只允許 actual state exact `COMMENTED`或
+     `APPROVED`；`CHANGES_REQUESTED`、`DISMISSED`、missing與其他未允許 state
+     fail closed；
+  2. topology與review evidence均鎖定 policy-owned exact
+     `review_freshness_max_age_seconds=3600`，並拒絕 missing／future／negative age／
+     age超過3600秒／evidence override；
+  3. collaborator query scope exact為
+     `repository-wide permission-bearing collaborator population`，拒絕 PR
+     participants、known maintainers、單一 team、caller-selected subset與 partial
+     sample，同時保留 complete pagination、terminal/count reconciliation與
+     consistent-login dedup conflict fail-closed；
+  4. bounded static assertions `28/28 PASS`；exact六檔內 JSON code blocks
+     `7/7 parsed`；`git diff --check` PASS；tracked modified files exact六檔，
+     Deleted=None。未執行 network、live E2E、recursive或`uv` validation。
 - Pending boundaries：
-  1. Publish後由 allowlisted external GitHub App／bot取得 actual exact new-head
-     review object；
-  2. Actual new-head `python-ci` success；
-  3. Complete inventory中全部15 threads reply／resolve，再確認 unresolved exact
+  1. 由獨立 Reviewer／Tester驗證 bounded implementation；creator-owned static
+     validation不構成獨立 approval；
+  2. Reviewer／Tester通過後才可進入 publish，並在 publish後取得 actual new-head
+     `python-ci` success與 allowlisted external
+     GitHub App／bot合格 review object；
+  3. Complete inventory中全部18 threads reply／resolve，再確認 unresolved exact
      `0`；
   4. Merge與 tag各自取得新的 explicit human authorization。
 - Human已明確授權 PR #52 comment review／fix／reply／resolve全部 unresolved
   actionable threads；merge與 tag仍是獨立 human boundary。
-- PR body unresolved count `13` 已 stale；current complete inventory observed
-  exact `15`。External update仍 pending，不得由本 repo-local step宣稱完成；
-  snapshot commit後的 actual count只能在 PR body或 comment更新。
+- Current external observation：PR #52 head
+  `8740a9086aba085194d1cc60377cbddc61b76909`、`python-ci=SUCCESS`、bot review
+  `4768947922` actual state `COMMENTED`但 semantic schema不合格、complete thread
+  inventory unresolved exact `18`。此 evidence只作本輪 rework trigger；後續 head
+  變更即成 historical，不得由 repo-local step預先宣稱 publish後 current truth。

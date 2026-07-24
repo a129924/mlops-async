@@ -31,6 +31,9 @@ external GitHub review evidence are valid:
 1. Current GitHub repository permission and collaborator evidence proves that
    exactly one write-qualified maintainer exists, that login is the exact PR
    author, and excluding that author derives no qualified non-author reviewer.
+   The policy and evidence freshness maximums are both exact 3600 seconds, the
+   observation age is from 0 through 3600 seconds inclusive, and query scope is
+   exact `repository-wide permission-bearing collaborator population`.
    The inventory may be derived only after all pages or cursors are retrieved
    through authoritative terminal-next absence and cross-page duplicate logins
    are consistently deduplicated.
@@ -53,8 +56,9 @@ must be retrieved from the stated GitHub API endpoint:
   "repository_full_name": "<owner/repository>",
   "evidence_url": "<retrievable-github-api-endpoint>",
   "observed_at_utc": "<iso-8601-utc>",
-  "freshness_max_age_seconds": "<positive-integer>",
-  "query_scope": "<collaborator-and-permission-scope>",
+  "review_freshness_max_age_seconds": 3600,
+  "freshness_max_age_seconds": 3600,
+  "query_scope": "repository-wide permission-bearing collaborator population",
   "pagination": {
     "strategy": "page-number|cursor",
     "per_page_or_cursor": "<positive-integer-per-page-or-initial-cursor>",
@@ -94,9 +98,17 @@ must be retrieved from the stated GitHub API endpoint:
 
 Retrieve `evidence_url` and verify that it is a GitHub collaborator or
 permission API endpoint for `repository_full_name`. `observed_at_utc` must be a
-valid UTC timestamp whose age does not exceed the positive
-`freshness_max_age_seconds`. `query_scope` must state the collaborator and
-permission population queried.
+valid UTC timestamp that is not in the future. The policy-owned
+`review_freshness_max_age_seconds` and evidence
+`freshness_max_age_seconds` must both be exact `3600`; evidence producers and
+callers cannot override or widen either value. Observation age at evaluation
+must be from 0 through 3600 seconds inclusive.
+
+`query_scope` must be exact
+`repository-wide permission-bearing collaborator population`. It must query the
+repository-wide population from which GitHub repository permissions can be
+derived. PR participants, known-maintainer lists, one team, caller-selected
+subsets, partial samples, or any other narrower population are `BLOCKED`.
 
 `pagination` must record the page-number or cursor strategy, positive per-page
 size or initial cursor, positive `page_count`, non-negative `total_retrieved`,
@@ -115,7 +127,8 @@ Unknown or incomplete pagination, a failed middle or terminal page, a repeated
 cursor, truncation, missing next evidence, missing terminal-next-absent proof,
 or a page-count or total mismatch is `BLOCKED`. A source-side cap or result
 limit is truncation unless authoritative pagination evidence proves the
-complete population was traversed.
+complete repository-wide permission-bearing collaborator population was
+traversed.
 
 `pr_author_login` must be the exact current PR author.
 `permission_bearing_entries` must be nonempty and represent the complete
@@ -145,21 +158,30 @@ self-asserted input.
 The sole-maintainer topology gate passes only when:
 
 1. provenance is current, retrievable, and scoped to the declared repository;
-2. pagination is complete through authoritative terminal-next absence, with no
+2. policy and evidence freshness maximums are both exact 3600 seconds, the
+   observation timestamp is present and not in the future, and its age is from
+   0 through 3600 seconds inclusive;
+3. query scope is exact
+   `repository-wide permission-bearing collaborator population`;
+4. pagination is complete through authoritative terminal-next absence, with no
    failed page, loop, truncation, or count mismatch;
-3. permission-bearing collaborator entries are nonempty, consistently
+5. permission-bearing collaborator entries are nonempty, consistently
    deduplicated, and fully classifiable;
-4. `write_qualified_maintainers` contains exactly one login;
-5. that exact login equals `pr_author_login`;
-6. `qualified_non_author_reviewers` is empty; and
-7. `sole_maintainer_verified=true` agrees with every derived value.
+6. `write_qualified_maintainers` contains exactly one login;
+7. that exact login equals `pr_author_login`;
+8. `qualified_non_author_reviewers` is empty; and
+9. `sole_maintainer_verified=true` agrees with every derived value.
 
 Arbitrary strings, empty entries plus a self-asserted boolean, missing PR
 author, a PR author different from the sole write-qualified maintainer, zero or
 multiple write-qualified maintainers, stale or unretrievable provenance,
-unclear query scope, incomplete pagination, failed pages, cursor loops,
-truncation, count mismatch, contradictory duplicate logins, malformed or
-unknown permissions, a self-asserted empty non-author inventory, or any derived
+freshness values other than exact 3600 seconds, a missing or future observation
+timestamp, age outside 0 through 3600 seconds, query scope other than the exact
+repository-wide permission-bearing collaborator population, use of PR
+participants, known maintainers, one team, a caller-selected subset, or another
+partial sample, incomplete pagination, failed pages, cursor loops, truncation,
+count mismatch, contradictory duplicate logins, malformed or unknown
+permissions, a self-asserted empty non-author inventory, or any derived
 mismatch make this path `BLOCKED`. Only the complete inventory may derive the
 lists and verdict. When a qualified non-author reviewer exists, select the
 collaborative GitHub `APPROVED` path instead.
@@ -176,8 +198,10 @@ Minimum authoritative external GitHub review evidence:
   "review_id": "<positive-integer>",
   "review_url": "<retrievable-github-review-url>",
   "submitted_at_utc": "<iso-8601-utc>",
+  "evaluated_at_utc": "<iso-8601-utc>",
+  "review_freshness_max_age_seconds": 3600,
   "reviewed_commit_sha": "<exact-latest-pr-head-sha>",
-  "github_review_state": "<actual-github-review-state>",
+  "github_review_state": "COMMENTED",
   "review_body": "{\"semantic_verdict\":\"approved\",\"blocking_issues\":[]}",
   "semantic_verdict": "approved",
   "blocking_issues": []
@@ -190,8 +214,13 @@ itself. It must belong to the same `repository_full_name` and positive
 `reviewer_login` exactly to the allowlisted
 `chatgpt-codex-connector[bot]` with actor `type` exactly `Bot`; and prove that
 the reviewer is not the exact PR author. It must also carry a valid
-`submitted_at_utc`, the exact latest `reviewed_commit_sha`, the literal actual
-`github_review_state`, and the exact `review_body`.
+`submitted_at_utc`, valid `evaluated_at_utc`, policy-owned exact
+`review_freshness_max_age_seconds=3600`, the exact latest
+`reviewed_commit_sha`, literal actual `github_review_state`, and exact
+`review_body`. Review age is `evaluated_at_utc - submitted_at_utc` and must be
+from 0 through 3600 seconds inclusive. Missing or future timestamps, negative
+age, age above 3600 seconds, or an evidence-supplied freshness override are
+`BLOCKED`.
 
 Parse the body rather than trusting copied top-level claims. The parsed body
 must yield `semantic_verdict=approved` and `blocking_issues=[]`, and those
@@ -200,10 +229,13 @@ missing verdict, any non-approved verdict, missing or nonempty blockers, or any
 repository, PR, review id, URL, actor, type, timestamp, SHA, state, body, or
 derived-field mismatch makes the normal sole-maintainer route `BLOCKED`.
 
-Preserve the actual GitHub state literally. If the API object says
-`COMMENTED`, record `COMMENTED` and never call it GitHub `APPROVED`. The
-semantic verdict in the review body satisfies this Option A path without
-creating GitHub approval state.
+Preserve the actual GitHub state literally and allow only exact `COMMENTED` or
+`APPROVED`. If the API object says `COMMENTED`, record `COMMENTED` and never
+call it GitHub `APPROVED`. The semantic verdict in the review body satisfies
+this Option A path without creating GitHub approval state. Actual state
+`CHANGES_REQUESTED`, `DISMISSED`, missing, or any other unallowlisted state is
+`BLOCKED` even when the body parses to semantic verdict `approved` with
+`blocking_issues=[]`.
 
 A PR-author body or comment containing the same JSON is not a GitHub review
 object and cannot qualify. Local Reviewer output may exist only as separately
@@ -288,19 +320,24 @@ useful repair path.
 
 - Missing, stale, unretrievable, empty, unknown, or contradictory topology
   evidence: refresh the GitHub collaborator and permission API evidence,
-  traverse every page through authoritative terminal-next absence, reject page
-  failures, loops, truncation, count mismatches, and contradictory duplicate
-  logins, then validate the exact PR author, query scope, recognized roles, and
+  enforce policy and evidence freshness values exact 3600 seconds and age from
+  0 through 3600 seconds inclusive, require exact repository-wide
+  permission-bearing collaborator population scope, traverse every page
+  through authoritative terminal-next absence, reject partial populations,
+  page failures, loops, truncation, count mismatches, and contradictory
+  duplicate logins, then validate the exact PR author, recognized roles, and
   boolean permission-bearing entries before re-deriving
   `write_qualified_maintainers`, `qualified_non_author_reviewers`, and the
   verdict; do not infer sole-maintainer status.
 - Qualified non-author reviewer exists: use the collaborative GitHub
   `APPROVED` path.
 - External GitHub review is stale, malformed, unretrievable, from the wrong
-  actor or type, authored by the PR author, mismatched, lacks a parseable
-  approved semantic verdict, or has blockers: obtain a new allowlisted external
-  GitHub App or bot review object against the latest PR head exact SHA and
-  re-retrieve it through the GitHub API.
+  actor or type, authored by the PR author, mismatched, has timestamps or
+  policy freshness outside the exact 3600-second contract, has actual state
+  other than exact `COMMENTED` or `APPROVED`, lacks a parseable approved
+  semantic verdict, or has blockers: obtain a new allowlisted external GitHub
+  App or bot review object against the latest PR head exact SHA and re-retrieve
+  it through the GitHub API.
 - Any independent hard gate is missing or failing: repair and re-run that gate;
   neither reviewer path nor emergency may bypass it.
 - Conversation resolution (unresolved review threads exactly 0) is not proven:

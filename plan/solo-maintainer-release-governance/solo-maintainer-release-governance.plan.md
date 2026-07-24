@@ -99,8 +99,9 @@
     "repository_full_name": "<owner/repository>",
     "evidence_url": "<retrievable-github-api-endpoint>",
     "observed_at_utc": "<iso-8601-utc>",
-    "freshness_max_age_seconds": "<positive-integer>",
-    "query_scope": "<collaborator-and-permission-scope>",
+    "review_freshness_max_age_seconds": 3600,
+    "freshness_max_age_seconds": 3600,
+    "query_scope": "repository-wide permission-bearing collaborator population",
     "pagination": {
       "strategy": "page-number|cursor",
       "per_page_or_cursor": "<positive-integer-per-page-or-initial-cursor>",
@@ -138,6 +139,14 @@
   }
   ```
 
+- `review_freshness_max_age_seconds` 是 policy-owned exact `3600` 秒；evidence 的
+  `freshness_max_age_seconds` 必須 exact 等於 `3600`，不得由 evidence producer、
+  repository observation 或 caller 自行放寬。觀測時間缺失、未來時間、age 超過
+  `3600` 秒或 evidence 宣告其他上限一律 `BLOCKED`。
+- Collaborator／permission query scope 必須 exact 涵蓋 repository-wide
+  permission-bearing collaborator population；不得縮成目前已知 maintainer、
+  PR participants、單一 team、單頁結果或 caller-selected subset。無法證明 query
+  authority 與 scope 完整性時一律 `BLOCKED`。
 - Collaborator／permission inventory 必須完整分頁：明確記錄 pagination strategy、
   per-page／initial cursor、`page_count`、`total_retrieved`、deduplicated
   `total_entries`、每頁 evidence URL／request cursor、retrieved count、next value與
@@ -198,8 +207,11 @@
     "review_id": "<positive-integer>",
     "review_url": "<retrievable-github-review-url>",
     "submitted_at_utc": "<iso-8601-utc>",
+    "evaluated_at_utc": "<iso-8601-utc>",
+    "review_freshness_max_age_seconds": 3600,
     "reviewed_commit_sha": "<exact-latest-pr-head-sha>",
-    "github_review_state": "<actual-github-review-state>",
+    "github_review_state": "COMMENTED",
+    "review_body": "{\"semantic_verdict\":\"approved\",\"blocking_issues\":[]}",
     "semantic_verdict": "approved",
     "blocking_issues": []
   }
@@ -211,14 +223,26 @@
 - Review evidence provenance必須可從 `review_url`重新取得，且 API object與 body
   必須 exact綁定同一 `repository_full_name`、`pull_request_number`、
   `review_id`、allowlisted reviewer login／`type=Bot`、exact
-  `reviewed_commit_sha`、`submitted_at_utc`、actual `github_review_state`、
-  semantic verdict `approved`及`blocking_issues=[]`。Missing、unretrievable、
+  `reviewed_commit_sha`、`submitted_at_utc`、`evaluated_at_utc`、policy-owned
+  `review_freshness_max_age_seconds=3600`、actual `github_review_state`、exact
+  `review_body`、semantic verdict `approved`及`blocking_issues=[]`。`review_body`
+  必須保存 exact
+  `{"semantic_verdict":"approved","blocking_issues":[]}`並成功解析；derived
+  `semantic_verdict`與`blocking_issues`必須 exact等於解析結果。Evaluation時 review
+  age必須介於`0`與
+  `3600`秒（含）；evidence不得自行宣告較寬上限。Missing、future、stale、
+  unretrievable、generic body、reaction、issue／PR comment或其他非 GitHub review
+  object、JSON parse failure、derived mismatch，以及
   repository／PR／author／type／SHA／time／body mismatch一律 `BLOCKED`。
-- `github_review_state` 必須保留 GitHub API 的 actual state；若 actual state為
-  `COMMENTED`，contract與 evidence仍必須寫 `COMMENTED`，不得稱為 GitHub
-  `APPROVED`。此時只有 review body的 `semantic_verdict=approved`滿足 Option A，
-  不會產生 GitHub approval state。
-- Repo-visible plan／step是 commit前的 `review-ready` snapshot，不承載 publish後
+- `github_review_state` 必須保留 GitHub API 的 actual state，且 Option A只允許
+  exact `COMMENTED`或`APPROVED`。Actual state為`COMMENTED`時 contract與 evidence
+  仍必須寫`COMMENTED`，不得稱為 GitHub `APPROVED`；此時只有 review body的
+  `semantic_verdict=approved`與`blocking_issues=[]`可滿足 Option A，不會產生
+  GitHub approval state。Actual state為`CHANGES_REQUESTED`、`DISMISSED`或任何其他
+  未明確允許／adverse state時一律`BLOCKED`，即使 body宣告 semantic approved也
+  不得通過。
+- Repo-visible plan／step只有在全部 creator-owned Implementation Steps完成後才
+  能形成 commit前的`review-ready` snapshot；該 snapshot不承載 publish後
   動態 GitHub truth。Snapshot commit後，actual `pr-open`／current head／CI／review／
   conversation state只發布於 PR-visible body或 comment，不回填到同一 commit；此
   boundary避免 published-head self-reference。
@@ -261,15 +285,16 @@
 ## Status / Allowed Transitions
 
 - **Current**：`review-ready`。
-- **Execution model**：本 repo-visible plan／step只表示 commit前的
-  `review-ready` snapshot。PR review在 head
+- **Execution model**：本 repo-visible plan／step是完成 Implementation Steps
+  13–16後的 pre-publish `review-ready` snapshot。PR review在 head
   `f4a40cb74e0261dab3b98e3a2a6b2894a966bc8b` 新增 threads #14與#15後，本輪
   planning state先依 canonical `review-ready` -> `reviewer-in-progress` ->
   `needs-rework`記錄 review blockers，再由 human-authorized Option A authoring依
   `needs-rework` -> `creator-in-progress` -> `review-ready`完成 bounded plan／step
-  rework。Final plan Current與 step phase均為 pre-publish `review-ready`；這不構成
-  reviewer approval、publish後 current GitHub truth、merge authorization或 tag
-  authorization。Snapshot commit後，actual `pr-open`、head、CI、review與
+  rework。該 historical round當時的 plan Current與 step phase為 pre-publish
+  `review-ready`；這不構成 reviewer approval、publish後 current GitHub truth、
+  merge authorization或 tag authorization。Snapshot commit後，actual
+  `pr-open`、head、CI、review與
   conversation state只能發布在 PR body或 comment，不得回填到同一 commit。其後
   Tester對 plan／step回報 single P1：pagination minimum JSON缺少 deduplicated
   `total_entries`及三個計數 reconciliation gate；本 bounded fix再依 canonical
@@ -277,7 +302,26 @@
   完成。其後 Plan-Reviewer回報 single current-truth fix：plan仍將 threads #14／#15
   substantive implementation／local validation列為 pending；本次同步已依
   `reviewer-in-progress` -> `needs-rework` -> `creator-in-progress` ->
-  `review-ready`完成。Final status仍為 pre-publish `review-ready`。
+  `review-ready`完成。其後 PR #52在 published head
+  `8740a9086aba085194d1cc60377cbddc61b76909`取得 external bot review
+  `4768947922`；actual state為`COMMENTED`，但 body semantic schema不合格並新增三個
+  P1 threads。External PR state依`pr-open` -> `needs-rework`進入本輪修正；本次
+  Plan-Creator只凍結 three-P1 contract並依`needs-rework` ->
+  `creator-in-progress`停在 creator completion gate。Implementer已在 exact四個
+  skill surfaces完成三個 P1 contract、核對 exact-six written inventory與
+  Deleted=None，並以 bounded static checks確認 JSON、必要 contract tokens及
+  `git diff --check`；因此依 canonical
+  `creator-in-progress` -> `review-ready`完成 creator-owned steps。獨立
+  Reviewer／Tester validation、publish、external review與 conversation resolution
+  均保持獨立 pending boundary。Implementation Reviewer其後指出唯一 planning
+  schema drift：authoritative review minimum schema未保存 exact `review_body`，且
+  acceptance contract未鎖定 parse／derived consistency與 non-review-object
+  fail-closed。本次只由 Plan-Creator修改 plan／step，依 canonical
+  `review-ready` -> `reviewer-in-progress` -> `needs-rework` ->
+  `creator-in-progress`完成 bounded correction，再以
+  `creator-in-progress` -> `review-ready`回到獨立 review boundary；Steps 13–16的
+  implementation evidence、四個 skill artifacts與所有 external pending boundaries
+  均未改變。
 - **Allowed transitions**：
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -303,30 +347,41 @@ Routing notes：
   可擷取 review object。Local `preflight_only=true`結果只能作 advisory。
 - 本 topic 不需要 repo-visible review-log，也不宣告 round cap；review routing 使用
   standard workflow contract。
-- Pre-publish external observation（本輪 trigger only）：
+- External observation（本輪 rework trigger only；後續 head變更時即成 historical）：
   - repository／PR：`a129924/mlops-async`／`#52`；
-  - observed head：`f4a40cb74e0261dab3b98e3a2a6b2894a966bc8b`；
-  - observed `python-ci`：success；
+  - observed head：`8740a9086aba085194d1cc60377cbddc61b76909`；
+  - observed `python-ci`：`SUCCESS`；
+  - observed bot review id：`4768947922`；
+  - observed bot review actual state：`COMMENTED`；
+  - bot review semantic schema：不合格；不得算作 Option A authoritative reviewer
+    PASS；
   - verdict：`needs-rework`；
-  - observed unresolved conversations：`15`；
-  - PR body unresolved count：`13`，已 stale且待 external update。
+  - observed unresolved conversations：`18`。
 - Current actionable threads：
-  - #14 complete collaborator pagination contract：
-    `PRRT_kwDOSTt_386TT3Io`／`PRRC_kwDOSTt_387Y8IP5`／`DB3639641081`；
-  - #15 authoritative external reviewer identity boundary：
-    `PRRT_kwDOSTt_386TT3Iq`／`PRRC_kwDOSTt_387Y8IP8`／`DB3639641084`。
-- #1至#13內容均已 addressed，但在 GitHub reply／resolve前仍全部 unresolved；
+  - review state allowlist／adverse-state fail-closed：
+    `PRRT_kwDOSTt_386TaKiK`；
+  - policy-owned exact 3600-second freshness maximum：
+    `PRRT_kwDOSTt_386TaKiM`；
+  - repository-wide permission-bearing collaborator population與 complete
+    pagination scope：
+    `PRRT_kwDOSTt_386TaKiO`。
+- 先前 #1至#15內容已有 bounded address，但在 GitHub reply／resolve前仍全部
+  unresolved；
   只有完整分頁後取得的 current thread inventory可以提供 derived count。
-- Threads #14／#15的 substantive implementation與 local validation已在 existing
-  exact六檔 surfaces完成；這不等於 external exact-new-head reviewer evidence、
-  new-head CI或 GitHub thread resolution已完成。
+- 新三個 P1 threads的 planning contract已由本次 Plan-Creator凍結；四個 skill
+  surfaces的 bounded implementation與 creator-owned static validation已完成；
+  GitHub threads仍待獨立 review後 reply／resolve。
 - 尚未滿足的 boundaries：
-  1. Snapshot commit後，allowlisted external GitHub App／bot必須審查 actual exact
-     new PR head並提交合格、可擷取的 GitHub review object；
-  2. new exact head的 actual `python-ci` success仍 pending；
-  3. observed unresolved `15`均待 authorized reply／resolve；PR body count `13`
-     已 stale，external update仍 pending；
-  4. merge與 tag仍需新的 explicit human authorization。
+  1. 由獨立 Reviewer／Tester驗證 three-P1 bounded implementation與 exact-six
+     scope；
+  2. Reviewer／Tester通過後才可 publish；rework publish造成 head變更後，必須取得
+     new exact head的 actual
+     `python-ci` success；
+  3. allowlisted external GitHub App／bot必須對 new exact head提交合格、可擷取的
+     GitHub review object；review `4768947922`不合格且將因 head變更 stale；
+  4. observed unresolved `18`均待獨立 review、authorized reply／resolve，
+     再以 complete thread pagination確認 exact `0`；
+  5. merge與 tag仍需新的 explicit human authorization。
 - Human已明確授權 PR #52 comment review／fix／reply／resolve全部 unresolved
   actionable threads；此授權不包含 merge或 tag，兩者仍是獨立 human boundary。
 
@@ -383,9 +438,10 @@ Current bounded rework additions（plan review通過後執行）：
 
 7. 在 `.agents/skills/git-release-management/SKILL.md` 與
    `.agents/skills/git-release-management/references/gate-contract.md` 鎖定
-   repo-visible plan／step是 pre-publish `review-ready` snapshot；snapshot commit後的
-   actual PR head、CI、review與 conversation state只能更新於 PR body或 comment，
-   不得回填到同一 commit形成 published-head self-reference。
+   repo-visible plan／step只有在 creator-owned completion gate通過後才是
+   pre-publish `review-ready` snapshot；snapshot commit後的 actual PR head、CI、
+   review與 conversation state只能更新於 PR body或 comment，不得回填到同一
+   commit形成 published-head self-reference。
 8. 在上述兩個 primary contract surfaces加入 authoritative external GitHub
    App／bot review provenance contract：review object必須可擷取，且 exact綁定
    repository、PR、allowlisted canonical reviewer login／`type=Bot`、review id、
@@ -414,6 +470,26 @@ Current bounded rework additions（plan review通過後執行）：
     planning actor只更新 plan／step contract；Implementer只更新四個
     `git-release-management` contract files及 step completion evidence。不得新增
     workflow、signing、key、secret、attestation artifact或 GitHub settings變更。
+13. 依 thread `PRRT_kwDOSTt_386TaKiK`，由 Implementer在既有四個 skill
+    surfaces將 Option A actual GitHub review state allowlist鎖為 exact
+    `COMMENTED`或`APPROVED`；`CHANGES_REQUESTED`、`DISMISSED`與所有其他未允許／
+    adverse states一律 fail closed，即使 semantic body宣告 approved也不得通過。
+14. 依 thread `PRRT_kwDOSTt_386TaKiM`，由 Implementer將 policy-owned
+    `review_freshness_max_age_seconds`鎖為 exact `3600`；evidence必須使用相同值，
+    不得由 producer或 caller放寬，並對 missing／future／stale／mismatched
+    freshness evidence fail closed。
+15. 依 thread `PRRT_kwDOSTt_386TaKiO`，由 Implementer將 collaborator query
+    scope鎖為 repository-wide permission-bearing collaborator population，維持
+    complete pagination、terminal/count reconciliation、consistent-login
+    deduplication與 conflict fail-closed；不得使用 PR participants、known
+    maintainers或 caller-selected subset。
+16. 由 Implementer在完成 steps 13–15後更新 step tracker的 creator-owned
+    completion evidence，核對 written inventory仍為 exact六檔、Deleted為None，且
+    未觸碰 workflow、signing、key、secret、attestation、settings、release metadata
+    或其他 out-of-scope path。只有 steps 13–16皆有實際 implementation evidence時
+    才能轉為`review-ready`。Reviewer／Tester validation、publish、new-head CI、
+    new exact-head external bot review、18 threads reply／resolve、merge、tag與
+    release不屬於 creator completion gate，均維持獨立 pending。
 
 ## Validation / Acceptance Checks
 
@@ -426,8 +502,11 @@ Contract checks：
 - 無法取得或無法判定 current maintainer inventory 時，結果為 `BLOCKED`，不得從聊天、
   ruleset approval count 或歷史 evidence 推定 sole-maintainer eligibility。
 - Topology proof必須提供可擷取的 GitHub collaborator／permission query provenance，
-  包含 repository、evidence URL或 API endpoint、observation UTC、正整數 freshness
-  limit、query scope、pagination strategy、per-page／initial cursor、`page_count`、
+  包含 repository、evidence URL或 API endpoint、observation UTC、policy-owned exact
+  `review_freshness_max_age_seconds=3600`與 evidence exact
+  `freshness_max_age_seconds=3600`、query scope exact
+  `repository-wide permission-bearing collaborator population`、pagination
+  strategy、per-page／initial cursor、`page_count`、
   `total_retrieved`、deduplicated `total_entries`、每頁 evidence URL／request
   cursor／retrieved count／next evidence、`terminal_next_absent=true`、
   `pagination_complete=true`、exact `pr_author_login`、fixed
@@ -460,23 +539,34 @@ Contract checks：
 - External evidence minimum schema exact包含
   `reviewer_kind=external-github-app`、`reviewer_login`、`type`、
   `repository_full_name`、`pull_request_number`、`review_id`、`review_url`、
-  `submitted_at_utc`、`reviewed_commit_sha`、actual `github_review_state`、
+  `submitted_at_utc`、`evaluated_at_utc`、
+  `review_freshness_max_age_seconds=3600`、`reviewed_commit_sha`、actual
+  `github_review_state`、exact
+  `review_body={"semantic_verdict":"approved","blocking_issues":[]}`、
   `semantic_verdict=approved`與`blocking_issues=[]`；不得包含 authoritative local
   run mapping。
 - `review_url`必須可重新取得 GitHub review object；object與 body必須 exact綁定
   repository、PR、review id、allowlisted canonical login／`type=Bot`、非 PR author、
-  latest committed head SHA、submission time、actual state與 semantic body。
+  latest committed head SHA、submission／evaluation time、policy-owned exact
+  3600-second freshness、actual state與 exact `review_body`。Gate必須保存並解析
+  exact `{"semantic_verdict":"approved","blocking_issues":[]}`；解析出的 derived
+  `semantic_verdict`與`blocking_issues`必須與 evidence欄位 exact一致。Generic body、
+  reaction、issue／PR comment、其他非 review object、unparseable JSON或任何 derived
+  mismatch一律`BLOCKED`。
   初始 allowlist candidate exact為`chatgpt-codex-connector[bot]`。任何 missing、
   unretrievable或 repository／PR／author／type／SHA／time／body mismatch均
   `BLOCKED`。
-- Actual `COMMENTED`必須保持`COMMENTED`且不得稱為 GitHub `APPROVED`；只有 body的
-  semantic verdict `approved`可滿足 Option A。PR author body／comment與 local
-  subagent preflight均不合格。Plan／step content hash、working-tree hash或
+- Actual review state只允許 exact `COMMENTED`或`APPROVED`。`COMMENTED`必須保持
+  `COMMENTED`且不得稱為 GitHub `APPROVED`；只有 body的 semantic verdict
+  `approved`與`blocking_issues=[]`可滿足 Option A。`CHANGES_REQUESTED`、
+  `DISMISSED`或其他未允許／adverse state一律`BLOCKED`。PR author body／comment與
+  local subagent preflight均不合格。Plan／step content hash、working-tree hash或
   repo-local self-approval claim也不能替代 external review object，且不新增
   self-hash ledger。
-- Repo-visible plan／step只表示 pre-publish `review-ready` snapshot。Snapshot
-  commit後的 actual PR head、CI、review與 conversation state由 PR body或 comment
-  承載，不得回填到同一 commit宣稱 published-head truth。
+- Repo-visible plan／step在 creator-owned completion gate通過並轉為
+  `review-ready`後，只表示 pre-publish snapshot。Snapshot commit後的 actual PR
+  head、CI、review與 conversation state由 PR body或 comment承載，不得回填到同一
+  commit宣稱 published-head truth。
 - Rework 或 base sync 改變 SHA 後，舊 external review object立即 stale，必須由
   allowlisted external GitHub App／bot重新 review exact new head。
 - 文案明確區分 semantic verdict、actual GitHub state與 GitHub `APPROVED`；external
@@ -522,6 +612,24 @@ Scenario test cases：
     BLOCKED；必須保留 actual state並分開記錄 semantic verdict。
 12. Snapshot commit後 PR head或 conversation state改變：repo snapshot不得自稱
     current；external review object必須針對 actual exact head重新取得。
+13. GitHub API actual state為`APPROVED`或`COMMENTED`，且其餘 Option A identity、
+    provenance、exact-head與 semantic schema全部合格：review state gate可繼續評估；
+    `COMMENTED`仍不得稱為 GitHub approval。
+14. GitHub API actual state為`CHANGES_REQUESTED`、`DISMISSED`或任何其他未允許／
+    adverse state：即使 body宣告`semantic_verdict=approved`且
+    `blocking_issues=[]`，仍`BLOCKED`。
+15. External review evidence由`submitted_at_utc`與`evaluated_at_utc`導出的 age介於
+    `0`與`3600`秒（含），且 policy／evidence上限 exact一致：可繼續評估；age超過
+    `3600`秒、timestamp missing／future、或 evidence宣告可放寬的其他 freshness
+    value：`BLOCKED`。Topology observation亦不得以 evidence自訂上限放寬 current
+    evidence requirement。
+16. Collaborator query完整涵蓋 repository-wide permission-bearing collaborator
+    population，且 pagination terminal、counts與 dedup reconciliation全部通過：
+    topology derivation可繼續；若只查 PR participants、known maintainers、單一 team
+    或 caller-selected subset：`BLOCKED`。
+17. PR #52 head `8740a9086aba085194d1cc60377cbddc61b76909`上的 review
+    `4768947922` actual state雖為允許的`COMMENTED`，但 semantic schema不合格：
+    reviewer gate維持`BLOCKED`，不得把該 object當作 Option A PASS。
 
 Repository checks：
 

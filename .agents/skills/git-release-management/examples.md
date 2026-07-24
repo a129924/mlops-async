@@ -104,8 +104,9 @@ Repair:
   "repository_full_name": "<owner/repository>",
   "evidence_url": "<retrievable-github-collaborator-or-permission-api-endpoint>",
   "observed_at_utc": "<fresh-iso-8601-utc>",
-  "freshness_max_age_seconds": "<positive-integer>",
-  "query_scope": "<collaborator-and-permission-scope>",
+  "review_freshness_max_age_seconds": 3600,
+  "freshness_max_age_seconds": 3600,
+  "query_scope": "repository-wide permission-bearing collaborator population",
   "pagination": {
     "strategy": "page-number",
     "per_page_or_cursor": "<positive-integer-per-page>",
@@ -160,6 +161,8 @@ Repair:
   "review_id": "<positive-integer>",
   "review_url": "<retrievable-github-review-url>",
   "submitted_at_utc": "<fresh-iso-8601-utc>",
+  "evaluated_at_utc": "<fresh-iso-8601-utc>",
+  "review_freshness_max_age_seconds": 3600,
   "reviewed_commit_sha": "<exact-latest-pr-head-sha>",
   "github_review_state": "COMMENTED",
   "review_body": "{\"semantic_verdict\":\"approved\",\"blocking_issues\":[]}",
@@ -170,10 +173,15 @@ Repair:
 
 - Retrieve both URLs before deciding the gate.
 - Verify the topology endpoint belongs to the declared repository, the
-  permission-bearing collaborator entries are nonempty and fresh, and every
-  page is retrieved through authoritative terminal-next absence. Verify page
-  counts, totals, next evidence, and absence of failure, cursor loop, or
-  truncation before using the inventory.
+  policy and evidence freshness values are both exact 3600 seconds,
+  `observed_at_utc` is present and not in the future, its age is from 0 through
+  3600 seconds inclusive, and query scope is exact
+  `repository-wide permission-bearing collaborator population`. PR
+  participants, known maintainers, one team, and caller-selected or partial
+  samples do not qualify. The permission-bearing collaborator entries must be
+  nonempty, and every page must be retrieved through authoritative
+  terminal-next absence. Verify page counts, totals, next evidence, and absence
+  of failure, cursor loop, or truncation before using the inventory.
 - Deduplicate a login repeated across pages only when its role and permissions
   are identical. A contradiction blocks the path.
 - Apply the explicit predicate: `admin`, `maintain`, or `write`, or boolean
@@ -184,12 +192,16 @@ Repair:
 - Retrieve the GitHub review object and verify the same repository and PR,
   positive review id, exact allowlisted reviewer
   `chatgpt-codex-connector[bot]`, exact `type=Bot`, reviewer different from the
-  PR author, valid submission time, exact latest PR head, literal actual state,
-  and exact body. Parse the body to semantic verdict `approved` and
-  `blocking_issues=[]`.
+  PR author, valid submission and evaluation times, policy-owned exact
+  `review_freshness_max_age_seconds=3600`, age from 0 through 3600 seconds
+  inclusive, exact latest PR head, literal actual state, and exact body. Parse
+  the body to semantic verdict `approved` and `blocking_issues=[]`.
 - This positive placeholder deliberately records the actual state as
   `COMMENTED`. It satisfies Option A only through the body semantics and must
   not be described as GitHub `APPROVED`.
+- Option A accepts actual state only when it is exact `COMMENTED` or `APPROVED`.
+  `CHANGES_REQUESTED`, `DISMISSED`, a missing state, and every other
+  unallowlisted state remain blocked even when their body says approved.
 - These placeholder examples do not disclose an actual private collaborator
   inventory, token, or secret.
 
@@ -201,6 +213,12 @@ Blocked sole-maintainer reviewer gate:
   entries plus `sole_maintainer_verified=true`
 - topology endpoint is missing, unretrievable, stale, scoped ambiguously, or
   contradicts the derived write-qualified or non-author inventory
+- topology policy or evidence freshness is not exact 3600 seconds,
+  `observed_at_utc` is missing or in the future, or its age exceeds 3600
+  seconds
+- query scope is PR participants, known maintainers, one team, a
+  caller-selected subset, or anything other than the repository-wide
+  permission-bearing collaborator population
 - pagination is unknown or incomplete, a middle page fails, a cursor loops,
   results are truncated, page counts or totals mismatch, or authoritative
   terminal-next-absent evidence is missing
@@ -216,6 +234,11 @@ Blocked sole-maintainer reviewer gate:
   is not `Bot`, or reviewer equals the PR author
 - review object belongs to another repository or PR, or its review id,
   submission time, literal state, or exact body mismatches
+- review evaluation time or policy-owned exact 3600-second freshness is
+  missing, a timestamp is in the future, review age is negative or above 3600
+  seconds, or evidence attempts to override the freshness maximum
+- actual review state is `CHANGES_REQUESTED`, `DISMISSED`, missing, or anything
+  other than exact `COMMENTED` or `APPROVED`
 - reviewed commit differs from the latest PR head
 - review body is missing or unparseable, semantic verdict is not `approved`, or
   `blocking_issues` is missing or nonempty
@@ -231,6 +254,8 @@ Blocked sole-maintainer reviewer gate:
 - A local Reviewer result may be retained only as separately labeled
   `preflight_only=true` advisory evidence; it cannot satisfy the gate.
 - Do not describe an actual `COMMENTED` object as GitHub `APPROVED`.
+- Do not let an approved semantic body override an adverse, missing, or
+  unallowlisted actual GitHub review state.
 
 ## Emergency path
 
