@@ -10,9 +10,11 @@ import mlops_async.core.token_storage as token_storage
 
 
 def test_internal_auth_contracts_are_not_promoted_to_package_root() -> None:
+    assert not hasattr(mlops_async, "AuthClient")
     assert not hasattr(mlops_async, "AuthProvider")
     assert not hasattr(mlops_async, "TokenManager")
     assert not hasattr(mlops_async, "TokenEndpointClient")
+    assert not hasattr(mlops_async, "TokenEndpointClientProtocol")
     assert not hasattr(mlops_async, "TokenStorage")
     assert not hasattr(mlops_async, "AccessToken")
     assert not hasattr(mlops_async, "Requester")

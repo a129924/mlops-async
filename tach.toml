@@ -13,7 +13,11 @@ depends_on = []
 
 [[modules]]
 path = "mlops_async.core"
-depends_on = ["mlops_async"]
+depends_on = []
+
+[[modules]]
+path = "mlops_async.clients"
+depends_on = ["mlops_async.core"]
 
 [[modules]]
 path = "mlops_async.transport"

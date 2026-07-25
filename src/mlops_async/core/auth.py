@@ -7,7 +7,6 @@ from typing import Protocol, runtime_checkable
 
 from mlops_async.core.token_endpoint_client import TokenEndpointClient
 from mlops_async.core.token_storage import AccessToken, DEFAULT_EXPIRY_SKEW, TokenStorage
-from mlops_async.exceptions import MlopsAsyncBaseException
 
 __all__ = [
     "AuthException",
@@ -18,8 +17,11 @@ __all__ = [
 ]
 
 
-class AuthException(MlopsAsyncBaseException):
+class AuthError(Exception):
     """Base exception for auth-layer failures."""
+
+
+AuthException = AuthError
 
 
 class TokenFetchException(AuthException):

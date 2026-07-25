@@ -1,0 +1,50 @@
+verdict: red-tests-ready
+d1_verdict:
+  verdict: non-trivial
+  reason: api_change
+test_mapping:
+  - requirement_id: AC-1
+    test_case_name: test_auth_client_is_available_only_from_canonical_family_module
+    coverage_category: happy_path
+  - requirement_id: AC-2
+    test_case_name: test_get_access_token_awaits_fetch_once_and_returns_the_same_token
+    coverage_category: integration_points
+  - requirement_id: AC-3
+    test_case_name: test_get_access_token_preserves_collaborator_errors_without_translation
+    coverage_category: error_exception
+  - requirement_id: AC-3
+    test_case_name: test_get_access_token_propagates_cancellation_without_cleanup
+    coverage_category: boundary_edge
+  - requirement_id: AC-3
+    test_case_name: test_auth_client_has_no_cache_or_lifecycle_and_uses_fetch_only_collaborator
+    coverage_category: state_side_effects
+  - requirement_id: AC-4
+    test_case_name: test_auth_client_is_available_only_from_canonical_family_module
+    coverage_category: happy_path
+  - requirement_id: AC-5
+    test_case_name: test_core_auth_does_not_import_package_root_or_higher_layers
+    coverage_category: integration_points
+  - requirement_id: AC-6
+    test_case_name: test_core_auth_does_not_import_package_root_or_higher_layers
+    coverage_category: integration_points
+  - requirement_id: AC-7
+    test_case_name: test_auth_client_is_available_only_from_canonical_family_module
+    coverage_category: boundary_edge
+  - requirement_id: AC-8
+    test_case_name: test_auth_client_is_available_only_from_canonical_family_module
+    coverage_category: happy_path
+validation_checks:
+  d1_decision: non-trivial public API correction with async behavior boundary
+  behavior_contract_source: plan/auth-client/auth-client.spec.md
+  requirements_mapped: true
+  public_contract_coverage: true
+  test_categories_present:
+    - happy_path
+    - error_exception
+    - boundary_edge
+    - state_side_effects
+    - integration_points
+  expected_initial_status: red
+  production_code_modified: false
+issues: []
+next_step: Implement only the approved AuthClient correction, then rerun the target pytest command before broader validation.
