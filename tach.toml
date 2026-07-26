@@ -25,7 +25,7 @@ depends_on = ["mlops_async", "mlops_async.core"]
 
 [[modules]]
 path = "mlops_async._repo_hooks"
-depends_on = ["mlops_async._repo_hooks.local_path_guard"]
+depends_on = []
 
 [[modules]]
 path = "mlops_async._repo_hooks.local_path_guard"
