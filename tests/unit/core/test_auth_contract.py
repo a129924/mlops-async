@@ -4,9 +4,12 @@ import inspect
 from collections.abc import Mapping
 from typing import get_type_hints
 
+import pytest
+
 import mlops_async
 import mlops_async.core.auth as auth
 import mlops_async.core.token_storage as token_storage
+from mlops_async.exceptions import MlopsAsyncBaseException
 
 
 def test_internal_auth_contracts_are_not_promoted_to_package_root() -> None:
@@ -26,6 +29,11 @@ def test_auth_exception_retains_its_public_class_identity() -> None:
     assert auth.AuthException.__name__ == "AuthException"
     assert type(exception) is auth.AuthException
     assert repr(exception).startswith("AuthException(")
+
+
+def test_auth_exception_is_caught_by_the_shared_library_base_exception() -> None:
+    with pytest.raises(MlopsAsyncBaseException):
+        raise auth.AuthException("token endpoint failed")
 
 
 def test_token_manager_surface_is_async_and_returns_access_token() -> None:

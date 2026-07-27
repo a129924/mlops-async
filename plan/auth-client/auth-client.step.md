@@ -59,6 +59,12 @@ superseded and cannot be reused.
 - [ ] implementation-review
 - [ ] code-review
 
+## PR review correction contract
+
+- [X] 7. 將既有 `mlops_async.exceptions` 宣告為零依賴 Tach leaf；使 AuthException
+  繼承 `MlopsAsyncBaseException`；加入 AuthClient 使用的 fetch-only token protocol，並保留
+  TokenManager 與 future-only facade contract 使用的完整 refresh protocol。
+
 ## Implementation Steps
 
 - [X] 1. Tester 於 plan approval 後重寫 `plan/auth-client/auth-client.tdd-test-authoring.yaml`，並在 `tests/unit/clients/test_auth_client.py` 建立 canonical direct-import、exactly-once delegation、errors/cancellation 原樣傳播與禁止 lifecycle/policy 的 RED tests。

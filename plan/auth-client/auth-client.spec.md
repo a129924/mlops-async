@@ -129,6 +129,16 @@ git diff --check
 
 `uv run tach check` 是 Tester validation gate。若 WDAC 阻擋 native extension，記錄實際 blocker 並停止該 gate；不得執行 `tach sync`、skip，或宣稱成功。
 
+## PR review correction contract
+
+- `mlops_async.exceptions` 是既有的零依賴 shared-error leaf。Tach 的 core 向下依賴它，
+  root 保持沒有對 core 的直接依賴。
+- `AuthException` 保持具體 public name 並繼承 `MlopsAsyncBaseException`；此設計保留
+  catchability，不改變 transport exception translation。
+- AuthClient 接受僅含 `fetch_access_token() -> AccessToken` 的
+  `TokenEndpointFetchClientProtocol`。完整的 `TokenEndpointClientProtocol` 繼承它並保留
+  refresh，供 TokenManager 與 future-only `MLOpsAsyncClient` composition contract 使用。
+
 ## Risks and Stop Conditions
 
 - 若 core 無法移除 root dependency，停止並要求 human shared-contracts decision；不得以建立 EndpointFamilyClient base、Protocol 或 module 作為替代。

@@ -277,6 +277,17 @@ superseded and cannot be reused.
 - 不得把舊 root-AuthClient 的 `0.14.0` release-prep evidence、approval 或
   metadata 視為本 correction 的 merge/release 依據。
 
+## PR review correction contract
+
+- `mlops_async.exceptions` 是既有的零依賴 shared-error leaf。Tach 中
+  `mlops_async.core` 只可向下依賴此 leaf；package root 不得新增對 core 的直接依賴。
+- `AuthException` 保持既有具體 class name，並繼承
+  `MlopsAsyncBaseException`，讓呼叫端可捕捉既有 library base，且不轉譯 transport exception。
+- `TokenEndpointFetchClientProtocol` 只含
+  `fetch_access_token() -> AccessToken`。AuthClient 接受此窄 collaborator；完整的
+  `TokenEndpointClientProtocol` 繼承它並保留 refresh，供 TokenManager 與 future-only
+  `MLOpsAsyncClient` contract 使用。
+
 ## Open Questions / Unresolved Items
 
 - 無阻礙 Plan-Reviewer 的 runtime contract question；Planner preflight 判定

@@ -7,17 +7,19 @@ from typing import Protocol, runtime_checkable
 
 from mlops_async.core.token_endpoint_client import TokenEndpointClient
 from mlops_async.core.token_storage import AccessToken, DEFAULT_EXPIRY_SKEW, TokenStorage
+from mlops_async.exceptions import MlopsAsyncBaseException
 
 __all__ = [
     "AuthException",
     "AuthProvider",
     "TokenEndpointClient",
+    "TokenEndpointFetchClientProtocol",
     "TokenFetchException",
     "TokenManager",
 ]
 
 
-class AuthException(Exception):  # noqa: N818
+class AuthException(MlopsAsyncBaseException):
     """Base exception for auth-layer failures.
 
     The established ``AuthException`` class name is retained for callers that
@@ -30,10 +32,15 @@ class TokenFetchException(AuthException):
 
 
 @runtime_checkable
-class TokenEndpointClientProtocol(Protocol):
-    """Internal collaborator that fetches or refreshes tokens via raw transport."""
+class TokenEndpointFetchClientProtocol(Protocol):
+    """Collaborator that can retrieve a new access token."""
 
     async def fetch_access_token(self) -> AccessToken: ...
+
+
+@runtime_checkable
+class TokenEndpointClientProtocol(TokenEndpointFetchClientProtocol, Protocol):
+    """Internal collaborator that fetches or refreshes tokens via raw transport."""
 
     async def refresh_access_token(self, token: AccessToken) -> AccessToken: ...
 

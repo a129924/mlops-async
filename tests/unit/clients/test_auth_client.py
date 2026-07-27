@@ -9,6 +9,7 @@ import pytest
 
 import mlops_async
 import mlops_async.core.auth as core_auth
+from mlops_async.clients.auth_client import AuthClient
 from mlops_async.core.token_storage import AccessToken
 
 
@@ -29,6 +30,11 @@ class _FetchOnlyTokenEndpointClient:
         return outcome
 
 
+class _FullTokenEndpointClient(_FetchOnlyTokenEndpointClient):
+    async def refresh_access_token(self, token: AccessToken) -> AccessToken:
+        return token
+
+
 def _access_token(value: str) -> AccessToken:
     return AccessToken(
         value=value,
@@ -36,26 +42,40 @@ def _access_token(value: str) -> AccessToken:
     )
 
 
-def _canonical_auth_client() -> type[object]:
-    from mlops_async.clients.auth_client import AuthClient
-
-    return AuthClient
-
-
 def test_auth_client_is_available_only_from_canonical_family_module() -> None:
-    auth_client = _canonical_auth_client()
-
-    assert auth_client.__module__ == "mlops_async.clients.auth_client"
+    assert AuthClient.__module__ == "mlops_async.clients.auth_client"
     assert not hasattr(mlops_async, "AuthClient")
     assert not Path(mlops_async.__file__).with_name("mlops_async_client.py").exists()
 
 
+def test_auth_client_accepts_a_fetch_only_protocol_collaborator() -> None:
+    fetch_only_collaborator: core_auth.TokenEndpointFetchClientProtocol = (
+        _FetchOnlyTokenEndpointClient([_access_token("issued-token")])
+    )
+    auth_client: AuthClient = AuthClient(fetch_only_collaborator)
+
+    assert isinstance(fetch_only_collaborator, core_auth.TokenEndpointFetchClientProtocol)
+    assert not isinstance(fetch_only_collaborator, core_auth.TokenEndpointClientProtocol)
+    assert isinstance(auth_client, AuthClient)
+
+
+def test_auth_client_remains_compatible_with_the_full_token_endpoint_protocol() -> None:
+    full_collaborator: core_auth.TokenEndpointClientProtocol = _FullTokenEndpointClient(
+        [_access_token("issued-token")]
+    )
+    fetch_only_collaborator: core_auth.TokenEndpointFetchClientProtocol = full_collaborator
+    auth_client: AuthClient = AuthClient(full_collaborator)
+
+    assert isinstance(fetch_only_collaborator, core_auth.TokenEndpointFetchClientProtocol)
+    assert isinstance(full_collaborator, core_auth.TokenEndpointClientProtocol)
+    assert isinstance(auth_client, AuthClient)
+
+
 @pytest.mark.asyncio
 async def test_get_access_token_awaits_fetch_once_and_returns_the_same_token() -> None:
-    auth_client_type = _canonical_auth_client()
     expected_token = _access_token("issued-token")
     token_endpoint_client = _FetchOnlyTokenEndpointClient([expected_token])
-    auth_client = auth_client_type(token_endpoint_client)
+    auth_client = AuthClient(token_endpoint_client)
 
     actual_token = await auth_client.get_access_token()
 
@@ -65,10 +85,9 @@ async def test_get_access_token_awaits_fetch_once_and_returns_the_same_token() -
 
 @pytest.mark.asyncio
 async def test_get_access_token_preserves_collaborator_errors_without_translation() -> None:
-    auth_client_type = _canonical_auth_client()
     expected_error = _CollaboratorError("endpoint failed")
     token_endpoint_client = _FetchOnlyTokenEndpointClient([expected_error])
-    auth_client = auth_client_type(token_endpoint_client)
+    auth_client = AuthClient(token_endpoint_client)
 
     with pytest.raises(_CollaboratorError) as error_info:
         await auth_client.get_access_token()
@@ -79,10 +98,9 @@ async def test_get_access_token_preserves_collaborator_errors_without_translatio
 
 @pytest.mark.asyncio
 async def test_get_access_token_propagates_cancellation_without_cleanup() -> None:
-    auth_client_type = _canonical_auth_client()
     cancellation = asyncio.CancelledError()
     token_endpoint_client = _FetchOnlyTokenEndpointClient([cancellation])
-    auth_client = auth_client_type(token_endpoint_client)
+    auth_client = AuthClient(token_endpoint_client)
 
     with pytest.raises(asyncio.CancelledError) as error_info:
         await auth_client.get_access_token()
@@ -93,11 +111,10 @@ async def test_get_access_token_propagates_cancellation_without_cleanup() -> Non
 
 @pytest.mark.asyncio
 async def test_auth_client_has_no_cache_or_lifecycle_and_uses_fetch_only_collaborator() -> None:
-    auth_client_type = _canonical_auth_client()
     first_token = _access_token("first-token")
     second_token = _access_token("second-token")
     token_endpoint_client = _FetchOnlyTokenEndpointClient([first_token, second_token])
-    auth_client = auth_client_type(token_endpoint_client)
+    auth_client = AuthClient(token_endpoint_client)
 
     assert await auth_client.get_access_token() is first_token
     assert await auth_client.get_access_token() is second_token
@@ -109,7 +126,6 @@ async def test_auth_client_has_no_cache_or_lifecycle_and_uses_fetch_only_collabo
 
 
 def test_core_auth_does_not_import_package_root_or_higher_layers() -> None:
-    auth_client_type = _canonical_auth_client()
     tree = ast.parse(Path(core_auth.__file__).read_text(encoding="utf-8"))
     imported_modules = {
         node.module
@@ -117,9 +133,11 @@ def test_core_auth_does_not_import_package_root_or_higher_layers() -> None:
         if isinstance(node, ast.ImportFrom) and node.module is not None
     }
 
-    assert auth_client_type.__module__ == "mlops_async.clients.auth_client"
+    assert AuthClient.__module__ == "mlops_async.clients.auth_client"
     assert all(
-        module == "mlops_async.core" or module.startswith("mlops_async.core.")
+        module == "mlops_async.exceptions"
+        or module == "mlops_async.core"
+        or module.startswith("mlops_async.core.")
         for module in imported_modules
         if module == "mlops_async" or module.startswith("mlops_async.")
     )
