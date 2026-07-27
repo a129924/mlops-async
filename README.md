@@ -12,14 +12,14 @@ facade and endpoint-family APIs remain future work.
 The concrete endpoint-family client `AuthClient` has only one supported import:
 `from mlops_async.clients.auth_client import AuthClient`; importing it from the
 package root is unsupported. `get_access_token()` directly awaits one
-`fetch_access_token()` call on the injected `TokenEndpointClientProtocol`.
+`fetch_access_token()` call on the injected `TokenEndpointFetchClientProtocol`.
 `AuthClient` has no refresh, grant-selection, cache, exception-translation,
 transport-lifecycle, or close behavior.
 
 concrete endpoint-family client `AuthClient` 的唯一支援匯入方式為
 `from mlops_async.clients.auth_client import AuthClient`；不得從 package root
 匯入。`get_access_token()` 僅直接 await 注入的
-`TokenEndpointClientProtocol.fetch_access_token()` 一次。`AuthClient` 不含
+`TokenEndpointFetchClientProtocol.fetch_access_token()` 一次。`AuthClient` 不含
 refresh、grant selection、cache、exception translation、transport lifecycle 或
 close 行為。
 
