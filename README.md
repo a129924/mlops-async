@@ -5,8 +5,30 @@ Async Python library scaffold for SAS Viya REST API operations.
 ## Status
 
 This repository is currently a **project scaffold**. The package layout, tooling,
-quality gates, and agent-governance files are in place; the public client API is
-not implemented yet.
+quality gates, and agent-governance files are in place. The only implemented
+public client surface is the bounded `AuthClient` described below; broader
+facade and endpoint-family APIs remain future work.
+
+**v0.14.0 release preparation** adds the concrete endpoint-family client
+`AuthClient`. Its only supported import is
+`from mlops_async.clients.auth_client import AuthClient`; importing it from the
+package root is unsupported. `get_access_token()` directly awaits one
+`fetch_access_token()` call on the injected `TokenEndpointClientProtocol`.
+`AuthClient` has no refresh, grant-selection, cache, exception-translation,
+transport-lifecycle, or close behavior.
+
+**v0.14.0 release preparation** 新增 concrete endpoint-family client
+`AuthClient`。唯一支援的匯入方式為
+`from mlops_async.clients.auth_client import AuthClient`；不得從 package root
+匯入。`get_access_token()` 僅直接 await 注入的
+`TokenEndpointClientProtocol.fetch_access_token()` 一次。`AuthClient` 不含
+refresh、grant selection、cache、exception translation、transport lifecycle 或
+close 行為。
+
+`EndpointFamilyClient` 僅是架構分類，不是 base class、Protocol 或模組。未來可能的
+`MLOpsAsyncClient` facade 仍未實作、未從 package root 匯出，也沒有 `.auth` wiring；
+若日後實作，它將接收已設定的 `TokenEndpointClientProtocol`、建立 `.auth`，但不擁有或
+關閉 transport。
 
 As of **v0.13.0**, the repository closes PRs #47 through #50: `HttpClient` now
 supports framework-user-controlled TLS verification through `bool` or
