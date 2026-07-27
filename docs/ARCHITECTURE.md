@@ -36,17 +36,30 @@ responsibility、collision policy、lazy auth lifecycle 與 conflict-stop rule
 
 ### Public surface baseline
 
-目前凍結的 public shape 是 **平行 family**，而不是 hidden-only auth model：
+目前唯一已實作的 public client surface 是 `AuthClient`。下列其餘 family 名稱是未來
+設計目標，不構成 current facade：
 
-- `PackageLevelClient`
 - `AuthClient`
 - `ProjectsClient`
 - `ModelsClient`
 - `JobsClient`
 - `TablesClient`
 
-`AuthClient` 必須對開發者可見，作為明確的 auth/token 操作入口；但它不是其他
-family client 的 internal runtime core。
+`AuthClient` 是目前唯一已實作的 concrete endpoint-family client，canonical location
+為 `src/mlops_async/clients/auth_client.py`。唯一支援的匯入方式為：
+
+```python
+from mlops_async.clients.auth_client import AuthClient
+```
+
+package-root `AuthClient` import 不受支援。`EndpointFamilyClient` 僅是架構分類，並非
+base class、Protocol 或模組。`AuthClient` 接收 `TokenEndpointClientProtocol`，且
+`get_access_token()` 只直接 await 一次 `fetch_access_token()`；它不負責 refresh、grant
+selection、cache、exception translation、context、close 或 transport lifecycle。
+
+`MLOpsAsyncClient` 僅為 future-only composition contract：尚未實作、未從 package root
+匯出、沒有 `.auth` wiring，也不擁有或關閉 transport。未來若實作，才會以已設定的
+`TokenEndpointClientProtocol` 建立 `.auth`。
 
 ### Public-to-internal dependency direction
 
@@ -72,7 +85,10 @@ authenticated request 的內部 auth chain 固定如下：
 - `TokenManager` 只負責 token lifecycle decision。
 - `TokenEndpointClient` 才是真正掌握 `/SASLogon/oauth/token` contract 的 internal collaborator。
 
-### Async lifecycle baseline
+### Historical / future lifecycle baseline
+
+下列 `PackageLevelClient` lifecycle 內容是歷史設計與 future-only 參考，不是 current
+implementation；目前沒有 package-level facade、package-root export 或 `.auth` wiring。
 
 `PackageLevelClient.__init__` 是同步 constructor，因此只做 wiring，不預先取得真實
 token。它注入的是 auth-configured `Requester`，不是 token-resolved `Requester`。

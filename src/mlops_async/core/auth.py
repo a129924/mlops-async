@@ -13,13 +13,18 @@ __all__ = [
     "AuthException",
     "AuthProvider",
     "TokenEndpointClient",
+    "TokenEndpointFetchClientProtocol",
     "TokenFetchException",
     "TokenManager",
 ]
 
 
 class AuthException(MlopsAsyncBaseException):
-    """Base exception for auth-layer failures."""
+    """Base exception for auth-layer failures.
+
+    The established ``AuthException`` class name is retained for callers that
+    observe exception names in logs, tracebacks, or serialized error records.
+    """
 
 
 class TokenFetchException(AuthException):
@@ -27,10 +32,15 @@ class TokenFetchException(AuthException):
 
 
 @runtime_checkable
-class TokenEndpointClientProtocol(Protocol):
-    """Internal collaborator that fetches or refreshes tokens via raw transport."""
+class TokenEndpointFetchClientProtocol(Protocol):
+    """Collaborator that can retrieve a new access token."""
 
     async def fetch_access_token(self) -> AccessToken: ...
+
+
+@runtime_checkable
+class TokenEndpointClientProtocol(TokenEndpointFetchClientProtocol, Protocol):
+    """Internal collaborator that fetches or refreshes tokens via raw transport."""
 
     async def refresh_access_token(self, token: AccessToken) -> AccessToken: ...
 

@@ -36,14 +36,9 @@ surface、internal runtime chain、lazy token lifecycle、與 token endpoint col
 
 ## Public surface 基線
 
-public surface 採平行 family：
+`AuthClient` 是目前唯一已實作的 public client surface。下列其餘 family 名稱僅是未來
+設計目標，不構成 current facade：
 
-- `PackageLevelClient`
-- `client.auth`
-- `client.projects`
-- `client.models`
-- `client.jobs`
-- `client.tables`
 
 對應 family clients：
 
@@ -53,20 +48,26 @@ public surface 採平行 family：
 - `JobsClient`
 - `TablesClient`
 
-`AuthClient` 是給開發者明確操作 auth/token 的入口，但不是 internal runtime core。
-OtherFamilyEndpoint 不直接依賴 `AuthClient`。
+`AuthClient` 是目前唯一已實作的 concrete endpoint-family client。唯一支援的匯入方式為
+`from mlops_async.clients.auth_client import AuthClient`；package-root import 不受支援。
+`EndpointFamilyClient` 只是架構分類，不是 base class、Protocol 或模組。
+
+`AuthClient` 接收注入的 `TokenEndpointClientProtocol`，只直接 await 一次
+`fetch_access_token()`；它不負責 refresh、grant selection、cache、exception translation、
+context、close 或 transport lifecycle。OtherFamilyEndpoint 不直接依賴 `AuthClient`。
+
+`MLOpsAsyncClient` 只屬 future composition contract：尚未實作、未被 package root 匯出、
+沒有 `.auth` wiring，也不擁有或關閉 transport。未來若實作，才會以已設定的
+`TokenEndpointClientProtocol` 建立 `.auth`。
 
 ## 依賴圖
 
-### Public family layout
+### Current AuthClient dependency layout
 
 ```mermaid
 flowchart LR
-    PackageLevelClient["PackageLevelClient"] --> AuthClient["AuthClient"]
-    PackageLevelClient --> ProjectsClient["ProjectsClient"]
-    PackageLevelClient --> ModelsClient["ModelsClient"]
-    PackageLevelClient --> JobsClient["JobsClient"]
-    PackageLevelClient --> TablesClient["TablesClient"]
+    AuthClient["clients.auth_client.AuthClient"] --> Protocol["TokenEndpointClientProtocol"]
+    Protocol --> Fetch["fetch_access_token()"]
 ```
 
 ### Main request path
@@ -92,16 +93,15 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    AuthClient["AuthClient"] --> TokenEndpointClient["TokenEndpointClient"]
-    TokenEndpointClient --> HttpClient["HttpClient"]
+    AuthClient["AuthClient"] --> Protocol["TokenEndpointClientProtocol"]
+    Protocol --> Fetch["fetch_access_token()"]
 ```
 
 ## 元件職責與非職責
 
 | 元件 | 負責 | 不負責 |
 | --- | --- | --- |
-| `PackageLevelClient` | public composition root；建立 shared transport、`TokenEndpointClient`、`TokenManager`、`AuthProvider`、`Requester` 與各 family clients；管理 `__aenter__` / `__aexit__` / `aclose` | 在 `__init__` 先取得真實 token；直接承擔 token lifecycle；把 client 變成先同步出生、再非同步補全的半成品 |
-| `AuthClient` | public-visible auth/token 操作入口；提供 obtain / refresh 類 auth operations；委派給 `TokenEndpointClient` | 成為其他 family client 的 runtime dependency；被 `TokenManager` 反向依賴；負責 header 組裝 |
+| `AuthClient` | concrete endpoint-family client；直接 await injected `TokenEndpointClientProtocol.fetch_access_token()` 一次 | package-root export；成為其他 family client 的 runtime dependency；被 `TokenManager` 反向依賴；負責 refresh、grant selection、cache、exception translation、header 組裝，或 collaborator/transport 的 context、close、lifecycle 管理 |
 | `Requester` | 唯一的 managed request composition layer；透過 `core/headers.py` 集中套用 JSON-domain request family 的預設 headers；向 `AuthProvider` 取得 auth headers；拒絕衝突的 caller `Authorization`；合併 final headers；再委派給 `HttpClient` | 不理解 `client_id` / `client_secret` / `grant_type`；不直接打 token endpoint；不自行做 token lifecycle decision |
 | `AuthProvider` | 將 token 轉成 `Authorization` headers；對 `Requester` 暴露最小 auth header surface | 掌握 auth endpoint；直接打 token API；兼任 token client |
 | `TokenManager` | token lifecycle decision；reuse / fetch / refresh / expiry decision；lazy token resolve；refresh coordination；storage update | 依賴 `AuthClient`；負責 endpoint contract 對外暴露；負責 header 組裝 |
@@ -143,7 +143,10 @@ flowchart LR
 - `AuthException` 與 `asyncio.CancelledError` 直接傳播；其他 generic exception 轉譯為
   `TokenFetchException`，並保留 exception chaining。
 
-### Lazy auth lifecycle
+### Historical / future facade lifecycle
+
+本節的 `PackageLevelClient` lifecycle 是歷史設計與 future-only 參考，並非 current
+implementation。現況沒有 package-level facade、package-root export 或 `.auth` wiring。
 
 #### `__init__`
 
