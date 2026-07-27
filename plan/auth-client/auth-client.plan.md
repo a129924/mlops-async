@@ -82,7 +82,8 @@ analysis artifacts，必須先與本 override 對齊再修訂計畫。
   `tests/unit/core/test_auth_contract.py` 中的舊 root-import/old supporting
   assertions/evidence，以及 TDD/reviewer/release-prep evidence 一律為
   **superseded**。這是舊語意/evidence 的分類，不把四個 filesystem paths
-  標為 ReadOnly；其 approval 後 delete/update disposition 見下方清冊。TDD
+  標為 ReadOnly。parent revision 不存在兩個 standalone root paths，故不宣稱
+  delete；僅 `__init__.py` 的 root export 需要移除。TDD
   YAML 必須由 Tester 在 plan approval 後重寫；Plan-Creator 不可改寫該 YAML。
 - 此 topic 有 stable-library-impact history，但更正後的 promotion 時間完全
   **未授權**；`0.14.0` 的既有授權完全失效。Planning actor 只改寫本 plan/spec/
@@ -144,20 +145,21 @@ Routing notes:
 | Step tracker | `plan/auth-client/auth-client.step.md` | Planning actor | 更正後 phase/implementation completion gate |
 | Superseded TDD verdict | `plan/auth-client/auth-client.tdd-test-authoring.yaml` | Tester | 只在 plan approval 後重寫；目前不可作為 gate/evidence |
 | Canonical AuthClient | `src/mlops_async/clients/auth_client.py` | Implementer | 唯一 direct-import concrete endpoint-family client；不建立或繼承 EndpointFamilyClient base |
-| Legacy root AuthClient | `src/mlops_async/auth_client.py` | Implementer | approval 後 delete target；其舊 root semantic 才是 superseded |
+| Legacy root AuthClient | `src/mlops_async/auth_client.py` | N/A | parent revision 不存在；無 delete mutation，僅其舊 root semantic 為 superseded |
 | Core auth boundary | `src/mlops_async/core/auth.py` | Implementer | 移除 root import/root-exception inheritance，保留 token contracts |
 | Package root | `src/mlops_async/__init__.py` | Implementer | approval 後 update target：移除 AuthClient export，不新增 root-to-core dependency |
 | Tach graph | `tach.toml` | Implementer | core no-root dependency、clients only-to-core module declarations |
 | Canonical AuthClient tests | `tests/unit/clients/test_auth_client.py` | Tester then Implementer | RED/validation tests for clients direct import and delegation contract |
-| Legacy root AuthClient tests | `tests/unit/core/test_auth_client.py` | Implementer | approval 後 delete target；其舊 root-import assertions 才是 superseded |
+| Legacy root AuthClient tests | `tests/unit/core/test_auth_client.py` | N/A | parent revision 不存在；無 delete mutation，僅其舊 root-import assertions 為 superseded |
 | Root non-export contract | `tests/unit/core/test_auth_contract.py` | Tester then Implementer | approval 後 update target；驗證 `mlops_async` 不存在 AuthClient，core surfaces保持 internal |
 
 Artifact path notes:
 
 - 本 topic 不修改 `.github/copilot-instructions.md`；下列逐一路徑的 evidence
   需區分舊語意/evidence 的 superseded 狀態與 approval 後的 filesystem
-  disposition。四個 root source/test paths 是 Implementer delete/update
-  targets，不是 ReadOnly；只有 TDD YAML（approval 前）與 release-prep
+  disposition。parent revision 中兩個 standalone root source/test paths 不存在，
+  因此不是 delete targets；`__init__.py` 和 supporting contract test 是 update
+  targets。只有 TDD YAML（approval 前）與 release-prep
   metadata/docs 維持 ReadOnly。
 - 未來 facade canonical path 與下列 evidence 是讀取/分類脈絡，並非此 topic
   的 Creator 寫入 targets。
@@ -167,9 +169,9 @@ Artifact path notes:
 
 | Evidence | Exact repository-relative path | Exists | Classification |
 | --- | --- | --- | --- |
-| Old root implementation | `src/mlops_async/auth_client.py` | Yes | old root semantic is superseded and not a gate/authorization source; Implementer delete target after approval |
+| Old root implementation | `src/mlops_async/auth_client.py` | No | parent revision does not contain this path; no delete mutation; any old root semantic is superseded and not a gate/authorization source |
 | Old package-root export | `src/mlops_async/__init__.py` | Yes | old root-export semantic is superseded and not a gate/authorization source; Implementer update target after approval |
-| Old root-import tests | `tests/unit/core/test_auth_client.py` | Yes | old root-import assertions are superseded and not a gate/authorization source; Implementer delete target after approval |
+| Old root-import tests | `tests/unit/core/test_auth_client.py` | No | parent revision does not contain this path; no delete mutation; any old root-import assertions are superseded and not a gate/authorization source |
 | Old supporting contract-test change | `tests/unit/core/test_auth_contract.py` | Yes | old supporting assertions/evidence are superseded and not a gate/authorization source; Implementer update target after approval |
 | Old TDD/reviewer-phase evidence | `plan/auth-client/auth-client.tdd-test-authoring.yaml` | Yes | superseded; ReadOnly; Tester rewrites only after new plan approval; not a gate or authorization source |
 | Old release-prep README text | `README.md` | Yes | superseded; ReadOnly; not a gate or authorization source |
@@ -196,8 +198,9 @@ superseded and cannot be reused.
   `src/mlops_async/clients/auth_client.py`, updates
   `src/mlops_async/core/auth.py`, `src/mlops_async/__init__.py`,
   `tests/unit/core/test_auth_contract.py`, and `tach.toml`.
-- **Deleted after approval**: Implementer deletes
-  `src/mlops_async/auth_client.py` and `tests/unit/core/test_auth_client.py`.
+- **Deleted after approval**: None. The parent revision does not contain
+  `src/mlops_async/auth_client.py` or `tests/unit/core/test_auth_client.py`, so
+  this correction has no delete mutation for those paths.
 
 ## Stable library metadata
 
@@ -218,9 +221,9 @@ superseded and cannot be reused.
 2. Implementer 建立 canonical AuthClient，使其作為 concrete endpoint-family
    client 接受 core protocol，並只 await 一次 `fetch_access_token()`；不得
    建立或繼承 EndpointFamilyClient base、Protocol 或 module。
-3. Implementer 刪除 root AuthClient source 與 root AuthClient test，移除
-   `__init__.py` export，並更新 core contract test，確保 package root 不
-   存在 AuthClient。
+3. Implementer 移除 `__init__.py` 的 root AuthClient export，並更新 core
+   contract test，確保 package root 不存在 AuthClient。parent revision 並無
+   root AuthClient source/test，因此不執行或宣稱其 delete mutation。
 4. Implementer 修改 `core/auth.py` 以消除對 package root 的 import/root
    exception inheritance，同時不遷移 transport/exceptions，也不改變
    TokenManager 的 fetch/refresh policy。
@@ -248,8 +251,9 @@ superseded and cannot be reused.
 - `MLOpsAsyncClient` 僅以 future-only composition note 存在，無 source、
   `.auth` wiring、transport ownership 或 close implementation。
 - Plan/Spec/Step 全部將舊 root-import/release-prep assertions、TDD/reviewer
-  evidence 標為 superseded；四個 root source/test filesystem paths 仍是
-  Implementer delete/update targets，且沒有舊 `0.14.0` 授權被重用。
+  evidence 標為 superseded；parent revision 中兩個 standalone root paths 不存在，
+  所以沒有虛構的 delete mutation；只更新 root export／contract-test 邊界，且沒有
+  舊 `0.14.0` 授權被重用。
 
 ## Reviewer Handoff
 

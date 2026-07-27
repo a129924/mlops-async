@@ -9,16 +9,14 @@ quality gates, and agent-governance files are in place. The only implemented
 public client surface is the bounded `AuthClient` described below; broader
 facade and endpoint-family APIs remain future work.
 
-**v0.14.0 release preparation** adds the concrete endpoint-family client
-`AuthClient`. Its only supported import is
+The concrete endpoint-family client `AuthClient` has only one supported import:
 `from mlops_async.clients.auth_client import AuthClient`; importing it from the
 package root is unsupported. `get_access_token()` directly awaits one
 `fetch_access_token()` call on the injected `TokenEndpointClientProtocol`.
 `AuthClient` has no refresh, grant-selection, cache, exception-translation,
 transport-lifecycle, or close behavior.
 
-**v0.14.0 release preparation** 新增 concrete endpoint-family client
-`AuthClient`。唯一支援的匯入方式為
+concrete endpoint-family client `AuthClient` 的唯一支援匯入方式為
 `from mlops_async.clients.auth_client import AuthClient`；不得從 package root
 匯入。`get_access_token()` 僅直接 await 注入的
 `TokenEndpointClientProtocol.fetch_access_token()` 一次。`AuthClient` 不含

@@ -33,9 +33,9 @@
 
 | Evidence | Exact repository-relative path | Exists | Classification |
 | --- | --- | --- | --- |
-| Old root implementation | `src/mlops_async/auth_client.py` | Yes | old root semantic is superseded and not a gate/authorization source; Implementer delete target after approval |
+| Old root implementation | `src/mlops_async/auth_client.py` | No | parent revision does not contain this path; no delete mutation; any old root semantic is superseded and not a gate/authorization source |
 | Old package-root export | `src/mlops_async/__init__.py` | Yes | old root-export semantic is superseded and not a gate/authorization source; Implementer update target after approval |
-| Old root-import tests | `tests/unit/core/test_auth_client.py` | Yes | old root-import assertions are superseded and not a gate/authorization source; Implementer delete target after approval |
+| Old root-import tests | `tests/unit/core/test_auth_client.py` | No | parent revision does not contain this path; no delete mutation; any old root-import assertions are superseded and not a gate/authorization source |
 | Old supporting contract-test change | `tests/unit/core/test_auth_contract.py` | Yes | old supporting assertions/evidence are superseded and not a gate/authorization source; Implementer update target after approval |
 | Old TDD/reviewer-phase evidence | `plan/auth-client/auth-client.tdd-test-authoring.yaml` | Yes | superseded; ReadOnly; Tester rewrites only after new plan approval; not a gate or authorization source |
 | Old release-prep README text | `README.md` | Yes | superseded; ReadOnly; not a gate or authorization source |
@@ -60,8 +60,9 @@ superseded and cannot be reused.
 
 ## Deleted
 
-- Approval 後 Implementer deletes `src/mlops_async/auth_client.py` 與
-  `tests/unit/core/test_auth_client.py`。
+- None. The parent revision does not contain `src/mlops_async/auth_client.py`
+  or `tests/unit/core/test_auth_client.py`, so this correction has no delete
+  mutation for either path.
 - `src/mlops_async/__init__.py` 本身不刪除；其 old AuthClient export 是
   Implementer update target，而非 ReadOnly path。
 

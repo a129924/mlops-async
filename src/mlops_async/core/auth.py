@@ -17,11 +17,12 @@ __all__ = [
 ]
 
 
-class AuthError(Exception):
-    """Base exception for auth-layer failures."""
+class AuthException(Exception):  # noqa: N818
+    """Base exception for auth-layer failures.
 
-
-AuthException = AuthError
+    The established ``AuthException`` class name is retained for callers that
+    observe exception names in logs, tracebacks, or serialized error records.
+    """
 
 
 class TokenFetchException(AuthException):

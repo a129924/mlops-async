@@ -20,6 +20,14 @@ def test_internal_auth_contracts_are_not_promoted_to_package_root() -> None:
     assert not hasattr(mlops_async, "Requester")
 
 
+def test_auth_exception_retains_its_public_class_identity() -> None:
+    exception = auth.AuthException("token endpoint failed")
+
+    assert auth.AuthException.__name__ == "AuthException"
+    assert type(exception) is auth.AuthException
+    assert repr(exception).startswith("AuthException(")
+
+
 def test_token_manager_surface_is_async_and_returns_access_token() -> None:
     token_manager = auth.TokenManager
     signature = inspect.signature(token_manager)
