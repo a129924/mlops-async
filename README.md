@@ -28,6 +28,13 @@ close 行為。
 若日後實作，它將接收已設定的 `TokenEndpointClientProtocol`、建立 `.auth`，但不擁有或
 關閉 transport。
 
+**v0.14.0 release preparation** records the merged bounded `AuthClient` public
+API described above. This preparation does not create a Git tag or publish a
+formal release.
+
+**v0.14.0 release preparation** 記錄上述已合併的 bounded `AuthClient` public
+API；此準備工作不會建立 Git tag，也不代表已發佈正式 release。
+
 As of **v0.13.0**, the repository closes PRs #47 through #50: `HttpClient` now
 supports framework-user-controlled TLS verification through `bool` or
 `ssl.SSLContext`, the real Viya password-token E2E keeps an explicit opt-in and
