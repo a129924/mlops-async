@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
-from typing import Protocol, runtime_checkable
+from typing import Protocol, cast, runtime_checkable
 
 __all__ = ["AccessToken", "InMemoryTokenStorage", "TokenStorage"]
 
@@ -20,10 +20,17 @@ class AccessToken:
 
     value: str
     expires_at: datetime
+    refresh_token: str | None = None
 
     def __post_init__(self) -> None:
         """Reject naive expiry datetimes so expiry checks stay deterministic."""
         _validate_timezone_aware(self.expires_at, field_name="expires_at")
+        # Preserve runtime validation for values supplied by untyped callers.
+        refresh_token = cast(object, self.refresh_token)
+        if refresh_token is not None and (
+            not isinstance(refresh_token, str) or not refresh_token.strip()
+        ):
+            raise ValueError("refresh_token must be a non-empty string when provided")
 
     def is_expired(
         self,
@@ -58,5 +65,12 @@ class InMemoryTokenStorage(TokenStorage):
         return self._token
 
     def set_token(self, token: AccessToken | None) -> None:
-        """Replace the current token state."""
+        """Replace the current token state while preserving an omitted refresh token."""
+        if (
+            token is not None
+            and token.refresh_token is None
+            and self._token is not None
+            and self._token.refresh_token is not None
+        ):
+            token = replace(token, refresh_token=self._token.refresh_token)
         self._token = token

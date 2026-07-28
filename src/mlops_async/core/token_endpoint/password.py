@@ -57,14 +57,24 @@ class PasswordTokenEndpointClient:
             content=self._form_body_for_password_grant(),
         )
         return access_token_from_response(
-            parse_token_response(response),
+            parse_token_response(response, require_refresh_token=True),
             now=datetime.now(timezone.utc),
         )
 
     async def refresh_access_token(self, token: AccessToken) -> AccessToken:
-        """Renew a token by repeating the password obtain path for this MVP."""
-        del token
-        return await self.fetch_access_token()
+        """Renew a token through the OAuth refresh-token grant."""
+        refresh_token = require_non_empty_string(token.refresh_token, field_name="refresh_token")
+        response = await self._transport.request_json(
+            HttpMethod.POST,
+            self._endpoint.value,
+            headers=token_request_headers({"Authorization": self._basic_authorization()}),
+            content=self._form_body_for_refresh_grant(refresh_token),
+        )
+        return access_token_from_response(
+            parse_token_response(response),
+            now=datetime.now(timezone.utc),
+            fallback_refresh_token=refresh_token,
+        )
 
     def _basic_authorization(self) -> str:
         credentials = (f"{quote_plus(self._client_id)}:{quote_plus(self._client_secret)}").encode(
@@ -78,5 +88,14 @@ class PasswordTokenEndpointClient:
                 ("grant_type", "password"),
                 ("username", self._username),
                 ("password", self._password),
+            )
+        ).encode("utf-8")
+
+    @staticmethod
+    def _form_body_for_refresh_grant(refresh_token: str) -> bytes:
+        return urlencode(
+            (
+                ("grant_type", "refresh_token"),
+                ("refresh_token", refresh_token),
             )
         ).encode("utf-8")

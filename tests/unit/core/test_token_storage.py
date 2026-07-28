@@ -56,3 +56,20 @@ def test_in_memory_token_storage_round_trips_and_clears_token_state() -> None:
 
     storage.set_token(None)
     assert storage.get_token() is None
+
+
+def test_access_token_refresh_state_preserves_legacy_constructor() -> None:
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+
+    legacy_token = token_storage.AccessToken(
+        value="legacy-access-token",
+        expires_at=expires_at,
+    )
+    refreshed_state = token_storage.AccessToken(
+        value="managed-access-token",
+        expires_at=expires_at,
+        refresh_token="managed-refresh-token",
+    )
+
+    assert legacy_token.refresh_token is None
+    assert refreshed_state.refresh_token == "managed-refresh-token"

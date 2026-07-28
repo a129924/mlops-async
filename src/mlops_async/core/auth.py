@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import timedelta
 from typing import Protocol, runtime_checkable
 
@@ -86,6 +87,11 @@ class TokenManager:
                 resolved_token = await self._fetcher.fetch_access_token()
             else:
                 resolved_token = await self._fetcher.refresh_access_token(cached_token)
+                if resolved_token.refresh_token is None and cached_token.refresh_token is not None:
+                    resolved_token = replace(
+                        resolved_token,
+                        refresh_token=cached_token.refresh_token,
+                    )
         except asyncio.CancelledError:
             raise
         except AuthException:
