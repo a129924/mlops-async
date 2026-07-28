@@ -73,3 +73,35 @@ def test_access_token_refresh_state_preserves_legacy_constructor() -> None:
 
     assert legacy_token.refresh_token is None
     assert refreshed_state.refresh_token == "managed-refresh-token"
+
+
+def test_access_token_repr_redacts_access_and_refresh_tokens() -> None:
+    access_token = token_storage.AccessToken(
+        value="sensitive-bearer-access-token",
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+        refresh_token="sensitive-refresh-token",
+    )
+
+    representation = repr(access_token)
+
+    assert "sensitive-bearer-access-token" not in representation
+    assert "sensitive-refresh-token" not in representation
+
+
+def test_in_memory_token_storage_replaces_refresh_state_between_identities() -> None:
+    storage = token_storage.InMemoryTokenStorage()
+    previous_token = token_storage.AccessToken(
+        value="first-identity-access-token",
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+        refresh_token="first-identity-refresh-token",
+    )
+    next_token = token_storage.AccessToken(
+        value="second-identity-access-token",
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+    )
+
+    storage.set_token(previous_token)
+    storage.set_token(next_token)
+
+    assert storage.get_token() is next_token
+    assert storage.get_token().refresh_token is None

@@ -63,6 +63,9 @@ class PasswordTokenEndpointClient:
 
     async def refresh_access_token(self, token: AccessToken) -> AccessToken:
         """Renew a token through the OAuth refresh-token grant."""
+        if token.refresh_token is None:
+            return await self.fetch_access_token()
+
         refresh_token = require_non_empty_string(token.refresh_token, field_name="refresh_token")
         response = await self._transport.request_json(
             HttpMethod.POST,

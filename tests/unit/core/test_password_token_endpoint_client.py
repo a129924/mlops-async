@@ -46,6 +46,13 @@ def _expired_token() -> token_storage.AccessToken:
     )
 
 
+def _legacy_expired_token() -> token_storage.AccessToken:
+    return token_storage.AccessToken(
+        value="legacy-expired-token",
+        expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+
+
 @dataclass(frozen=True)
 class _RecordedRequest:
     method: HttpMethod
@@ -443,6 +450,20 @@ async def test_password_client_preserves_refresh_token_when_response_omits_it() 
 
 
 @pytest.mark.asyncio
+async def test_password_client_fetches_when_legacy_token_has_no_refresh_token() -> None:
+    transport = _password_transport(responses=[_valid_token_payload()])
+    client = _password_client(transport)
+
+    refreshed_token = await client.refresh_access_token(_legacy_expired_token())
+
+    assert refreshed_token.value == "test-access-token"
+    assert refreshed_token.refresh_token == "test-refresh-token"
+    assert len(transport.requests) == 1
+    assert transport.requests[0].form_contract_is_valid
+    assert transport.requests[0].form_field_names == ("grant_type", "username", "password")
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("refresh_token", ("   ", 123))
 async def test_password_client_rejects_malformed_refresh_response_refresh_token(
     refresh_token: JSONValue,
@@ -498,3 +519,21 @@ async def test_token_manager_refreshes_expired_token_through_password_client_pro
     assert resolved.refresh_token == "test-refresh-token"
     assert len(transport.requests) == 1
     assert transport.requests[0].form_contract_is_valid
+
+
+@pytest.mark.asyncio
+async def test_token_manager_fetches_when_legacy_expired_token_has_no_refresh_token() -> None:
+    transport = _password_transport(responses=[_valid_token_payload()])
+    client = _password_client(transport)
+    storage = token_storage.InMemoryTokenStorage()
+    storage.set_token(_legacy_expired_token())
+    manager = auth.TokenManager(storage, client)
+
+    resolved = await manager.get_access_token()
+
+    assert resolved is storage.get_token()
+    assert resolved.value == "test-access-token"
+    assert resolved.refresh_token == "test-refresh-token"
+    assert len(transport.requests) == 1
+    assert transport.requests[0].form_contract_is_valid
+    assert transport.requests[0].form_field_names == ("grant_type", "username", "password")

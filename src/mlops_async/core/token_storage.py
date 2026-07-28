@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Protocol, cast, runtime_checkable
 
@@ -18,9 +18,9 @@ def _validate_timezone_aware(value: datetime, *, field_name: str) -> None:
 class AccessToken:
     """Immutable access-token value object with expiry metadata."""
 
-    value: str
+    value: str = field(repr=False)
     expires_at: datetime
-    refresh_token: str | None = None
+    refresh_token: str | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         """Reject naive expiry datetimes so expiry checks stay deterministic."""
@@ -65,12 +65,5 @@ class InMemoryTokenStorage(TokenStorage):
         return self._token
 
     def set_token(self, token: AccessToken | None) -> None:
-        """Replace the current token state while preserving an omitted refresh token."""
-        if (
-            token is not None
-            and token.refresh_token is None
-            and self._token is not None
-            and self._token.refresh_token is not None
-        ):
-            token = replace(token, refresh_token=self._token.refresh_token)
+        """Replace the current token state."""
         self._token = token
