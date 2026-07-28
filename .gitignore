@@ -12,6 +12,7 @@ config/.env.*
 .DS_Store
 .vscode/
 docs/other/測試方式改寫推薦方案.md
+reference/
 
 # Coverage reports
 .coverage
