@@ -12,14 +12,14 @@ facade and endpoint-family APIs remain future work.
 The concrete endpoint-family client `AuthClient` has only one supported import:
 `from mlops_async.clients.auth_client import AuthClient`; importing it from the
 package root is unsupported. `get_access_token()` directly awaits one
-`fetch_access_token()` call on the injected `TokenEndpointClientProtocol`.
+`fetch_access_token()` call on the injected `TokenEndpointFetchClientProtocol`.
 `AuthClient` has no refresh, grant-selection, cache, exception-translation,
 transport-lifecycle, or close behavior.
 
 concrete endpoint-family client `AuthClient` 的唯一支援匯入方式為
 `from mlops_async.clients.auth_client import AuthClient`；不得從 package root
 匯入。`get_access_token()` 僅直接 await 注入的
-`TokenEndpointClientProtocol.fetch_access_token()` 一次。`AuthClient` 不含
+`TokenEndpointFetchClientProtocol.fetch_access_token()` 一次。`AuthClient` 不含
 refresh、grant selection、cache、exception translation、transport lifecycle 或
 close 行為。
 
@@ -27,6 +27,13 @@ close 行為。
 `MLOpsAsyncClient` facade 仍未實作、未從 package root 匯出，也沒有 `.auth` wiring；
 若日後實作，它將接收已設定的 `TokenEndpointClientProtocol`、建立 `.auth`，但不擁有或
 關閉 transport。
+
+**v0.14.0 release preparation** records the merged bounded `AuthClient` public
+API described above. This preparation does not create a Git tag or publish a
+formal release.
+
+**v0.14.0 release preparation** 記錄上述已合併的 bounded `AuthClient` public
+API；此準備工作不會建立 Git tag，也不代表已發佈正式 release。
 
 As of **v0.13.0**, the repository closes PRs #47 through #50: `HttpClient` now
 supports framework-user-controlled TLS verification through `bool` or
