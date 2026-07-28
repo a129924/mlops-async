@@ -7,6 +7,8 @@ import mlops_async.core.auth as auth
 import mlops_async.core.token_storage as token_storage
 import pytest
 
+from mlops_async.core.token_endpoint_client import TokenEndpointClientError
+
 
 class _RecordingTokenEndpointClient:
     def __init__(self, *, fetch_token: object, refresh_token: object | None = None) -> None:
@@ -78,6 +80,7 @@ async def test_token_manager_re_raises_auth_exception_without_wrapping() -> None
     previous_token = token_storage.AccessToken(
         value="previous-token",
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
+        refresh_token="previous-refresh-token",
     )
     original_error = _CustomAuthException("auth boundary failed")
     storage = token_storage.InMemoryTokenStorage()
@@ -233,10 +236,12 @@ async def test_token_manager_refreshes_once_for_ten_concurrent_waiters() -> None
     expired_token = token_storage.AccessToken(
         value="expired-token",
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
+        refresh_token="previous-refresh-token",
     )
     refreshed_token = token_storage.AccessToken(
         value="refreshed-token",
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+        refresh_token="rotated-refresh-token",
     )
     storage = token_storage.InMemoryTokenStorage()
     storage.set_token(expired_token)
@@ -256,6 +261,36 @@ async def test_token_manager_refreshes_once_for_ten_concurrent_waiters() -> None
     assert fetcher.fetch_calls == 0
     assert fetcher.refresh_calls == 1
     assert fetcher.refresh_inputs == [expired_token]
+    assert results[0].refresh_token == "rotated-refresh-token"
+
+
+@pytest.mark.asyncio
+async def test_token_manager_preserves_refresh_token_when_refresh_response_omits_it() -> None:
+    previous_token = token_storage.AccessToken(
+        value="previous-access-token",
+        expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
+        refresh_token="previous-refresh-token",
+    )
+    refreshed_token_without_rotation = token_storage.AccessToken(
+        value="replacement-access-token",
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+        refresh_token=None,
+    )
+    storage = token_storage.InMemoryTokenStorage()
+    storage.set_token(previous_token)
+    fetcher = _RecordingTokenEndpointClient(
+        fetch_token=refreshed_token_without_rotation,
+        refresh_token=refreshed_token_without_rotation,
+    )
+    manager = auth.TokenManager(storage, fetcher)
+
+    resolved = await manager.get_access_token()
+
+    assert resolved.value == "replacement-access-token"
+    assert resolved.expires_at == refreshed_token_without_rotation.expires_at
+    assert resolved.refresh_token == "previous-refresh-token"
+    assert storage.get_token() == resolved
+    assert fetcher.refresh_calls == 1
 
 
 @pytest.mark.asyncio
@@ -291,6 +326,7 @@ async def test_token_manager_translates_refresh_failure_preserving_previous_toke
     previous_token = token_storage.AccessToken(
         value="previous-token",
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
+        refresh_token="previous-refresh-token",
     )
     original_error = RuntimeError("token endpoint unavailable")
     storage = token_storage.InMemoryTokenStorage()
@@ -309,6 +345,31 @@ async def test_token_manager_translates_refresh_failure_preserving_previous_toke
     assert fetcher.fetch_calls == 0
     assert fetcher.refresh_calls == 1
     assert fetcher.refresh_inputs == [previous_token]
+    assert storage.get_token() is previous_token
+    assert storage.get_token().refresh_token == "previous-refresh-token"
+
+
+@pytest.mark.asyncio
+async def test_token_manager_chains_schema_failure_preserving_complete_state() -> None:
+    previous_token = token_storage.AccessToken(
+        value="previous-token",
+        expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
+        refresh_token="previous-refresh-token",
+    )
+    original_error = TokenEndpointClientError("refresh_token must be a non-empty string")
+    storage = token_storage.InMemoryTokenStorage()
+    storage.set_token(previous_token)
+    fetcher = _FailingTokenEndpointClient(original_error)
+    manager = auth.TokenManager(storage, fetcher)
+
+    with pytest.raises(auth.TokenFetchException, match="TokenEndpointClientError") as exc_info:
+        await manager.get_access_token()
+
+    assert exc_info.value.__cause__ is original_error
+    assert storage.get_token() is previous_token
+    assert storage.get_token().refresh_token == "previous-refresh-token"
+    assert fetcher.fetch_calls == 0
+    assert fetcher.refresh_calls == 1
 
 
 @pytest.mark.asyncio
@@ -332,6 +393,7 @@ async def test_token_manager_preserves_previous_token_state_on_refresh_cancellat
     previous_token = token_storage.AccessToken(
         value="previous-token",
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=5),
+        refresh_token="previous-refresh-token",
     )
     refreshed_token = token_storage.AccessToken(
         value="refreshed-token",
@@ -355,3 +417,5 @@ async def test_token_manager_preserves_previous_token_state_on_refresh_cancellat
     assert fetcher.fetch_calls == 0
     assert fetcher.refresh_calls == 1
     assert fetcher.refresh_inputs == [previous_token]
+    assert storage.get_token() is previous_token
+    assert storage.get_token().refresh_token == "previous-refresh-token"

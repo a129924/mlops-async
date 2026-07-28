@@ -27,6 +27,7 @@ class AuthTokenEndpoint(str, Enum):
 class _TokenResponse:
     access_token: str
     expires_in: int
+    refresh_token: str | None
 
 
 def require_non_empty_string(value: object, *, field_name: str) -> str:
@@ -51,29 +52,51 @@ def require_password_client_secret(value: object, *, client_id: str) -> str:
     return require_non_empty_string(value, field_name="client_secret")
 
 
-def parse_token_response(payload: JSONValue) -> _TokenResponse:
+def parse_token_response(
+    payload: JSONValue,
+    *,
+    require_refresh_token: bool = False,
+) -> _TokenResponse:
     """Validate and normalize the JSON payload returned by a token endpoint."""
     if not isinstance(payload, dict):
         raise TokenEndpointClientError("token response must be a JSON object")
 
     access_token = payload.get("access_token")
     expires_in = payload.get("expires_in")
+    refresh_token: str | None = None
 
     if not isinstance(access_token, str) or not access_token:
         raise TokenEndpointClientError("token response must include a non-empty access_token")
     if not isinstance(expires_in, int) or isinstance(expires_in, bool) or expires_in <= 0:
         raise TokenEndpointClientError("token response must include a positive expires_in integer")
+    if "refresh_token" in payload:
+        refresh_token = require_non_empty_string(
+            payload["refresh_token"],
+            field_name="refresh_token",
+        )
+    elif require_refresh_token:
+        raise TokenEndpointClientError("token response must include a non-empty refresh_token")
 
-    return _TokenResponse(access_token=access_token, expires_in=expires_in)
+    return _TokenResponse(
+        access_token=access_token,
+        expires_in=expires_in,
+        refresh_token=refresh_token,
+    )
 
 
 def access_token_from_response(
     token_response: _TokenResponse,
     *,
     now: datetime,
+    fallback_refresh_token: str | None = None,
 ) -> AccessToken:
     """Build an access token from a validated response and explicit current time."""
     return AccessToken(
         value=token_response.access_token,
         expires_at=now + timedelta(seconds=token_response.expires_in),
+        refresh_token=(
+            token_response.refresh_token
+            if token_response.refresh_token is not None
+            else fallback_refresh_token
+        ),
     )

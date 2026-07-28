@@ -27,7 +27,11 @@ _SAS_EC_CLIENT_ID = "sas.ec"
 
 
 def _valid_token_payload() -> JSONValue:
-    return {"access_token": "test-access-token", "expires_in": 3600}
+    return {
+        "access_token": "test-access-token",
+        "expires_in": 3600,
+        "refresh_token": "test-refresh-token",
+    }
 
 
 def _invalid_token_payload() -> JSONValue:
@@ -37,6 +41,14 @@ def _invalid_token_payload() -> JSONValue:
 def _expired_token() -> token_storage.AccessToken:
     return token_storage.AccessToken(
         value="test-expired-token",
+        expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+        refresh_token="stored-refresh-token",
+    )
+
+
+def _legacy_expired_token() -> token_storage.AccessToken:
+    return token_storage.AccessToken(
+        value="legacy-expired-token",
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
     )
 
@@ -366,19 +378,114 @@ async def test_password_client_rejects_invalid_token_payload() -> None:
 
 
 @pytest.mark.asyncio
-async def test_password_client_refresh_reobtains_without_refresh_grant() -> None:
-    transport = _password_transport(responses=[_valid_token_payload(), _valid_token_payload()])
+@pytest.mark.parametrize(
+    "payload",
+    (
+        {"access_token": "test-access-token", "expires_in": 3600},
+        {
+            "access_token": "test-access-token",
+            "expires_in": 3600,
+            "refresh_token": "   ",
+        },
+        {
+            "access_token": "test-access-token",
+            "expires_in": 3600,
+            "refresh_token": 123,
+        },
+    ),
+)
+async def test_password_client_rejects_missing_or_malformed_obtain_refresh_token(
+    payload: JSONValue,
+) -> None:
+    transport = _password_transport(responses=[payload])
     client = _password_client(transport)
 
-    initial_token = await client.fetch_access_token()
-    refreshed_token = await client.refresh_access_token(initial_token)
+    with pytest.raises(TokenEndpointClientError, match="refresh_token"):
+        await client.fetch_access_token()
 
-    assert refreshed_token is not initial_token
-    assert len(transport.requests) == 2
-    assert all(
-        record.form_field_names == ("grant_type", "username", "password")
-        for record in transport.requests
+
+@pytest.mark.asyncio
+async def test_password_client_refreshes_with_refresh_grant_and_existing_auth_headers() -> None:
+    transport = _FakeTransport(
+        [_valid_token_payload()],
+        expected_form=(
+            ("grant_type", "refresh_token"),
+            ("refresh_token", "stored-refresh-token"),
+        ),
+        expected_basic_credentials=(_CLIENT_ID, _CLIENT_SECRET),
     )
+    client = _password_client(transport)
+    previous_token = _expired_token()
+
+    refreshed_token = await client.refresh_access_token(previous_token)
+
+    assert refreshed_token.value == "test-access-token"
+    assert refreshed_token.refresh_token == "test-refresh-token"
+    assert len(transport.requests) == 1
+    record = transport.requests[0]
+    assert record.header_names == frozenset({"Accept", "Content-Type", "Authorization"})
+    assert record.authorization_scheme == "Basic"
+    assert record.basic_contract_is_valid
+    assert record.form_field_names == ("grant_type", "refresh_token")
+    assert record.form_contract_is_valid
+    assert record.form_encoding_is_valid
+
+
+@pytest.mark.asyncio
+async def test_password_client_preserves_refresh_token_when_response_omits_it() -> None:
+    transport = _FakeTransport(
+        [{"access_token": "replacement-access-token", "expires_in": 1800}],
+        expected_form=(
+            ("grant_type", "refresh_token"),
+            ("refresh_token", "stored-refresh-token"),
+        ),
+        expected_basic_credentials=(_CLIENT_ID, _CLIENT_SECRET),
+    )
+    client = _password_client(transport)
+
+    refreshed_token = await client.refresh_access_token(_expired_token())
+
+    assert refreshed_token.value == "replacement-access-token"
+    assert refreshed_token.refresh_token == "stored-refresh-token"
+
+
+@pytest.mark.asyncio
+async def test_password_client_fetches_when_legacy_token_has_no_refresh_token() -> None:
+    transport = _password_transport(responses=[_valid_token_payload()])
+    client = _password_client(transport)
+
+    refreshed_token = await client.refresh_access_token(_legacy_expired_token())
+
+    assert refreshed_token.value == "test-access-token"
+    assert refreshed_token.refresh_token == "test-refresh-token"
+    assert len(transport.requests) == 1
+    assert transport.requests[0].form_contract_is_valid
+    assert transport.requests[0].form_field_names == ("grant_type", "username", "password")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("refresh_token", ("   ", 123))
+async def test_password_client_rejects_malformed_refresh_response_refresh_token(
+    refresh_token: JSONValue,
+) -> None:
+    transport = _FakeTransport(
+        [
+            {
+                "access_token": "replacement-access-token",
+                "expires_in": 1800,
+                "refresh_token": refresh_token,
+            }
+        ],
+        expected_form=(
+            ("grant_type", "refresh_token"),
+            ("refresh_token", "stored-refresh-token"),
+        ),
+        expected_basic_credentials=(_CLIENT_ID, _CLIENT_SECRET),
+    )
+    client = _password_client(transport)
+
+    with pytest.raises(TokenEndpointClientError, match="refresh_token"):
+        await client.refresh_access_token(_expired_token())
 
 
 @pytest.mark.asyncio
@@ -391,7 +498,14 @@ async def test_password_client_structurally_conforms_to_token_endpoint_protocol(
 
 @pytest.mark.asyncio
 async def test_token_manager_refreshes_expired_token_through_password_client_protocol() -> None:
-    transport = _password_transport(responses=[_valid_token_payload()])
+    transport = _FakeTransport(
+        [_valid_token_payload()],
+        expected_form=(
+            ("grant_type", "refresh_token"),
+            ("refresh_token", "stored-refresh-token"),
+        ),
+        expected_basic_credentials=(_CLIENT_ID, _CLIENT_SECRET),
+    )
     client = _password_client(transport)
     expired_token = _expired_token()
     storage = token_storage.InMemoryTokenStorage()
@@ -402,5 +516,24 @@ async def test_token_manager_refreshes_expired_token_through_password_client_pro
 
     assert resolved is storage.get_token()
     assert resolved is not expired_token
+    assert resolved.refresh_token == "test-refresh-token"
     assert len(transport.requests) == 1
     assert transport.requests[0].form_contract_is_valid
+
+
+@pytest.mark.asyncio
+async def test_token_manager_fetches_when_legacy_expired_token_has_no_refresh_token() -> None:
+    transport = _password_transport(responses=[_valid_token_payload()])
+    client = _password_client(transport)
+    storage = token_storage.InMemoryTokenStorage()
+    storage.set_token(_legacy_expired_token())
+    manager = auth.TokenManager(storage, client)
+
+    resolved = await manager.get_access_token()
+
+    assert resolved is storage.get_token()
+    assert resolved.value == "test-access-token"
+    assert resolved.refresh_token == "test-refresh-token"
+    assert len(transport.requests) == 1
+    assert transport.requests[0].form_contract_is_valid
+    assert transport.requests[0].form_field_names == ("grant_type", "username", "password")

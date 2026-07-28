@@ -105,8 +105,8 @@ flowchart LR
 | `Requester` | 唯一的 managed request composition layer；透過 `core/headers.py` 集中套用 JSON-domain request family 的預設 headers；向 `AuthProvider` 取得 auth headers；拒絕衝突的 caller `Authorization`；合併 final headers；再委派給 `HttpClient` | 不理解 `client_id` / `client_secret` / `grant_type`；不直接打 token endpoint；不自行做 token lifecycle decision |
 | `AuthProvider` | 將 token 轉成 `Authorization` headers；對 `Requester` 暴露最小 auth header surface | 掌握 auth endpoint；直接打 token API；兼任 token client |
 | `TokenManager` | token lifecycle decision；reuse / fetch / refresh / expiry decision；lazy token resolve；refresh coordination；storage update | 依賴 `AuthClient`；負責 endpoint contract 對外暴露；負責 header 組裝 |
-| `TokenStorage` | 保存目前 token state；提供 `get_token()` / `set_token()` | 決定 expiry policy；直接做 refresh；掌握 token endpoint |
-| `TokenEndpointClient` | 真正掌握 `/SASLogon/oauth/token` request contract；透過 `core/headers.py` 的 `token_request_headers()` 套用 token request family headers；封裝 token endpoint I/O；同時供 `AuthClient` 與 `TokenManager` 使用 | 不決定 token lifecycle policy；不組一般 domain request headers；不成為 family endpoint facade |
+| `TokenStorage` | 保存目前 access token、expiry 與 optional refresh-token state；提供 `get_token()` / `set_token()` | 決定 expiry policy；直接做 refresh；掌握 token endpoint |
+| `TokenEndpointClient` | 真正掌握 `/SASLogon/oauth/token` request contract；透過 `core/headers.py` 的 `token_request_headers()` 套用 token request family headers；封裝 token endpoint I/O；同時供 `AuthClient` 與 `TokenManager` 使用 | 不決定 token lifecycle policy、不直接寫入 `TokenStorage`、不組一般 domain request headers；不成為 family endpoint facade |
 | `HttpClient` | transport-only HTTP I/O；接收 final request data；在 direct transport path 可重用 shared JSON request-header helper；回傳 response 或 transport errors | 不理解 auth lifecycle；不持有 token state；不替 family client 做 auth-aware request composition |
 
 ## 核心政策
@@ -139,6 +139,10 @@ flowchart LR
   先看快取，進 lock 後再檢查一次，避免多個 waiters 同時 refresh。
 - storage 為空時走 `fetch_access_token()`；已有 token 但視為 expired 時走
   `refresh_access_token(previous_token)`。
+- password obtain 必須取得有效的 refresh token。refresh 使用既有 injected async transport、
+  Basic Auth 與 token request headers，並以 `grant_type=refresh_token` 傳送目前 refresh token。
+- refresh response 未提供 refresh token 時保留既有值；提供有效值時與 access token、expiry
+  一起形成新的 immutable state。`TokenManager` 的單一 storage update 是這個狀態轉換的 owner。
 - refresh / fetch **成功後**才更新 `TokenStorage`；失敗或 cancellation 不得覆寫既有狀態。
 - `AuthException` 與 `asyncio.CancelledError` 直接傳播；其他 generic exception 轉譯為
   `TokenFetchException`，並保留 exception chaining。
