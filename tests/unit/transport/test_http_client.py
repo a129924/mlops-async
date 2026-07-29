@@ -15,6 +15,15 @@ import mlops_async.core.headers as headers_mod
 import mlops_async.transport.exceptions as transport_exceptions
 import mlops_async.transport.http_client as transport_http_client
 from mlops_async.core.client import Client
+from mlops_async.core.http_request import (
+    BaseUrl,
+    EndpointPath,
+    Headers,
+    HttpRequest,
+    JsonBody,
+    QueryParams,
+    RawBody,
+)
 from mlops_async.core.request_options import ClientRequestOptions, RequestTimeouts
 from mlops_async.core.types import HttpMethod, RawClientResponse
 
@@ -642,3 +651,127 @@ async def test_aclose_does_not_close_injected_transport() -> None:
     await client.aclose()
 
     assert transport.closed is False
+
+
+def test_execute_surface_accepts_only_a_canonical_http_request() -> None:
+    parameters = inspect.signature(transport_http_client.HttpClient.execute).parameters
+
+    assert tuple(parameters) == ("self", "request")
+    assert "path" not in parameters
+    assert "params" not in parameters
+    assert "json_body" not in parameters
+    assert "content" not in parameters
+
+
+@pytest.mark.asyncio
+async def test_execute_uses_http_request_url_and_raw_body_without_second_url_semantics() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204)
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://must-not-be-used.example", transport=transport)
+    request = HttpRequest(
+        method=HttpMethod.POST,
+        base_url=BaseUrl.create("https://api.example.test"),
+        endpoint_path=EndpointPath.literal("/api/v1/imports"),
+        query=QueryParams.create((("tag", "first"), ("tag", "second"))),
+        headers=Headers.create((("X-Trace", "canonical"),)),
+        body=RawBody(b"raw body"),
+        options=None,
+    )
+
+    try:
+        response = await client.execute(request)
+    finally:
+        await client.aclose()
+
+    assert response.url == request.url
+    assert str(transport.requests[0].url) == request.url
+    assert transport.requests[0].content == b"raw body"
+    assert transport.requests[0].headers["x-trace"] == "canonical"
+    assert "content-type" not in transport.requests[0].headers
+
+
+@pytest.mark.asyncio
+async def test_primitive_request_adapter_matches_direct_canonical_execution() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204)
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://api.example.test", transport=transport)
+
+    try:
+        primitive_response = await client.request(
+            HttpMethod.POST,
+            "/api/v1/items",
+            headers={"X-Trace": "parity"},
+            params={"tag": "one"},
+            json_body={"name": "demo"},
+        )
+        canonical_response = await client.execute(
+            HttpRequest(
+                method=HttpMethod.POST,
+                base_url=BaseUrl.create("https://api.example.test"),
+                endpoint_path=EndpointPath.literal("/api/v1/items"),
+                query=QueryParams.create({"tag": "one"}),
+                headers=Headers.create(
+                    {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                        "X-Trace": "parity",
+                    }
+                ),
+                body=JsonBody({"name": "demo"}),
+                options=None,
+            )
+        )
+    finally:
+        await client.aclose()
+
+    primitive_request, canonical_request = transport.requests
+    assert primitive_response.url == canonical_response.url
+    assert str(primitive_request.url) == str(canonical_request.url)
+    assert primitive_request.content == canonical_request.content
+    assert dict(primitive_request.headers) == dict(canonical_request.headers)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("absolute_path", ("https://legacy.example.test/items", "http://legacy.example.test/items"))
+async def test_primitive_absolute_http_paths_fail_before_http_library_execution(
+    monkeypatch: pytest.MonkeyPatch,
+    absolute_path: str,
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204)
+
+    http_client = _http_client_class()
+    transport = TrackingTransport(handler)
+    client = http_client("https://api.example.test", transport=transport)
+    build_calls = 0
+    send_calls = 0
+
+    def fail_build_request(*_args: object, **_kwargs: object) -> NoReturn:
+        nonlocal build_calls
+        build_calls += 1
+        raise AssertionError("legacy absolute paths must not reach build_request")
+
+    async def fail_send(*_args: object, **_kwargs: object) -> NoReturn:
+        nonlocal send_calls
+        send_calls += 1
+        raise AssertionError("legacy absolute paths must not reach send")
+
+    monkeypatch.setattr(client._client, "build_request", fail_build_request)
+    monkeypatch.setattr(client._client, "send", fail_send)
+
+    try:
+        transport_exception = _exception_type("HttpTransportException")
+        with pytest.raises(transport_exception) as exc_info:
+            await client.request(HttpMethod.GET, absolute_path)
+    finally:
+        await client.aclose()
+
+    assert exc_info.value.status_code is None
+    assert exc_info.value.url == absolute_path
+    assert build_calls == 0
+    assert send_calls == 0
+    assert transport.requests == []

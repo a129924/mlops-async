@@ -8,7 +8,9 @@ from typing import cast
 from urllib.parse import parse_qsl, quote_plus, urlencode
 
 import mlops_async.core.auth as auth
+import mlops_async.core.token_endpoint.password as password_endpoint_mod
 import mlops_async.core.token_storage as token_storage
+import inspect
 import pytest
 
 from mlops_async.core.token_endpoint.password import PasswordTokenEndpointClient
@@ -24,6 +26,13 @@ _RESERVED_PASSWORD = "test&password=1"
 _RESERVED_CLIENT_ID = "test/client"
 _RESERVED_CLIENT_SECRET = "test&client-secret=1"
 _SAS_EC_CLIENT_ID = "sas.ec"
+
+
+def test_password_token_flow_remains_outside_json_requester_and_value_objects() -> None:
+    source = inspect.getsource(password_endpoint_mod)
+
+    assert "Requester" not in source
+    assert "HttpRequest" not in source
 
 
 def _valid_token_payload() -> JSONValue:
@@ -191,7 +200,7 @@ async def test_password_client_posts_the_locked_password_grant_contract() -> Non
     record = transport.requests[0]
     assert record.method.value == "POST"
     assert record.path == "/SASLogon/oauth/token"
-    assert record.header_names == frozenset({"Accept", "Content-Type", "Authorization"})
+    assert record.header_names == frozenset({"accept", "content-type", "authorization"})
     assert record.authorization_scheme == "Basic"
     assert record.basic_contract_is_valid
     assert record.form_field_names == ("grant_type", "username", "password")
@@ -423,7 +432,7 @@ async def test_password_client_refreshes_with_refresh_grant_and_existing_auth_he
     assert refreshed_token.refresh_token == "test-refresh-token"
     assert len(transport.requests) == 1
     record = transport.requests[0]
-    assert record.header_names == frozenset({"Accept", "Content-Type", "Authorization"})
+    assert record.header_names == frozenset({"accept", "content-type", "authorization"})
     assert record.authorization_scheme == "Basic"
     assert record.basic_contract_is_valid
     assert record.form_field_names == ("grant_type", "refresh_token")

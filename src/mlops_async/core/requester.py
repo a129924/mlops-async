@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from mlops_async.core.auth import AuthException, AuthProvider
 from mlops_async.core.client import Client
 from mlops_async.core.headers import json_request_headers
+from mlops_async.core.http_request import Headers, HttpRequest, JsonBody
 from mlops_async.core.request_options import ClientRequestOptions
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse
 
@@ -70,3 +71,38 @@ class Requester:
             content=content,
             options=options,
         )
+
+    async def execute(self, request: HttpRequest) -> RawClientResponse:
+        """Compose immutable JSON-domain headers, then execute a canonical request."""
+        if request.body is not None and not isinstance(request.body, JsonBody):
+            raise ValueError("Requester.execute accepts JSON-domain requests only")
+        if (
+            self._auth_provider is not None
+            and "authorization" in request.headers.as_dict()
+        ):
+            raise AuthorizationConflictException(
+                "Authorization header is managed by AuthProvider when configured"
+            )
+
+        auth_headers = None
+        if self._auth_provider is not None:
+            auth_headers = await self._auth_provider.get_auth_headers()
+        header_policy_body = request.json_body
+        if isinstance(request.body, JsonBody) and header_policy_body is None:
+            header_policy_body = {}
+        request_headers = json_request_headers(
+            self._default_headers,
+            auth_headers,
+            request.headers.as_dict(),
+            json_body=header_policy_body,
+        )
+        composed_request = HttpRequest(
+            method=request.method,
+            base_url=request.base_url,
+            endpoint_path=request.endpoint_path,
+            query=request.query,
+            headers=Headers.create(request_headers),
+            body=request.body,
+            options=request.options,
+        )
+        return await self._transport.execute(composed_request)

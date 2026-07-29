@@ -6,6 +6,9 @@ from dataclasses import dataclass
 from typing import cast
 from urllib.parse import parse_qsl, urlencode
 
+import inspect
+
+import mlops_async.core.token_endpoint.client_credentials as client_credentials_mod
 import pytest
 
 from mlops_async.core.token_endpoint._shared import (
@@ -33,6 +36,13 @@ _CLIENT_SECRET = "test-client-secret"
 _RESERVED_CLIENT_ID = "test/client?draft=yes"
 _SAS_EC_CLIENT_ID = "sas.ec"
 _RESERVED_CLIENT_SECRET = "test-client&secret=1"
+
+
+def test_client_credentials_token_flow_remains_outside_json_requester_and_value_objects() -> None:
+    source = inspect.getsource(client_credentials_mod)
+
+    assert "Requester" not in source
+    assert "HttpRequest" not in source
 
 
 def _valid_token_payload() -> JSONValue:
@@ -179,7 +189,7 @@ async def test_client_credentials_client_preserves_existing_request_contract() -
         _RecordedRequest(
             method=HttpMethod.POST,
             path="/SASLogon/oauth/token",
-            header_names=frozenset({"Accept", "Content-Type"}),
+            header_names=frozenset({"accept", "content-type"}),
             authorization_scheme=None,
             form_field_names=("grant_type", "client_id", "client_secret"),
             basic_contract_is_valid=True,

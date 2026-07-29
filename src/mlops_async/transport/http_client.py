@@ -11,6 +11,15 @@ import httpx
 
 from mlops_async.core.client import Client
 from mlops_async.core.headers import json_request_headers
+from mlops_async.core.http_request import (
+    BaseUrl,
+    EndpointPath,
+    Headers,
+    HttpRequest,
+    JsonBody,
+    QueryParams,
+    RawBody,
+)
 from mlops_async.core.request_options import ClientRequestOptions, RequestTimeouts
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse, ResponseHeaders
 from mlops_async.transport.exceptions import (
@@ -144,6 +153,7 @@ class HttpClient(Client):
         """Create a minimal internal HTTP client."""
         resolved_verify = _validate_verify(verify)
         self._default_headers = _validate_default_headers(default_headers)
+        self._base_url = BaseUrl.create(str(base_url))
 
         wrapped_transport = _CallerOwnedAsyncTransport(transport) if transport is not None else None
         resolved_timeout = _timeouts_to_httpx(timeout)
@@ -181,38 +191,73 @@ class HttpClient(Client):
         content: bytes | None = None,
         options: ClientRequestOptions | None = None,
     ) -> RawClientResponse:
-        """Execute an HTTP request and return a raw response only for 2xx outcomes."""
+        """Adapt the legacy primitive request surface to canonical execution."""
+        if path.startswith(("http://", "https://")):
+            try:
+                httpx.URL(path)
+            except httpx.InvalidURL as exc:
+                context = self._context_from_transport_failure(method, path, exc)
+                raise HttpTransportException(context) from exc
+            raise HttpTransportException(
+                HttpErrorContext(
+                    status_code=None,
+                    method=method.value,
+                    url=path,
+                    request_id=None,
+                )
+            )
+        if json_body is not None and content is not None:
+            raise ValueError("request accepts either json_body or content, not both")
         request_headers = json_request_headers(
             self._default_headers,
             headers,
             json_body=json_body,
         )
+        endpoint_path = path if path.startswith("/") else f"/{path}" if path else "/"
+        request = HttpRequest(
+            method=method,
+            base_url=self._base_url,
+            endpoint_path=EndpointPath.literal(endpoint_path),
+            query=QueryParams.create(params or {}),
+            headers=Headers.create(request_headers),
+            body=(
+                JsonBody(json_body)
+                if json_body is not None
+                else RawBody(content)
+                if content is not None
+                else None
+            ),
+            options=options,
+        )
+        return await self.execute(request)
 
-        resolved_timeout = self._resolve_timeout(options)
+    async def execute(self, request: HttpRequest) -> RawClientResponse:
+        """Execute one canonical request without re-composing its URL or body."""
+        request_headers = request.headers.as_dict()
+
+        resolved_timeout = self._resolve_timeout(request.options)
         try:
             if resolved_timeout is None:
-                request = self._client.build_request(
-                    method.value,
-                    path,
+                http_request = self._client.build_request(
+                    request.method.value,
+                    request.url,
                     headers=request_headers,
-                    params=params,
-                    json=json_body,
-                    content=content,
+                    json=request.json_body,
+                    content=request.content,
                 )
             else:
-                request = self._client.build_request(
-                    method.value,
-                    path,
+                http_request = self._client.build_request(
+                    request.method.value,
+                    request.url,
                     headers=request_headers,
-                    params=params,
-                    json=json_body,
-                    content=content,
+                    json=request.json_body,
+                    content=request.content,
                     timeout=resolved_timeout,
                 )
-            self._strip_hidden_default_headers(request, request_headers)
-            response = await self._client.send(request)
+            self._strip_hidden_default_headers(http_request, request_headers)
+            response = await self._client.send(http_request)
         except (httpx.HTTPError, httpx.InvalidURL) as exc:
-            context = self._context_from_transport_failure(method, path, exc)
+            context = self._context_from_transport_failure(request.method, request.url, exc)
             raise HttpTransportException(context) from exc
 
         if 200 <= response.status_code < 300:
@@ -220,7 +265,7 @@ class HttpClient(Client):
                 status_code=response.status_code,
                 headers=ResponseHeaders(response.headers.multi_items()),
                 content=response.content,
-                method=method,
+                method=request.method,
                 url=str(response.url),
             )
 

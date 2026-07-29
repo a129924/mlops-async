@@ -10,16 +10,16 @@ TOKEN_REQUEST_CONTENT_TYPE = "application/x-www-form-urlencoded"
 
 
 def merge_headers(*mappings: Mapping[str, str] | None) -> dict[str, str]:
-    """Merge headers case-insensitively while preserving the last original casing."""
-    merged: dict[str, tuple[str, str]] = {}
+    """Merge headers case-insensitively with lowercase, last-wins output."""
+    merged: dict[str, str] = {}
     for mapping in mappings:
         if mapping is None:
             continue
 
         for name, value in mapping.items():
-            merged[name.lower()] = (name, value)
+            merged[name.lower()] = value
 
-    return dict(merged.values())
+    return merged
 
 
 def json_request_headers(
@@ -28,8 +28,8 @@ def json_request_headers(
 ) -> dict[str, str]:
     """Return final headers for the JSON-domain request family."""
     headers = merge_headers({"Accept": JSON_REQUEST_ACCEPT}, *mappings)
-    if json_body is not None and not any(name.lower() == "content-type" for name in headers):
-        headers["Content-Type"] = JSON_REQUEST_CONTENT_TYPE
+    if json_body is not None and "content-type" not in headers:
+        headers["content-type"] = JSON_REQUEST_CONTENT_TYPE
     return headers
 
 

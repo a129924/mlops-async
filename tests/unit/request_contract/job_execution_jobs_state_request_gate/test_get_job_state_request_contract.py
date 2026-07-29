@@ -64,10 +64,10 @@ async def test_get_job_state_direct_identifier_request_shape(
     assert job_execution_state_contract.last_request["body"] is None
     headers = job_execution_state_contract.last_request["headers"]
     assert isinstance(headers, dict)
-    assert str(headers["Authorization"]).startswith("Bearer ")
-    assert headers["Accept"] == GET_JOB_STATE_ACCEPT_HEADER
+    assert str(headers["authorization"]).startswith("Bearer ")
+    assert headers["accept"] == GET_JOB_STATE_ACCEPT_HEADER
     assert "Delegate-Domain" not in headers
-    assert "Content-Type" not in headers
+    assert "content-type" not in headers
 
 
 @pytest.mark.asyncio
