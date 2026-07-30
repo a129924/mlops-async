@@ -51,11 +51,7 @@ def _query_pair(key: object, value: object) -> tuple[str, _QueryValue] | None:
 
 
 def _header_pair(name: object, value: object) -> tuple[str, str]:
-    if (
-        not isinstance(name, str)
-        or not name
-        or any(character in name for character in "\r\n:")
-    ):
+    if not isinstance(name, str) or not name or any(character in name for character in "\r\n:"):
         raise ValueError("Header names must be non-empty field names")
     if not isinstance(value, str) or "\r" in value or "\n" in value:
         raise ValueError("Header values must be strings without line breaks")
@@ -174,9 +170,7 @@ class Headers:
         pairs: Mapping[str, str] | Iterable[tuple[str, str]],
     ) -> Headers:
         source = (
-            cast(Iterable[tuple[str, str]], pairs.items())
-            if isinstance(pairs, Mapping)
-            else pairs
+            cast(Iterable[tuple[str, str]], pairs.items()) if isinstance(pairs, Mapping) else pairs
         )
         resolved: dict[str, str] = {}
         for name, value in source:

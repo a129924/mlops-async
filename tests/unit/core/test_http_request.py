@@ -102,17 +102,13 @@ def test_query_params_preserve_duplicate_order_and_exact_percent_encoding() -> N
         )
     )
 
-    assert query.render() == (
-        "tag=first&tag=second&empty=&enabled=true&city=%E5%8F%B0%20%E5%8C%97"
-    )
+    assert query.render() == ("tag=first&tag=second&empty=&enabled=true&city=%E5%8F%B0%20%E5%8C%97")
     with pytest.raises(ValueError):
         QueryParams.create((("", "not-allowed"),))
 
 
 def test_query_params_render_float_false_and_raw_percent_once() -> None:
-    query = QueryParams.create(
-        (("ratio", 1.25), ("enabled", False), ("progress", "50% complete"))
-    )
+    query = QueryParams.create((("ratio", 1.25), ("enabled", False), ("progress", "50% complete")))
 
     assert query.render() == "ratio=1.25&enabled=false&progress=50%25%20complete"
 

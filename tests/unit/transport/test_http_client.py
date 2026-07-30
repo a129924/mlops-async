@@ -736,7 +736,9 @@ async def test_primitive_request_adapter_matches_direct_canonical_execution() ->
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("absolute_path", ("https://legacy.example.test/items", "http://legacy.example.test/items"))
+@pytest.mark.parametrize(
+    "absolute_path", ("https://legacy.example.test/items", "http://legacy.example.test/items")
+)
 async def test_primitive_absolute_http_paths_fail_before_http_library_execution(
     monkeypatch: pytest.MonkeyPatch,
     absolute_path: str,

@@ -76,10 +76,7 @@ class Requester:
         """Compose immutable JSON-domain headers, then execute a canonical request."""
         if request.body is not None and not isinstance(request.body, JsonBody):
             raise ValueError("Requester.execute accepts JSON-domain requests only")
-        if (
-            self._auth_provider is not None
-            and "authorization" in request.headers.as_dict()
-        ):
+        if self._auth_provider is not None and "authorization" in request.headers.as_dict():
             raise AuthorizationConflictException(
                 "Authorization header is managed by AuthProvider when configured"
             )
