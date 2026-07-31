@@ -43,6 +43,10 @@ def _valid_token_payload() -> JSONValue:
     }
 
 
+def _token_payload_without_refresh_token() -> JSONValue:
+    return {"access_token": "test-access-token", "expires_in": 3600}
+
+
 def _invalid_token_payload() -> JSONValue:
     return {"access_token": "test-access-token", "expires_in": True}
 
@@ -302,7 +306,7 @@ def test_password_client_rejects_blank_credentials_without_echoing_values() -> N
 async def test_password_client_accepts_sas_ec_with_an_empty_secret() -> None:
     """Preserve sasctl's ``sas.ec`` plus empty-secret password-grant default."""
     transport = _FakeTransport(
-        [_valid_token_payload()],
+        [_token_payload_without_refresh_token()],
         expected_form=(
             ("grant_type", "password"),
             ("username", _USERNAME),
@@ -318,12 +322,13 @@ async def test_password_client_accepts_sas_ec_with_an_empty_secret() -> None:
         client_secret="",
     )
 
-    await client.fetch_access_token()
+    token = await client.fetch_access_token()
 
     record = transport.requests[0]
     assert record.authorization_scheme == "Basic"
     assert record.basic_contract_is_valid
     assert record.form_contract_is_valid
+    assert token.refresh_token is None
 
 
 @pytest.mark.parametrize(
@@ -390,7 +395,16 @@ async def test_password_client_rejects_invalid_token_payload() -> None:
 @pytest.mark.parametrize(
     "payload",
     (
-        {"access_token": "test-access-token", "expires_in": 3600},
+        {
+            "access_token": "test-access-token",
+            "expires_in": 3600,
+            "refresh_token": None,
+        },
+        {
+            "access_token": "test-access-token",
+            "expires_in": 3600,
+            "refresh_token": "",
+        },
         {
             "access_token": "test-access-token",
             "expires_in": 3600,
@@ -403,7 +417,7 @@ async def test_password_client_rejects_invalid_token_payload() -> None:
         },
     ),
 )
-async def test_password_client_rejects_missing_or_malformed_obtain_refresh_token(
+async def test_password_client_rejects_present_malformed_obtain_refresh_token(
     payload: JSONValue,
 ) -> None:
     transport = _password_transport(responses=[payload])
@@ -411,6 +425,17 @@ async def test_password_client_rejects_missing_or_malformed_obtain_refresh_token
 
     with pytest.raises(TokenEndpointClientError, match="refresh_token"):
         await client.fetch_access_token()
+
+
+@pytest.mark.asyncio
+async def test_password_client_allows_an_omitted_obtain_refresh_token() -> None:
+    transport = _password_transport(responses=[_token_payload_without_refresh_token()])
+    client = _password_client(transport)
+
+    token = await client.fetch_access_token()
+
+    assert token.value == "test-access-token"
+    assert token.refresh_token is None
 
 
 @pytest.mark.asyncio
@@ -459,7 +484,9 @@ async def test_password_client_preserves_refresh_token_when_response_omits_it() 
 
 
 @pytest.mark.asyncio
-async def test_password_client_fetches_when_legacy_token_has_no_refresh_token() -> None:
+async def test_password_client_reobtains_with_password_grant_when_legacy_token_has_no_refresh_token() -> (  # noqa: E501
+    None
+):
     transport = _password_transport(responses=[_valid_token_payload()])
     client = _password_client(transport)
 

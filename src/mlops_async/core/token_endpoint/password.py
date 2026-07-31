@@ -57,7 +57,7 @@ class PasswordTokenEndpointClient:
             content=self._form_body_for_password_grant(),
         )
         return access_token_from_response(
-            parse_token_response(response, require_refresh_token=True),
+            parse_token_response(response),
             now=datetime.now(timezone.utc),
         )
 

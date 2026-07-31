@@ -8,7 +8,9 @@ import pytest
 import tests.conftest as viya_e2e_guard
 
 
-_OPT_IN_REQUIRED_MESSAGE = "RUN_VIYA_E2E=1 is required for pytest -m viya_e2e"
+_OPT_IN_REQUIRED_MESSAGE = (
+    "RUN_VIYA_E2E=1 and VIYA_E2E_VPN_CONFIRMED=1 are required for pytest -m viya_e2e"
+)
 
 
 @dataclass(frozen=True)
@@ -40,6 +42,36 @@ def _items(*item_markers: bool) -> list[pytest.Item]:
         list[pytest.Item],
         [_FakeItem(is_viya_e2e=is_viya_e2e) for is_viya_e2e in item_markers],
     )
+
+
+@pytest.mark.parametrize(
+    ("run_viya_e2e", "vpn_confirmed", "expected"),
+    (
+        (None, None, False),
+        ("1", None, False),
+        (None, "1", False),
+        ("true", "1", False),
+        ("1", "true", False),
+        ("1", "1", True),
+    ),
+)
+def test_opt_in_requires_both_environment_variables_to_be_exactly_one(
+    monkeypatch: pytest.MonkeyPatch,
+    run_viya_e2e: str | None,
+    vpn_confirmed: str | None,
+    expected: bool,
+) -> None:
+    if run_viya_e2e is None:
+        monkeypatch.delenv("RUN_VIYA_E2E", raising=False)
+    else:
+        monkeypatch.setenv("RUN_VIYA_E2E", run_viya_e2e)
+
+    if vpn_confirmed is None:
+        monkeypatch.delenv("VIYA_E2E_VPN_CONFIRMED", raising=False)
+    else:
+        monkeypatch.setenv("VIYA_E2E_VPN_CONFIRMED", vpn_confirmed)
+
+    assert viya_e2e_guard._is_opted_in() is expected
 
 
 @pytest.mark.parametrize(
