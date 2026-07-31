@@ -92,9 +92,7 @@ def _normalized_base_url(value: object) -> str:
 
 def _validated_literal_path(value: object) -> str:
     if not isinstance(value, str) or not value.startswith("/") or "?" in value or "#" in value:
-        raise ValueError(
-            "EndpointPath.literal must be an absolute path without query or fragment"
-        )
+        raise ValueError("EndpointPath.literal must be an absolute path without query or fragment")
     if not value.isascii() or any(ord(character) < 0x20 for character in value):
         raise ValueError("EndpointPath.literal must be a canonical static path")
     for index, character in enumerate(value):

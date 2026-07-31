@@ -900,9 +900,7 @@ async def test_primitive_request_adapters_reject_case_varied_absolute_and_networ
 
     try:
         transport_exception = _exception_type("HttpTransportException")
-        request_method = (
-            client.request if request_adapter == "request" else client.request_json
-        )
+        request_method = client.request if request_adapter == "request" else client.request_json
         with pytest.raises(transport_exception) as exc_info:
             await request_method(HttpMethod.GET, rejected_path)
     finally:

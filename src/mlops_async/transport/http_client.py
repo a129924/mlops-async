@@ -217,8 +217,10 @@ class HttpClient(Client):
             headers,
             json_body=json_body,
         )
-        endpoint_path = path_parts.path if path_parts.path.startswith("/") else (
-            f"/{path_parts.path}" if path_parts.path else "/"
+        endpoint_path = (
+            path_parts.path
+            if path_parts.path.startswith("/")
+            else (f"/{path_parts.path}" if path_parts.path else "/")
         )
         if path_parts.fragment:
             endpoint_path = f"{endpoint_path}#{path_parts.fragment}"

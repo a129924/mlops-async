@@ -74,13 +74,9 @@ def test_direct_construction_matches_named_invariants() -> None:
     assert BaseUrl("https://api.example.test:8443") == BaseUrl.create(
         "https://api.example.test:8443"
     )
-    assert EndpointPath("/api/v1/%E5%8F%B0") == EndpointPath.literal(
-        "/api/v1/%E5%8F%B0"
-    )
+    assert EndpointPath("/api/v1/%E5%8F%B0") == EndpointPath.literal("/api/v1/%E5%8F%B0")
     assert QueryParams((("tag", "one"),)) == QueryParams.create((("tag", "one"),))
-    assert Headers((("X-Trace", "first"), ("x-trace", "final"))).as_dict() == {
-        "x-trace": "final"
-    }
+    assert Headers((("X-Trace", "first"), ("x-trace", "final"))).as_dict() == {"x-trace": "final"}
     assert Headers((("X-Trace", "first"), ("x-trace", "final"))).as_dict() == (
         Headers.create((("X-Trace", "first"), ("x-trace", "final"))).as_dict()
     )
