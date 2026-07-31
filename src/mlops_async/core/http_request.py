@@ -58,35 +58,71 @@ def _header_pair(name: object, value: object) -> tuple[str, str]:
     return name.lower(), value
 
 
+def _normalized_base_url(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("BaseUrl must be an http(s) origin only")
+    if any(ord(character) <= 0x1F for character in value):
+        raise ValueError("BaseUrl must not contain control characters")
+    parts = urlsplit(value)
+    if any(character in parts.netloc for character in "\\\\%") or any(
+        ord(character) <= 0x20 for character in parts.netloc
+    ):
+        raise ValueError("BaseUrl must contain a valid origin")
+    try:
+        port = parts.port
+    except ValueError as exc:
+        raise ValueError("BaseUrl must contain a valid origin") from exc
+    if (
+        parts.scheme not in {"http", "https"}
+        or not parts.hostname
+        or parts.username is not None
+        or parts.password is not None
+        or parts.path not in {"", "/"}
+        or parts.query
+        or parts.fragment
+    ):
+        raise ValueError("BaseUrl must be an http(s) origin only")
+    authority = parts.hostname
+    if ":" in authority and not authority.startswith("["):
+        authority = f"[{authority}]"
+    if port is not None:
+        authority = f"{authority}:{port}"
+    return f"{parts.scheme}://{authority}"
+
+
+def _validated_literal_path(value: object) -> str:
+    if not isinstance(value, str) or not value.startswith("/") or "?" in value or "#" in value:
+        raise ValueError(
+            "EndpointPath.literal must be an absolute path without query or fragment"
+        )
+    if not value.isascii() or any(ord(character) < 0x20 for character in value):
+        raise ValueError("EndpointPath.literal must be a canonical static path")
+    for index, character in enumerate(value):
+        if character == "%" and (
+            index + 2 >= len(value)
+            or any(
+                encoded_character not in "0123456789ABCDEF"
+                for encoded_character in value[index + 1 : index + 3]
+            )
+        ):
+            raise ValueError("EndpointPath.literal must be a canonical static path")
+    if quote(value, safe="/%:@!$&'()*+,;=") != value:
+        raise ValueError("EndpointPath.literal must be a canonical static path")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class BaseUrl:
     """An HTTP(S) origin without a path prefix or URL decorations."""
 
     value: str
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "value", _normalized_base_url(self.value))
+
     @classmethod
     def create(cls, value: str) -> BaseUrl:
-        parts = urlsplit(value)
-        try:
-            port = parts.port
-        except ValueError as exc:
-            raise ValueError("BaseUrl must contain a valid origin") from exc
-        if (
-            parts.scheme not in {"http", "https"}
-            or not parts.hostname
-            or parts.username is not None
-            or parts.password is not None
-            or parts.path not in {"", "/"}
-            or parts.query
-            or parts.fragment
-        ):
-            raise ValueError("BaseUrl must be an http(s) origin only")
-        authority = parts.hostname
-        if ":" in authority and not authority.startswith("["):
-            authority = f"[{authority}]"
-        if port is not None:
-            authority = f"{authority}:{port}"
-        return cls(f"{parts.scheme}://{authority}")
+        return cls(value)
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,12 +131,11 @@ class EndpointPath:
 
     value: str
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "value", _validated_literal_path(self.value))
+
     @classmethod
     def literal(cls, value: str) -> EndpointPath:
-        if not value.startswith("/") or "?" in value or "#" in value:
-            raise ValueError(
-                "EndpointPath.literal must be an absolute path without query or fragment"
-            )
         return cls(value)
 
     @classmethod
@@ -129,6 +164,20 @@ class QueryParams:
 
     _pairs: tuple[tuple[str, _QueryValue], ...]
 
+    def __post_init__(self) -> None:
+        resolved_pairs: list[tuple[str, _QueryValue]] = []
+        raw_pairs = cast(object, self._pairs)
+        source = (
+            cast(Iterable[tuple[object, object]], raw_pairs.items())
+            if isinstance(raw_pairs, Mapping)
+            else cast(Iterable[tuple[object, object]], raw_pairs)
+        )
+        for key, value in source:
+            resolved_pair = _query_pair(key, value)
+            if resolved_pair is not None:
+                resolved_pairs.append(resolved_pair)
+        object.__setattr__(self, "_pairs", tuple(resolved_pairs))
+
     @classmethod
     def create(
         cls,
@@ -139,12 +188,7 @@ class QueryParams:
             if isinstance(pairs, Mapping)
             else pairs
         )
-        resolved_pairs: list[tuple[str, _QueryValue]] = []
-        for key, value in source:
-            resolved_pair = _query_pair(key, value)
-            if resolved_pair is not None:
-                resolved_pairs.append(resolved_pair)
-        return cls(tuple(resolved_pairs))
+        return cls(tuple(source))
 
     def render(self) -> str:
         def render_value(value: _QueryValue) -> str:
@@ -164,6 +208,19 @@ class Headers:
 
     _items: tuple[tuple[str, str], ...]
 
+    def __post_init__(self) -> None:
+        resolved: dict[str, str] = {}
+        raw_items = cast(object, self._items)
+        source = (
+            cast(Iterable[tuple[object, object]], raw_items.items())
+            if isinstance(raw_items, Mapping)
+            else cast(Iterable[tuple[object, object]], raw_items)
+        )
+        for name, value in source:
+            normalized_name, normalized_value = _header_pair(name, value)
+            resolved[normalized_name] = normalized_value
+        object.__setattr__(self, "_items", tuple(resolved.items()))
+
     @classmethod
     def create(
         cls,
@@ -172,11 +229,7 @@ class Headers:
         source = (
             cast(Iterable[tuple[str, str]], pairs.items()) if isinstance(pairs, Mapping) else pairs
         )
-        resolved: dict[str, str] = {}
-        for name, value in source:
-            normalized_name, normalized_value = _header_pair(name, value)
-            resolved[normalized_name] = normalized_value
-        return cls(tuple(resolved.items()))
+        return cls(tuple(source))
 
     def as_dict(self) -> dict[str, str]:
         return dict(self._items)

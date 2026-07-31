@@ -70,6 +70,98 @@ def test_base_url_is_origin_only(invalid_origin: str) -> None:
         BaseUrl.create(invalid_origin)
 
 
+def test_direct_construction_matches_named_invariants() -> None:
+    assert BaseUrl("https://api.example.test:8443") == BaseUrl.create(
+        "https://api.example.test:8443"
+    )
+    assert EndpointPath("/api/v1/%E5%8F%B0") == EndpointPath.literal(
+        "/api/v1/%E5%8F%B0"
+    )
+    assert QueryParams((("tag", "one"),)) == QueryParams.create((("tag", "one"),))
+    assert Headers((("X-Trace", "first"), ("x-trace", "final"))).as_dict() == {
+        "x-trace": "final"
+    }
+    assert Headers((("X-Trace", "first"), ("x-trace", "final"))).as_dict() == (
+        Headers.create((("X-Trace", "first"), ("x-trace", "final"))).as_dict()
+    )
+
+    with pytest.raises(ValueError):
+        BaseUrl("https://api example.test")
+    with pytest.raises(ValueError):
+        EndpointPath("api/v1/items")
+    with pytest.raises(ValueError):
+        QueryParams((("", "not-allowed"),))
+    with pytest.raises(ValueError):
+        Headers((("X-Bad\nName", "value"),))
+
+
+def test_direct_query_params_mapping_matches_create_and_canonical_output() -> None:
+    direct = QueryParams({"ab": "value"})  # type: ignore[arg-type]
+    created = QueryParams.create({"ab": "value"})
+
+    assert direct == created
+    assert direct.render() == "ab=value"
+
+
+def test_direct_headers_mapping_matches_create_and_canonical_output() -> None:
+    direct = Headers({"ab": "value"})  # type: ignore[arg-type]
+    created = Headers.create({"ab": "value"})
+
+    assert direct == created
+    assert direct.as_dict() == {"ab": "value"}
+
+
+def test_endpoint_path_literal_rejects_noncanonical_static_paths() -> None:
+    literal = EndpointPath.literal("/api/v1/%E5%8F%B0")
+
+    assert literal.value == "/api/v1/%E5%8F%B0"
+    for noncanonical_path in (
+        "/api/v1/name with space",
+        "/api/v1/台北",
+        "/api/v1/\x1f",
+    ):
+        with pytest.raises(ValueError):
+            EndpointPath.literal(noncanonical_path)
+
+
+def test_base_url_rejects_invalid_authority_characters() -> None:
+    valid_origin = "https://api.example.test:8443"
+    assert BaseUrl(valid_origin) == BaseUrl.create(valid_origin)
+
+    for invalid_origin in (
+        "https://api example.test",
+        "https://api\\example.test",
+        "https://api%00example.test",
+    ):
+        with pytest.raises(ValueError):
+            BaseUrl(invalid_origin)
+        with pytest.raises(ValueError):
+            BaseUrl.create(invalid_origin)
+
+
+@pytest.mark.parametrize(
+    "invalid_origin",
+    (
+        "https://api.example.test\r",
+        "https://api.example.test\n",
+        "https://api.example.test\t",
+        "https://api.example.test\x1f",
+    ),
+    ids=("carriage-return", "line-feed", "tab", "c0-unit-separator"),
+)
+def test_base_url_rejects_raw_control_characters_before_url_parsing(
+    monkeypatch: pytest.MonkeyPatch,
+    invalid_origin: str,
+) -> None:
+    def fail_urlsplit(_value: str) -> None:
+        raise AssertionError("control characters must not reach urlsplit")
+
+    monkeypatch.setattr(http_request, "urlsplit", fail_urlsplit)
+
+    with pytest.raises(ValueError):
+        BaseUrl.create(invalid_origin)
+
+
 def test_endpoint_path_distinguishes_literal_static_path_from_encoded_raw_segments() -> None:
     literal = EndpointPath.literal("/api/v1/users")
     dynamic = EndpointPath.from_segments("api", "v1", "users", "name with/slash")

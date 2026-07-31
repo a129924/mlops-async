@@ -6,6 +6,7 @@ from math import isfinite
 import ssl
 from types import TracebackType
 from typing import TypeGuard, cast
+from urllib.parse import parse_qsl, urlsplit
 
 import httpx
 
@@ -33,7 +34,9 @@ __all__ = ["HttpClient"]
 
 _DEFAULT_TIMEOUTS = RequestTimeouts()
 _REQUEST_ID_HEADER = "X-Request-ID"
-_FORBIDDEN_HTTPX_DEFAULT_HEADER_NAMES = frozenset({"accept-encoding", "connection", "user-agent"})
+_FORBIDDEN_HTTPX_DEFAULT_HEADER_NAMES = frozenset(
+    {"accept", "accept-encoding", "connection", "user-agent"}
+)
 _FORBIDDEN_DEFAULT_HEADER_NAMES = frozenset(
     {
         "authorization",
@@ -192,7 +195,8 @@ class HttpClient(Client):
         options: ClientRequestOptions | None = None,
     ) -> RawClientResponse:
         """Adapt the legacy primitive request surface to canonical execution."""
-        if path.startswith(("http://", "https://")):
+        path_parts = urlsplit(path)
+        if path_parts.scheme or path_parts.netloc:
             try:
                 httpx.URL(path)
             except httpx.InvalidURL as exc:
@@ -213,12 +217,19 @@ class HttpClient(Client):
             headers,
             json_body=json_body,
         )
-        endpoint_path = path if path.startswith("/") else f"/{path}" if path else "/"
+        endpoint_path = path_parts.path if path_parts.path.startswith("/") else (
+            f"/{path_parts.path}" if path_parts.path else "/"
+        )
+        if path_parts.fragment:
+            endpoint_path = f"{endpoint_path}#{path_parts.fragment}"
+        query_pairs = [*parse_qsl(path_parts.query, keep_blank_values=True)]
+        if params is not None:
+            query_pairs.extend(params.items())
         request = HttpRequest(
             method=method,
             base_url=self._base_url,
             endpoint_path=EndpointPath.literal(endpoint_path),
-            query=QueryParams.create(params or {}),
+            query=QueryParams.create(query_pairs),
             headers=Headers.create(request_headers),
             body=(
                 JsonBody(json_body)
@@ -234,6 +245,11 @@ class HttpClient(Client):
     async def execute(self, request: HttpRequest) -> RawClientResponse:
         """Execute one canonical request without re-composing its URL or body."""
         request_headers = request.headers.as_dict()
+        json_body = request.body.value if isinstance(request.body, JsonBody) else None
+        content = request.body.content if isinstance(request.body, RawBody) else None
+        if isinstance(request.body, JsonBody) and json_body is None:
+            # httpx treats json=None as an omitted body; canonical JSON null is distinct.
+            content = b"null"
 
         resolved_timeout = self._resolve_timeout(request.options)
         try:
@@ -242,16 +258,16 @@ class HttpClient(Client):
                     request.method.value,
                     request.url,
                     headers=request_headers,
-                    json=request.json_body,
-                    content=request.content,
+                    json=json_body,
+                    content=content,
                 )
             else:
                 http_request = self._client.build_request(
                     request.method.value,
                     request.url,
                     headers=request_headers,
-                    json=request.json_body,
-                    content=request.content,
+                    json=json_body,
+                    content=content,
                     timeout=resolved_timeout,
                 )
             self._strip_hidden_default_headers(http_request, request_headers)

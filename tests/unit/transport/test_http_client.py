@@ -693,6 +693,67 @@ async def test_execute_uses_http_request_url_and_raw_body_without_second_url_sem
 
 
 @pytest.mark.asyncio
+async def test_execute_serializes_json_null_as_json_literal() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204, content=b"")
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://api.example.test", transport=transport)
+    request = HttpRequest(
+        method=HttpMethod.POST,
+        base_url=BaseUrl.create("https://api.example.test"),
+        endpoint_path=EndpointPath.literal("/api/v1/items"),
+        query=QueryParams.create({}),
+        headers=Headers.create({}),
+        body=JsonBody(None),
+        options=None,
+    )
+
+    try:
+        await client.execute(request)
+    finally:
+        await client.aclose()
+
+    assert transport.requests[0].content == b"null"
+
+
+@pytest.mark.asyncio
+async def test_execute_removes_implicit_accept_but_preserves_explicit_accept() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204, content=b"")
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://api.example.test", transport=transport)
+    without_accept = HttpRequest(
+        method=HttpMethod.GET,
+        base_url=BaseUrl.create("https://api.example.test"),
+        endpoint_path=EndpointPath.literal("/api/v1/items"),
+        query=QueryParams.create({}),
+        headers=Headers.create({}),
+        body=None,
+        options=None,
+    )
+    with_accept = HttpRequest(
+        method=HttpMethod.GET,
+        base_url=BaseUrl.create("https://api.example.test"),
+        endpoint_path=EndpointPath.literal("/api/v1/items"),
+        query=QueryParams.create({}),
+        headers=Headers.create({"Accept": "application/vnd.example+json"}),
+        body=None,
+        options=None,
+    )
+
+    try:
+        await client.execute(without_accept)
+        await client.execute(with_accept)
+    finally:
+        await client.aclose()
+
+    assert "accept" not in transport.requests[0].headers
+    assert transport.requests[1].headers["accept"] == "application/vnd.example+json"
+
+
+@pytest.mark.asyncio
 async def test_primitive_request_adapter_matches_direct_canonical_execution() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return _json_response(request, status_code=204)
@@ -736,6 +797,28 @@ async def test_primitive_request_adapter_matches_direct_canonical_execution() ->
 
 
 @pytest.mark.asyncio
+async def test_primitive_request_adapters_preserve_embedded_query() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, content=b'{"ok": true}')
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://api.example.test", transport=transport)
+
+    try:
+        primitive_response = await client.request(HttpMethod.GET, "/items?tag=a")
+        json_response = await client.request_json(HttpMethod.GET, "/items?tag=a")
+    finally:
+        await client.aclose()
+
+    assert primitive_response.status_code == 200
+    assert json_response == {"ok": True}
+    assert [str(request.url) for request in transport.requests] == [
+        "https://api.example.test/items?tag=a",
+        "https://api.example.test/items?tag=a",
+    ]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "absolute_path", ("https://legacy.example.test/items", "http://legacy.example.test/items")
 )
@@ -774,6 +857,59 @@ async def test_primitive_absolute_http_paths_fail_before_http_library_execution(
 
     assert exc_info.value.status_code is None
     assert exc_info.value.url == absolute_path
+    assert build_calls == 0
+    assert send_calls == 0
+    assert transport.requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("request_adapter", ("request", "request_json"))
+@pytest.mark.parametrize(
+    "rejected_path",
+    (
+        "HTTP://legacy.example.test/items",
+        "HtTpS://legacy.example.test/items",
+        "//legacy.example.test/items",
+    ),
+)
+async def test_primitive_request_adapters_reject_case_varied_absolute_and_network_paths_before_http_library_execution(
+    monkeypatch: pytest.MonkeyPatch,
+    request_adapter: str,
+    rejected_path: str,
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204)
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://api.example.test", transport=transport)
+    build_calls = 0
+    send_calls = 0
+
+    def fail_build_request(*_args: object, **_kwargs: object) -> NoReturn:
+        nonlocal build_calls
+        build_calls += 1
+        raise AssertionError("rejected primitive paths must not reach build_request")
+
+    async def fail_send(*_args: object, **_kwargs: object) -> NoReturn:
+        nonlocal send_calls
+        send_calls += 1
+        raise AssertionError("rejected primitive paths must not reach send")
+
+    monkeypatch.setattr(client._client, "build_request", fail_build_request)
+    monkeypatch.setattr(client._client, "send", fail_send)
+
+    try:
+        transport_exception = _exception_type("HttpTransportException")
+        request_method = (
+            client.request if request_adapter == "request" else client.request_json
+        )
+        with pytest.raises(transport_exception) as exc_info:
+            await request_method(HttpMethod.GET, rejected_path)
+    finally:
+        await client.aclose()
+
+    assert exc_info.value.status_code is None
+    assert exc_info.value.url == rejected_path
     assert build_calls == 0
     assert send_calls == 0
     assert transport.requests == []

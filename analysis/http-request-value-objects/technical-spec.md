@@ -3,7 +3,9 @@
 ## Status and Authority
 
 - **Topic**: `http-request-value-objects`
-- **Status**: frozen for independent plan review
+ - **Status**: `review-ready`; the rework planning constraints are complete and
+  only the six HUMAN-selected PR #57 review threads below are execution
+  constraints.
 - 本檔是 execution-facing source of truth；`requirements.md` 是 business-intent guardrail。
 
 ## Technical Design
@@ -53,6 +55,40 @@
 - TokenEndpointClient、password token、token/form 保持既有 raw-content primitive path。
 - 它們不得經 JSON-domain Requester 或本批 primitive adapter migration。
 - token/form value-object migration 必須另立 topic。
+
+## Selected review rework execution constraints
+
+Only the following six HUMAN-selected PR #57 threads are in scope for this
+rework. They refine the existing JSON-domain request contract and do not reopen
+the locked architecture decisions.
+
+1. `PRRT_kwDOSTt_386VAaWm` — `JsonBody(None)` remains a value-object snapshot
+   of JSON `null`; it does not serialize itself. At the transport boundary,
+   `HttpRequest.body` variant discrimination must pass the JSON value so the
+   wire content is exactly `b"null"`, rather than treating the variant as no
+   body.
+2. `PRRT_kwDOSTt_386VAaWr` — public direct construction and named construction
+   of `BaseUrl`, `EndpointPath`, `QueryParams`, and `Headers` must enforce the
+   same validation and canonicalization. A caller must not bypass an invariant
+   through a generated dataclass initializer or raw internal storage fields.
+3. `PRRT_kwDOSTt_386VAaWs` — `EndpointPath.literal()` accepts only a canonical
+   static absolute path. It must reject non-canonical whitespace, non-ASCII,
+   and control-character input instead of delegating encoding or normalization
+   to the HTTP library; already percent-encoded static literals remain the
+   caller's canonical representation.
+4. `PRRT_kwDOSTt_386VAaWw` — `BaseUrl` validates its authority/hostname at the
+   construction boundary and raises `ValueError` for parser-permitted invalid
+   host characters, including spaces, backslashes, and percent-encoded NUL.
+5. `PRRT_kwDOSTt_386VAaWx` — canonical direct `HttpClient.execute()` requests
+   must not acquire an implicit `accept: */*` from httpx. Hidden `Accept` is
+   removed when absent from the canonical `Headers`; an explicit canonical
+   `accept` is preserved.
+6. `PRRT_kwDOSTt_386VAaW2` — the JSON-domain primitive compatibility adapter
+   preserves an already embedded query in `path` for both `request()` and
+   `request_json()`: it separates the path from query pairs before constructing
+   `EndpointPath` and `QueryParams`, then delegates to the same canonical
+   execution path. This is compatibility preservation, not primitive-surface
+   cleanup.
 
 ## Compatibility and Error Strategy
 
