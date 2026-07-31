@@ -872,7 +872,7 @@ async def test_primitive_absolute_http_paths_fail_before_http_library_execution(
         "//legacy.example.test/items",
     ),
 )
-async def test_primitive_request_adapters_reject_case_varied_absolute_and_network_paths_before_http_library_execution(
+async def test_primitive_request_adapters_reject_case_varied_absolute_and_network_paths_before_http_library_execution(  # noqa: E501
     monkeypatch: pytest.MonkeyPatch,
     request_adapter: str,
     rejected_path: str,
