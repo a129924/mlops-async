@@ -558,6 +558,26 @@ uv run ruff format .
 uv run tach check
 ```
 
+### Cross-platform pre-commit hooks
+
+Windows Git 與 WSL 共用同一個 worktree 時，請在每個 checkout 執行一次：
+
+```bash
+./scripts/install-repo-hooks.sh
+```
+
+此指令設定 `core.hooksPath=.githooks`，讓 Git 使用版本控制的 LF hook，而非
+任一作業系統寫入共享 `.git/hooks/pre-commit` 的 OS 專屬版本。hook 會以
+PATH 中的 `pre-commit` 執行既有設定；Windows 與 WSL 都須各自安裝
+`pre-commit`（例如 `uv tool install pre-commit==4.6.1`）。
+
+不要在共用 worktree 執行 `pre-commit install`，因為它會覆寫共享 hook。若要
+回復 Git 預設 hooks 路徑，執行：
+
+```bash
+git config --unset-all core.hooksPath
+```
+
 ## Structural guardrails
 
 此 repository 使用 `tach` 對 `src/mlops_async/` 內部進行漸進式的依賴邊界檢查。
