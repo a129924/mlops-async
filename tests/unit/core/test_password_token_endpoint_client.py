@@ -484,9 +484,7 @@ async def test_password_client_preserves_refresh_token_when_response_omits_it() 
 
 
 @pytest.mark.asyncio
-async def test_password_client_reobtains_with_password_grant_when_legacy_token_has_no_refresh_token() -> (  # noqa: E501
-    None
-):
+async def test_password_client_reobtains_when_legacy_token_lacks_refresh_token() -> None:
     transport = _password_transport(responses=[_valid_token_payload()])
     client = _password_client(transport)
 
