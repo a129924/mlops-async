@@ -6,7 +6,7 @@ import pytest
 
 
 def _is_opted_in() -> bool:
-    return os.environ.get("RUN_VIYA_E2E") == "1"
+    return os.environ.get("RUN_VIYA_E2E") == "1" and os.environ.get("VIYA_E2E_VPN_CONFIRMED") == "1"
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -23,9 +23,11 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         and not _is_opted_in()
         and any(item.get_closest_marker("viya_e2e") is not None for item in items)
     ):
-        raise pytest.UsageError("RUN_VIYA_E2E=1 is required for pytest -m viya_e2e")
+        raise pytest.UsageError(
+            "RUN_VIYA_E2E=1 and VIYA_E2E_VPN_CONFIRMED=1 are required for pytest -m viya_e2e"
+        )
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.get_closest_marker("viya_e2e") is not None and not _is_opted_in():
-        pytest.skip("Viya E2E disabled; set RUN_VIYA_E2E=1 to opt in")
+        pytest.skip("Viya E2E disabled; set RUN_VIYA_E2E=1 and VIYA_E2E_VPN_CONFIRMED=1 to opt in")
