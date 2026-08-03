@@ -28,18 +28,20 @@ close 行為。
 若日後實作，它將接收已設定的 `TokenEndpointClientProtocol`、建立 `.auth`，但不擁有或
 關閉 transport。
 
-**v0.15.0 release preparation** adds runtime refresh-token support to the
-internal password-grant collaborator: password obtain requires a valid refresh
-token, refresh uses the existing injected async transport and Basic-auth
-headers, and a refresh response may preserve or rotate the stored refresh
-token. `TokenManager` remains the owner of lifecycle coordination and storage
-updates; this preparation does not create a Git tag or publish a formal release.
+**v0.15.1 release preparation** corrects password-grant obtain-response
+handling: `refresh_token` may be omitted, in which case it is represented as
+`None`. When the field is present, `null`, blank, and non-string values remain
+invalid. The legacy password-grant re-obtain fallback remains available when no
+refresh token is stored. Viya live E2E requires both `RUN_VIYA_E2E=1` and
+`VIYA_E2E_VPN_CONFIRMED=1`; this preparation does not create a Git tag or
+publish a formal release.
 
-**v0.15.0 release preparation** 為 internal password-grant collaborator 加入
-runtime refresh-token 支援：password obtain 必須取得有效的 refresh token，refresh
-沿用既有注入的 async transport 與 Basic-auth headers，refresh response 可保留或
-rotation 已儲存的 refresh token。`TokenManager` 仍擁有 lifecycle coordination 與
-storage update；此準備工作不會建立 Git tag，也不代表已發佈正式 release。
+**v0.15.1 release preparation** 修正 password-grant obtain response 的處理：
+`refresh_token` 可省略，缺席時以 `None` 表示；欄位存在時，`null`、空白與非字串
+值仍屬無效。未儲存 refresh token 時，保留既有 password-grant re-obtain fallback。
+Viya live E2E 必須同時設定 `RUN_VIYA_E2E=1` 與
+`VIYA_E2E_VPN_CONFIRMED=1`；此準備工作不會建立 Git tag，也不代表已發佈正式
+release。
 
 As of **v0.13.0**, the repository closes PRs #47 through #50: `HttpClient` now
 supports framework-user-controlled TLS verification through `bool` or
