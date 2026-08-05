@@ -10,6 +10,7 @@ from urllib.parse import SplitResult, urlsplit
 
 _VPN_CONFIRMATION_ENV = "VIYA_E2E_VPN_CONFIRMED"
 _VPN_PREFLIGHT_ERROR_MESSAGE = "Viya E2E VPN preflight failed"
+_VPN_TCP_CONNECT_TIMEOUT_SECONDS = 5.0
 
 
 class _ClosableStreamWriter(Protocol):
@@ -41,16 +42,31 @@ async def _require_viya_e2e_vpn_preflight(
     if os.environ.get(_VPN_CONFIRMATION_ENV) != "1":
         raise _ViyaE2EVpnPreflightError(_VPN_PREFLIGHT_ERROR_MESSAGE) from None
 
+    connector_cancellation: asyncio.CancelledError | None = None
+
+    async def connect(host: str, port: int) -> tuple[asyncio.StreamReader, _ClosableStreamWriter]:
+        nonlocal connector_cancellation
+        try:
+            return await connector(host, port)
+        except asyncio.CancelledError as error:
+            connector_cancellation = error
+            raise
+
     try:
         parsed = _parse_https_origin(base_url)
         host = parsed.hostname
         if host is None:
             raise ValueError("base URL host is required")
         port = 443 if parsed.port is None else parsed.port
-        _reader, writer = await connector(host, port)
+        _reader, writer = await asyncio.wait_for(
+            connect(host, port),
+            timeout=_VPN_TCP_CONNECT_TIMEOUT_SECONDS,
+        )
         writer.close()
         await writer.wait_closed()
     except asyncio.CancelledError:
+        if connector_cancellation is not None:
+            raise connector_cancellation from None
         raise
     except Exception:
         raise _ViyaE2EVpnPreflightError(_VPN_PREFLIGHT_ERROR_MESSAGE) from None

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable
 from typing import cast
 
 import pytest
@@ -9,6 +10,7 @@ from tests.integration.viya_e2e_vpn import (
     _ViyaE2EVpnPreflightError,
     _require_viya_e2e_vpn_preflight,
 )
+from tests.integration import viya_e2e_vpn
 
 
 class _FakeWriter:
@@ -96,6 +98,35 @@ async def test_preflight_uses_explicit_port_with_injected_connector(
     )
 
     assert calls == [("vpn.example.test", 8443)]
+
+
+@pytest.mark.asyncio
+async def test_preflight_bounds_connection_with_named_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("VIYA_E2E_VPN_CONFIRMED", "1")
+    writer = _FakeWriter()
+    observed_timeouts: list[float] = []
+
+    async def connector(host: str, port: int) -> tuple[asyncio.StreamReader, _FakeWriter]:
+        del host, port
+        return cast(asyncio.StreamReader, object()), writer
+
+    original_wait_for = asyncio.wait_for
+
+    async def record_timeout(
+        awaitable: Awaitable[tuple[asyncio.StreamReader, _FakeWriter]],
+        *,
+        timeout: float,
+    ) -> tuple[asyncio.StreamReader, _FakeWriter]:
+        observed_timeouts.append(timeout)
+        return await original_wait_for(awaitable, timeout=timeout)
+
+    monkeypatch.setattr(viya_e2e_vpn.asyncio, "wait_for", record_timeout)
+
+    await _require_viya_e2e_vpn_preflight("https://viya.example.test", connector=connector)
+
+    assert observed_timeouts == [viya_e2e_vpn._VPN_TCP_CONNECT_TIMEOUT_SECONDS]
 
 
 @pytest.mark.asyncio

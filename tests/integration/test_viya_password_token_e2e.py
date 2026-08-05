@@ -8,6 +8,7 @@ import pytest
 
 from mlops_async.core.request_options import RequestTimeouts
 from mlops_async.core.token_endpoint.password import PasswordTokenEndpointClient
+from mlops_async.core.token_storage import AccessToken
 from mlops_async.transport.http_client import HttpClient
 
 from tests.integration.viya_e2e_config import load_viya_e2e_config
@@ -43,6 +44,7 @@ async def test_password_token_e2e_validates_exact_success_contract() -> None:
                 client_secret=config.client_secret,
             )
             initial_access_token = await client.fetch_access_token()
+            assert initial_access_token.refresh_token
             refreshed_access_token = await client.refresh_access_token(initial_access_token)
     except asyncio.CancelledError:
         raise
@@ -52,5 +54,7 @@ async def test_password_token_e2e_validates_exact_success_contract() -> None:
     assert status_codes == [200, 200]
     assert initial_access_token.value
     assert initial_access_token.expires_at > datetime.now(timezone.utc)
+    assert isinstance(refreshed_access_token, AccessToken)
     assert refreshed_access_token.value
     assert refreshed_access_token.expires_at > datetime.now(timezone.utc)
+    assert refreshed_access_token.refresh_token
