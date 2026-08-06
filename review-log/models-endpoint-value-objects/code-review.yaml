@@ -1,0 +1,32 @@
+topic: models-endpoint-value-objects
+review: python-code-review
+verdict: approved
+tooling:
+  typing: Pyright strict
+  lint: Ruff E,W,F,N,D,UP,B,A,C4,ARG,RUF
+  dependency: Tach
+findings:
+  typing:
+    - severity: warning
+      locations:
+        - tests/unit/test_models_value_objects.py:75
+        - tests/unit/test_models_value_objects.py:92
+        - tests/unit/clients/test_models_client.py
+      issue: Test-only type-ignore comments do not explain their intent, and the test files are excluded from Pyright.
+      suggested_follow_up: Remove unnecessary ignores or replace them with an explicit Protocol or cast and a reason comment.
+  lint: []
+  readability:
+    - severity: warning
+      location: tests/unit/test_models_value_objects.py
+      issue: One test combines data-type surface, unsupported-field omission, and immutability checks.
+      suggested_follow_up: Split it into focused tests if the test module is changed later.
+  error_handling: []
+  anti_patterns: []
+  test_quality:
+    - severity: warning
+      locations:
+        - tests/unit/clients/test_models_client.py
+        - src/mlops_async/models.py
+      issue: Optional metadata malformed-type branches, including bool-as-int/version, have no explicit test.
+      suggested_follow_up: Add parameterized malformed-payload coverage in a future scoped test improvement.
+  observability: []

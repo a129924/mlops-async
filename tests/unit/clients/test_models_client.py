@@ -1,0 +1,309 @@
+from __future__ import annotations
+
+import asyncio
+import inspect
+from collections.abc import Mapping
+from dataclasses import dataclass
+
+import pytest
+
+import mlops_async
+from mlops_async.clients.models_client import ModelsClient
+from mlops_async.core.http_request import EndpointPath
+from mlops_async.core.requester import Requester
+from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
+from mlops_async.models import ModelDetail, ModelsPage, ModelsResponseError
+from mlops_async.transport.exceptions import (
+    HTTPStatusException,
+    HttpErrorContext,
+    HttpTransportException,
+    InvalidJSONResponseException,
+)
+
+
+@dataclass(frozen=True)
+class _RecordedRequest:
+    method: HttpMethod
+    path: str
+    params: dict[str, str]
+
+
+class _FakeRequester:
+    def __init__(self, outcomes: list[RawClientResponse | BaseException]) -> None:
+        self._outcomes = outcomes
+        self.requests: list[_RecordedRequest] = []
+
+    async def request(
+        self,
+        method: HttpMethod,
+        path: str,
+        *,
+        params: Mapping[str, str] | None = None,
+    ) -> RawClientResponse:
+        self.requests.append(_RecordedRequest(method=method, path=path, params=dict(params or {})))
+        outcome = self._outcomes.pop(0)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+
+def _response(payload: bytes) -> RawClientResponse:
+    return RawClientResponse(
+        status_code=200,
+        headers=ResponseHeaders(),
+        content=payload,
+        method=HttpMethod.GET,
+        url="https://viya.example.test/modelRepository/models",
+    )
+
+
+def _error_context() -> HttpErrorContext:
+    return HttpErrorContext(
+        status_code=503,
+        method="GET",
+        url="https://viya.example.test/modelRepository/models",
+    )
+
+
+@pytest.mark.asyncio
+async def test_list_models_decodes_one_immutable_page_and_builds_the_default_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    literal_paths: list[str] = []
+    original_literal = EndpointPath.literal
+
+    def record_literal(_cls: type[EndpointPath], value: str) -> EndpointPath:
+        literal_paths.append(value)
+        return original_literal(value)
+
+    monkeypatch.setattr(EndpointPath, "literal", classmethod(record_literal))
+    requester = _FakeRequester(
+        [
+            _response(
+                b'{"count": 3, "start": 0, "limit": 20, "items": ['
+                b'{"id": "model-1", "name": "Credit", "projectId": "project-1", '
+                b'"modelType": "analytic", "scoreCodeType": "python", "role": "champion", '
+                b'"version": 2, "dataUris": ["secret"], "files": [{"name": "hidden"}]}]}'
+            )
+        ]
+    )
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    page = await client.list_models()
+
+    assert type(page) is ModelsPage
+    assert page.count == 3
+    assert page.start == 0
+    assert page.limit == 20
+    assert type(page.items) is tuple
+    assert page.items[0].id == "model-1"
+    assert page.items[0].name == "Credit"
+    assert page.items[0].project_id == "project-1"
+    assert page.items[0].model_type == "analytic"
+    assert page.items[0].score_code_type == "python"
+    assert page.items[0].role == "champion"
+    assert page.items[0].version == 2
+    assert not hasattr(page.items[0], "data_uris")
+    assert not hasattr(page.items[0], "files")
+    assert len(requester.requests) == 1
+    request = requester.requests[0]
+    assert request.method is HttpMethod.GET
+    assert literal_paths == ["/modelRepository/models"]
+    assert request.path == "/modelRepository/models"
+    assert request.params == {"start": "0", "limit": "20"}
+
+
+@pytest.mark.asyncio
+async def test_list_models_preserves_server_page_metadata_and_uses_legacy_project_filter() -> None:
+    requester = _FakeRequester(
+        [
+            _response(
+                b'{"count": 99, "start": 20, "limit": 10, "items": '
+                b'[{"id": "model-1", "name": "Credit"}]}'
+            )
+        ]
+    )
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    page = await client.list_models(start=20, limit=10, project_id="proj-uuid")
+
+    assert page.count == 99
+    assert len(page.items) == 1
+    assert requester.requests[0].method is HttpMethod.GET
+    assert requester.requests[0].path == "/modelRepository/models"
+    assert requester.requests[0].params == {
+        "start": "20",
+        "limit": "10",
+        "filter": 'in(projectId,"proj-uuid")',
+    }
+    assert len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_get_model_encodes_its_dynamic_identifier_and_returns_no_raw_payload() -> None:
+    requester = _FakeRequester(
+        [
+            _response(
+                b'{"id": "name with/slash", "name": "Credit", "modelType": "analytic", '
+                b'"dataUris": ["secret"], "files": [{"name": "hidden"}]}'
+            )
+        ]
+    )
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    detail = await client.get_model("name with/slash")
+
+    assert type(detail) is ModelDetail
+    assert detail.id == "name with/slash"
+    assert detail.name == "Credit"
+    assert detail.model_type == "analytic"
+    assert not hasattr(detail, "data_uris")
+    assert not hasattr(detail, "files")
+    assert requester.requests[0].method is HttpMethod.GET
+    assert requester.requests[0].path == "/modelRepository/models/name%20with%2Fslash"
+    assert requester.requests[0].params == {}
+    assert len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("kwargs", "description"),
+    [
+        ({"start": True}, "boolean start"),
+        ({"start": -1}, "negative start"),
+        ({"limit": True}, "boolean limit"),
+        ({"limit": 0}, "zero limit"),
+        ({"project_id": "  "}, "blank project id"),
+    ],
+)
+async def test_list_models_rejects_invalid_input_before_requester_io(
+    kwargs: dict[str, object], description: str
+) -> None:
+    requester = _FakeRequester([])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError, match=r".+"):
+        await client.list_models(**kwargs)  # type: ignore[arg-type]
+
+    assert description
+    assert requester.requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model_id", ("", "  ", 1))
+async def test_get_model_rejects_invalid_identifier_before_requester_io(model_id: object) -> None:
+    requester = _FakeRequester([])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError, match=r".+"):
+        await client.get_model(model_id)  # type: ignore[arg-type]
+
+    assert requester.requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload",
+    (
+        b"[]",
+        b'{"count": 1, "start": 0, "limit": 20, "items": [{"id": "model-1", '
+        b'"unmodeled": "do-not-echo-this-raw-payload"}]}',
+        b'{"id": "model-1"}',
+    ),
+)
+async def test_successful_but_malformed_responses_raise_safe_models_response_error(
+    payload: bytes,
+) -> None:
+    raw_secret = "do-not-echo-this-raw-payload"
+    requester = _FakeRequester([_response(payload)])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(ModelsResponseError) as error_info:
+        await client.list_models()
+
+    assert raw_secret not in str(error_info.value)
+    assert requester.requests and len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_get_model_missing_required_semantic_field_raises_models_response_error() -> None:
+    requester = _FakeRequester([_response(b'{"id": "model-1"}')])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(ModelsResponseError):
+        await client.get_model("model-1")
+
+    assert len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_invalid_json_response_uses_the_existing_transport_exception_type() -> None:
+    requester = _FakeRequester([_response(b"this is not JSON")])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(InvalidJSONResponseException) as error_info:
+        await client.list_models()
+
+    assert isinstance(error_info.value.context, HttpErrorContext)
+    assert len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "exception",
+    (
+        HTTPStatusException(_error_context()),
+        HttpTransportException(_error_context()),
+        InvalidJSONResponseException(_error_context()),
+    ),
+)
+async def test_requester_transport_exceptions_propagate_as_the_same_instance(
+    exception: BaseException,
+) -> None:
+    requester = _FakeRequester([exception])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(type(exception)) as error_info:
+        await client.list_models()
+
+    assert error_info.value is exception
+    assert len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_requester_cancellation_propagates_unchanged_without_follow_up_work() -> None:
+    cancellation = asyncio.CancelledError()
+    requester = _FakeRequester([cancellation])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(asyncio.CancelledError) as error_info:
+        await client.list_models()
+
+    assert error_info.value is cancellation
+    assert len(requester.requests) == 1
+
+
+def test_models_client_has_only_the_frozen_canonical_public_surface() -> None:
+    signature = inspect.signature(ModelsClient)
+    list_signature = inspect.signature(ModelsClient.list_models)
+    get_signature = inspect.signature(ModelsClient.get_model)
+
+    assert ModelsClient.__module__ == "mlops_async.clients.models_client"
+    assert list(signature.parameters) == ["requester"]
+    assert list(list_signature.parameters) == ["self", "start", "limit", "project_id"]
+    assert list_signature.parameters["start"].default == 0
+    assert list_signature.parameters["limit"].default == 20
+    assert list_signature.parameters["project_id"].default is None
+    assert list_signature.parameters["start"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert get_signature.parameters["model_id"].kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+    assert not hasattr(ModelsClient, "close")
+    assert not hasattr(ModelsClient, "aclose")
+    assert not hasattr(ModelsClient, "__aenter__")
+    assert not hasattr(ModelsClient, "__aexit__")
+    assert not hasattr(mlops_async, "ModelsClient")
+
+
+def test_models_client_constructor_accepts_the_caller_owned_requester() -> None:
+    signature = inspect.signature(ModelsClient)
+
+    assert signature.parameters["requester"].annotation == Requester.__name__

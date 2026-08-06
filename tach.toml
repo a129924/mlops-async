@@ -12,6 +12,10 @@ path = "mlops_async"
 depends_on = []
 
 [[modules]]
+path = "mlops_async.models"
+depends_on = ["mlops_async.core", "mlops_async.exceptions"]
+
+[[modules]]
 path = "mlops_async.exceptions"
 depends_on = []
 
@@ -22,6 +26,10 @@ depends_on = ["mlops_async.exceptions"]
 [[modules]]
 path = "mlops_async.clients"
 depends_on = ["mlops_async.core"]
+
+[[modules]]
+path = "mlops_async.clients.models_client"
+depends_on = ["mlops_async.core", "mlops_async.models", "mlops_async.transport"]
 
 [[modules]]
 path = "mlops_async.transport"
