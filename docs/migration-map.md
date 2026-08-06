@@ -112,5 +112,55 @@ entry 建立後回填實際 anchor。
 
 ## Current map
 
+### Legacy `sas-docker-api` MVP endpoint inventory（2026-08-06）
+
+本清單只整理 legacy `sas-docker-api` 已觀察到的 outbound Viya request，供 MVP
+排序使用；它不代表 live Viya 驗證、response contract 完整性，或立即實作授權。
+完整 family handoff 與 evidence boundary 請見
+[`docs/legacy-viya-outbound-endpoints/README.md`](legacy-viya-outbound-endpoints/README.md)。
+
+#### Legacy provenance
+
+本 inventory 的 legacy observation 僅為 **local Git snapshot evidence only**：本機 Git
+snapshot path 為 `reference/legacy_code/長庚備份程式/10_48_11_146/sas-docker-api`，
+commit 為 `a5a8c74fdb105f50b2b27d9edd2a841a32691177`。該 snapshot 沒有 remote/origin
+metadata，因此不可由外部擷取，亦不得臆測 repository URL。可核對的 source anchors 為：
+
+- token：`_async/_token.py:19-25,62-70`
+- models：`_api/get_model.py:41-55`
+- projects：`_api/project.py:62,77,89-91,101-110,124`
+- jobs：`_api/job_execution.py:7-8,22-24,38-40,54-56`
+- tables：`_api/table.py:8,11-16,40-47,65-71`
+
+| MVP 階段 | Endpoint family / API | Legacy request evidence | 目前 `mlops-async` 狀態 | 決策與停止條件 |
+| --- | --- | --- | --- | --- |
+| 已完成基礎 | `SASLogon/oauth/token` obtain / refresh | `POST {base}/SASLogon/oauth/token`；HTTP Basic；form 的 password 或 refresh grant | `PasswordTokenEndpointClient` 已有 runtime 實作 | 不重做。若需調整 legacy 相容性，另開 token-only topic；不得沿用 legacy `verify=False`。 |
+| MVP-1 | `modelRepository/models` list / get | `GET /modelRepository/models`；`GET /modelRepository/models/{model_id}`；Bearer 與 model JSON Accept header | 僅有 upstream-aligned request-contract gates，尚無 production endpoint client | 優先候選。list 與 get 可同 family 規劃；先完成 response/error contract，再實作。 |
+| MVP-2 | model content | legacy model file content 以 response link 為準；project flow 另有 `/modelRepository/models/{model_id}/contents/{file_id}/content` | 只有 direct-path request gate，尚無 runtime client | 獨立 topic。先決定 hypermedia link 與 fixed path 的相容性；下載／content-type 行為不可猜測。 |
+| MVP-3 | `modelRepository/projects` list | `GET /modelRepository/projects?limit={limit}` | 只有 upstream-aligned request-contract gate，尚無 production endpoint client | 可在 models read-only 穩定後進行。 |
+| MVP-3 | project lookup / champion | legacy 先 list projects 後以名稱篩選，再 `GET /modelRepository/projects/{project_id}/champion` | champion 有 request gate；lookup-by-name 不是獨立 Viya endpoint | champion 與 lookup 分開；champion contents 的多 request / `gather()` 編排不屬於 MVP thin wrapper。 |
+| MVP-4 | `jobExecution/jobRequests/{id}/jobs` start | `POST` 到 job start path；Bearer 與 job JSON Accept header | 有 repo-helper direct-path request gate，尚無 runtime client | 可單獨規劃。不得把 start 自動擴成 polling、wait 或 state machine。 |
+| 延後審查 | `jobExecution/jobs/{id}` / `state` | legacy request-shape evidence：`GET` detail 與 `GET .../state` | repo 已納入 official upstream evidence：`docs/api-endpoints/swagger-spec/upstream/jobExecution-openapi.yml:313,597` 定義兩個 GET operation；現有 gate 仍為 internal-wrapper shape-only | 可進入 contract planning；compatibility、response 與 runtime contract 尚未決定。 |
+| 延後審查 | `casManagement/dataSources/.../tables` list / get | legacy request-shape evidence：list 構成含 `limit`、`start=0`，並有 direct table GET | repo 已納入 Data Tables official upstream evidence：`docs/api-endpoints/swagger-spec/upstream/dataTables-v3-openapi.yml`；現有 gate 仍為 custom-client shape-only | 可進入 contract planning；compatibility、response 與 runtime contract 尚未決定。 |
+| 非 MVP | table state change | `PUT /casManagement/servers/.../tables/{table}/state?value={state}` 加 JSON output table body | 僅有 custom-client shape baseline | mutation endpoint；在 read-only MVP 穩定前不排程。 |
+| 排除 | project tables link | 舊 fixed-path MVP `/modelRepository/projects/{project_id}/tables` 已被 superseded | historical-only | 不重新放回 queue，除非有新的 human decision。 |
+| 排除 | champion model execution / SWAT CAS | legacy 透過 `swat.CAS(...)` 與 SAS model manager 執行 | 不是 HTTP endpoint client | 保持在 HTTP MVP 之外。 |
+
+### 建議 MVP 順序
+
+1. 保持既有 token runtime 不動。
+2. 僅規劃並實作 `modelRepository/models` 的 list / get read-only family。
+3. 再分別處理 model content、projects list、champion；每個仍保有自己的 request / response gate。
+4. Job start、job state 與 CAS tables 依證據強度與實際業務需要另開 topic；不作跨 family batch。
+
+### 證據閱讀規則
+
+- `docs/request-shape-priority-workflow/request-contract-evidence-matrix.md` 的 authority
+  class 優先於任何單一 historical fixture。
+- `request-contract` 的 `[X]` 只表示 request shape 已被擷取，不表示 production client、
+  response parsing、live endpoint 或 session behavior 已完成。
+- 每個實作 topic 在進入程式碼前都要在 `docs/porting-ledger.md` 新增該 API 的來源、
+  request、response、error 與相容性決策。
+
 目前尚未建立任何正式 migration rows。第一批 rows 應從最穩定、最容易抽出 request
 contract 的 endpoint family 開始，例如 auth 或 read-only metadata family。
