@@ -7,8 +7,9 @@
 
 ## Upstream/evidence
 
-- `docs/api-endpoints/swagger-spec/upstream/jobExecution-openapi.yml` 是 raw upstream
-  snapshot；repo-local mapping 為 `docs/api-endpoints/swagger-spec/jobs-spec.yaml`。
+- repo 已納入 `docs/api-endpoints/swagger-spec/upstream/jobExecution-openapi.yml` 的
+  official upstream OpenAPI evidence；repo-local mapping 為
+  `docs/api-endpoints/swagger-spec/jobs-spec.yaml`。
 - start gate 是 `repo-helper-direct-path` / `upstream-aligned`；detail/state gates 是
   `internal-wrapper-shape-only`，不能當 implementation truth。
 
@@ -25,7 +26,8 @@
 
 ## Disposition
 
-- job start 可獨立規劃；job detail/state 暫停到取得 upstream 或 human-confirmed evidence。
+- job start、detail/state 可進入 contract planning；這不授權 runtime implementation，
+  compatibility、response 與 runtime contract 仍未決。
 
 ## Human decision required
 

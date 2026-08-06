@@ -7,8 +7,8 @@
 
 ## Upstream/evidence
 
-- list/get 的 raw upstream source 是
-  `docs/api-endpoints/swagger-spec/upstream/dataTables-v3-openapi.yml`；table state 是
+- repo 已納入 `docs/api-endpoints/swagger-spec/upstream/dataTables-v3-openapi.yml` 的
+  Data Tables official upstream OpenAPI evidence；table state 是
   `docs/api-endpoints/swagger-spec/upstream/casManagement-openapi.yml`。兩者的 repo-local
   mapping `docs/api-endpoints/swagger-spec/tables-spec.yaml` 與 path normalization 見
   `docs/api-endpoints/swagger-spec/upstream/README.md`。
@@ -28,7 +28,9 @@
 
 ## Disposition
 
-- list/get 在證據升級前不實作；table state 是非 MVP mutation，read-only MVP 穩定前不排程。
+- list/get 可進入 contract planning；這不授權 runtime implementation，compatibility、
+  response 與 runtime contract 仍未決。table state 是非 MVP mutation，read-only MVP
+  穩定前不排程。
 
 ## Human decision required
 

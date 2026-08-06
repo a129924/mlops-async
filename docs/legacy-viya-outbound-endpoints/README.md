@@ -18,8 +18,8 @@ class 衝突，立即停止；不得自行選擇、合併或升格 evidence，�
 | Models | [models.md](models.md) | 第一個 read-only candidate |
 | Model content | [model-content.md](model-content.md) | 獨立規劃；先決定 link/path 與 payload |
 | Projects / champion | [projects-champion.md](projects-champion.md) | projects 與 champion 分開決策 |
-| Job execution | [job-execution.md](job-execution.md) | 僅 job start 可規劃；detail/state 暫停 |
-| CAS tables | [cas-tables.md](cas-tables.md) | 證據升級前不實作 |
+| Job execution | [job-execution.md](job-execution.md) | start、detail/state 可進入 contract planning；尚未授權 runtime implementation（compatibility、response 與 runtime contract 未決） |
+| CAS tables | [cas-tables.md](cas-tables.md) | list/get 可進入 contract planning；尚未授權 runtime implementation（compatibility、response 與 runtime contract 未決） |
 
 所有 `Target mapping` 區塊刻意未填：mapping 只能由後續已核准的 endpoint topic
 依當時 evidence 與 human decision 寫入正式 ledger；不得將本參考文件當成 ledger。

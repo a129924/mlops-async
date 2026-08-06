@@ -6,8 +6,8 @@ created: 2026-08-06
 
 # legacy-viya-outbound-endpoint-implementation-reference Step Tracking
 
-> `## Implementation Steps` is the creator-owned completion gate. Review and
-> publication remain separate workflow gates.
+> `## Implementation Steps` 是由 creator 擁有的完成 gate。Review 與
+> publication 仍是分開的 workflow gates。
 
 ## Workflow Stages
 
