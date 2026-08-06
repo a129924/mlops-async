@@ -1,6 +1,6 @@
 ---
 topic: legacy-viya-outbound-endpoint-implementation-reference
-phase: review-ready
+phase: pr-open
 created: 2026-08-06
 ---
 
@@ -13,8 +13,9 @@ created: 2026-08-06
 
 - [X] plan-authoring
 - [X] creator documentation pass
-- [ ] plan review
-- [ ] publication / PR ready (requires separate human authorization)
+- [X] review triage、correction 與 push（10 個實作相關 review threads 已 resolve）
+- [X] publication / PR ready（PR #60 已 Ready/open）
+- [ ] human/code review（PR #60；2 個 non-action threads 仍開放，等待 human boundary）
 - [ ] merge (requires separate human authorization)
 - [ ] release (not applicable to this topic)
 
