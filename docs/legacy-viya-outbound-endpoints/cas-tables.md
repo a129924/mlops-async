@@ -7,9 +7,11 @@
 
 ## Upstream/evidence
 
-- list/get 的 raw upstream source 是 `dataTables-v3-openapi.yml`；table state 是
-  `casManagement-openapi.yml`。兩者的 repo-local mapping 與 path normalization 見
-  upstream README。
+- list/get 的 raw upstream source 是
+  `docs/api-endpoints/swagger-spec/upstream/dataTables-v3-openapi.yml`；table state 是
+  `docs/api-endpoints/swagger-spec/upstream/casManagement-openapi.yml`。兩者的 repo-local
+  mapping `docs/api-endpoints/swagger-spec/tables-spec.yaml` 與 path normalization 見
+  `docs/api-endpoints/swagger-spec/upstream/README.md`。
 - 現有 list/get/state gates 全是 `custom-client-shape-only` /
   `non-authoritative-shape-only`。
 

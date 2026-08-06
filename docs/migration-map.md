@@ -112,11 +112,25 @@ entry 建立後回填實際 anchor。
 
 ## Current map
 
-## Legacy `sas-docker-api` MVP endpoint inventory（2026-08-06）
+### Legacy `sas-docker-api` MVP endpoint inventory（2026-08-06）
 
 本清單只整理 legacy `sas-docker-api` 已觀察到的 outbound Viya request，供 MVP
 排序使用；它不代表 live Viya 驗證、response contract 完整性，或立即實作授權。
-來源 commit 為 `a5a8c74fdb105f50b2b27d9edd2a841a32691177`。
+完整 family handoff 與 evidence boundary 請見
+[`docs/legacy-viya-outbound-endpoints/README.md`](legacy-viya-outbound-endpoints/README.md)。
+
+#### Legacy provenance
+
+本 inventory 的 legacy observation 僅為 **local Git snapshot evidence only**：本機 Git
+snapshot path 為 `reference/legacy_code/長庚備份程式/10_48_11_146/sas-docker-api`，
+commit 為 `a5a8c74fdb105f50b2b27d9edd2a841a32691177`。該 snapshot 沒有 remote/origin
+metadata，因此不可由外部擷取，亦不得臆測 repository URL。可核對的 source anchors 為：
+
+- token：`_async/_token.py:19-25,62-70`
+- models：`_api/get_model.py:41-55`
+- projects：`_api/project.py:62,77,89-91,101-110,124`
+- jobs：`_api/job_execution.py:7-8,22-24,38-40,54-56`
+- tables：`_api/table.py:8,11-16,40-47,65-71`
 
 | MVP 階段 | Endpoint family / API | Legacy request evidence | 目前 `mlops-async` 狀態 | 決策與停止條件 |
 | --- | --- | --- | --- | --- |
@@ -126,8 +140,8 @@ entry 建立後回填實際 anchor。
 | MVP-3 | `modelRepository/projects` list | `GET /modelRepository/projects?limit={limit}` | 只有 upstream-aligned request-contract gate，尚無 production endpoint client | 可在 models read-only 穩定後進行。 |
 | MVP-3 | project lookup / champion | legacy 先 list projects 後以名稱篩選，再 `GET /modelRepository/projects/{project_id}/champion` | champion 有 request gate；lookup-by-name 不是獨立 Viya endpoint | champion 與 lookup 分開；champion contents 的多 request / `gather()` 編排不屬於 MVP thin wrapper。 |
 | MVP-4 | `jobExecution/jobRequests/{id}/jobs` start | `POST` 到 job start path；Bearer 與 job JSON Accept header | 有 repo-helper direct-path request gate，尚無 runtime client | 可單獨規劃。不得把 start 自動擴成 polling、wait 或 state machine。 |
-| 延後審查 | `jobExecution/jobs/{id}` / `state` | legacy 有 `GET` detail 與 `GET .../state` | 現有 gate 是 internal-wrapper shape-only | 需先取得可作 implementation-truth 的來源；不得以 shape-only fixture 直接實作。 |
-| 延後審查 | `casManagement/dataSources/.../tables` list / get | legacy 構成 list（`limit`、`start=0`）與 direct table GET | 現有 gate 是 custom-client shape-only | legacy 需求可作 future candidate，但先以 upstream OpenAPI 或 human-confirmed contract 升級證據。 |
+| 延後審查 | `jobExecution/jobs/{id}` / `state` | legacy request-shape evidence：`GET` detail 與 `GET .../state` | repo 已納入 official upstream evidence：`docs/api-endpoints/swagger-spec/upstream/jobExecution-openapi.yml:313,597` 定義兩個 GET operation；現有 gate 仍為 internal-wrapper shape-only | 可進入 contract planning；compatibility、response 與 runtime contract 尚未決定。 |
+| 延後審查 | `casManagement/dataSources/.../tables` list / get | legacy request-shape evidence：list 構成含 `limit`、`start=0`，並有 direct table GET | repo 已納入 Data Tables official upstream evidence：`docs/api-endpoints/swagger-spec/upstream/dataTables-v3-openapi.yml`；現有 gate 仍為 custom-client shape-only | 可進入 contract planning；compatibility、response 與 runtime contract 尚未決定。 |
 | 非 MVP | table state change | `PUT /casManagement/servers/.../tables/{table}/state?value={state}` 加 JSON output table body | 僅有 custom-client shape baseline | mutation endpoint；在 read-only MVP 穩定前不排程。 |
 | 排除 | project tables link | 舊 fixed-path MVP `/modelRepository/projects/{project_id}/tables` 已被 superseded | historical-only | 不重新放回 queue，除非有新的 human decision。 |
 | 排除 | champion model execution / SWAT CAS | legacy 透過 `swat.CAS(...)` 與 SAS model manager 執行 | 不是 HTTP endpoint client | 保持在 HTTP MVP 之外。 |

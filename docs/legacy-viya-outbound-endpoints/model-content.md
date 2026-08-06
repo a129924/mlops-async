@@ -7,7 +7,8 @@
 
 ## Upstream/evidence
 
-- `modelRepository-openapi.yml` 與 repo-local `models-spec.yaml` 是 path evidence。
+- `docs/api-endpoints/swagger-spec/upstream/modelRepository-openapi.yml` 與 repo-local
+  `docs/api-endpoints/swagger-spec/models-spec.yaml` 是 path evidence。
 - `models_content_request_gate` 為 `repo-helper-direct-path` /
   `upstream-aligned`，可作 direct-path request baseline，不能稱作 named `sasctl` capture。
 

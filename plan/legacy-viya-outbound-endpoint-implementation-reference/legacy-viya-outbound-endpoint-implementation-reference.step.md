@@ -20,7 +20,7 @@ created: 2026-08-06
 
 ## Implementation Steps
 
-- [X] 1. Carry the root `docs/migration-map.md` topic diff into the managed feature worktree.
-- [X] 2. Create the reference index and six bounded family handoffs.
-- [X] 3. Record authority classes, current-repo boundaries, and human decisions without a formal ledger row.
-- [X] 4. Complete documentation-only diff and static validation preparation.
+- [X] 1. 將根目錄 `docs/migration-map.md` 的 topic diff 帶入受管理的 feature worktree。
+- [X] 2. 建立 reference index 與六個範圍受限的 family handoff。
+- [X] 3. 記錄 authority class、目前 repository boundary 與 human decision，不建立正式 ledger row。
+- [X] 4. 完成 documentation-only diff、reviewer correction 與靜態驗證準備。

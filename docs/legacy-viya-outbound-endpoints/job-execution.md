@@ -8,7 +8,7 @@
 ## Upstream/evidence
 
 - `docs/api-endpoints/swagger-spec/upstream/jobExecution-openapi.yml` 是 raw upstream
-  snapshot；repo-local mapping 為 `jobs-spec.yaml`。
+  snapshot；repo-local mapping 為 `docs/api-endpoints/swagger-spec/jobs-spec.yaml`。
 - start gate 是 `repo-helper-direct-path` / `upstream-aligned`；detail/state gates 是
   `internal-wrapper-shape-only`，不能當 implementation truth。
 

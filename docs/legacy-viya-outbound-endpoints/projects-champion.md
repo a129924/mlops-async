@@ -8,8 +8,8 @@
 
 ## Upstream/evidence
 
-- `modelRepository-openapi.yml` 是 projects/champion source；repo-local mapping 為
-  `projects-spec.yaml`。
+- `docs/api-endpoints/swagger-spec/upstream/modelRepository-openapi.yml` 是 projects/champion
+  source；repo-local mapping 為 `docs/api-endpoints/swagger-spec/projects-spec.yaml`。
 - matrix 中 projects 與 champion 均為 `sasctl-direct` / `upstream-aligned`；champion
   僅可讀作 generic-path prepared-request capture，不能擴張成 legacy helper truth。
 
