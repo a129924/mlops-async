@@ -31,6 +31,6 @@
 
 ## Human decision required
 
-- 是否需要 start 的 response/error contract；以及 detail/state 的可接受 source evidence。
+- 未來的 start topic 必須選定 response/error evidence 與具體 semantics；detail/state 仍需確認可接受的 source evidence。
 
 ## Target mapping

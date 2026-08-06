@@ -19,8 +19,9 @@
 
 ## Difference
 
-- legacy 的 hypermedia link 行為與 fixed path 的優先序尚未決定；下載 payload、
-  content type、range headers 與檔案類型語意也未有 target contract。
+- legacy 的 hypermedia link 行為與 fixed path 的優先序尚未決定；request header subset
+  `If-Range`、`Range`、`Access-Quarantine` 已由 evidence matrix 凍結；下載 payload、
+  content type 與檔案類型語意仍未有 target contract。
 
 ## Disposition
 
