@@ -13,15 +13,24 @@ The concrete endpoint-family client `AuthClient` has only one supported import:
 `from mlops_async.clients.auth_client import AuthClient`; importing it from the
 package root is unsupported. `get_access_token()` directly awaits one
 `fetch_access_token()` call on the injected `TokenEndpointFetchClientProtocol`.
-`AuthClient` has no refresh, grant-selection, cache, exception-translation,
+`refresh_access_token(token)` fetches once when `token.refresh_token` is absent;
+when it is present, it requires a `TokenEndpointClientProtocol` and directly
+awaits its refresh call. A fetch-only collaborator in that branch, or a
+non-cancellation refresh failure, raises module-public
+`AuthClientRefreshTokenError` (the latter chained from its cause); this error is
+not package-root exported. `AuthClient` has no grant-selection, cache,
 transport-lifecycle, or close behavior.
 
 concrete endpoint-family client `AuthClient` 的唯一支援匯入方式為
 `from mlops_async.clients.auth_client import AuthClient`；不得從 package root
 匯入。`get_access_token()` 僅直接 await 注入的
-`TokenEndpointFetchClientProtocol.fetch_access_token()` 一次。`AuthClient` 不含
-refresh、grant selection、cache、exception translation、transport lifecycle 或
-close 行為。
+`TokenEndpointFetchClientProtocol.fetch_access_token()` 一次。當
+`token.refresh_token` 為 `None` 時，`refresh_access_token(token)` 僅直接 await
+一次 `fetch_access_token()`；否則它必須使用 `TokenEndpointClientProtocol` 並直接
+await refresh call。此分支的 fetch-only collaborator，或非 cancellation refresh
+failure，會 raise module-public `AuthClientRefreshTokenError`（後者保留原始
+cause）；此 error 不從 package root 匯出。`AuthClient` 不含 grant selection、cache、
+transport lifecycle 或 close 行為。
 
 `EndpointFamilyClient` 僅是架構分類，不是 base class、Protocol 或模組。未來可能的
 `MLOpsAsyncClient` facade 仍未實作、未從 package root 匯出，也沒有 `.auth` wiring；
