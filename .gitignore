@@ -6,6 +6,7 @@ dist/
 wheels/
 *.egg-info
 config/.env.*
+mlops-async.git/
 
 # Virtual environments
 .venv
