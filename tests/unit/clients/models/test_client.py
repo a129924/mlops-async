@@ -8,11 +8,15 @@ from dataclasses import dataclass
 import pytest
 
 import mlops_async
-from mlops_async.clients.models_client import ModelsClient
+from mlops_async.clients.models import ModelsClient
 from mlops_async.core.http_request import EndpointPath
 from mlops_async.core.requester import Requester
 from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
-from mlops_async.models import ModelDetail, ModelsPage, ModelsResponseError
+from mlops_async.clients.models.value_objects import (
+    ModelDetail,
+    ModelsPage,
+    ModelsResponseError,
+)
 from mlops_async.transport.exceptions import (
     HTTPStatusException,
     HttpErrorContext,
@@ -288,7 +292,7 @@ def test_models_client_has_only_the_frozen_canonical_public_surface() -> None:
     list_signature = inspect.signature(ModelsClient.list_models)
     get_signature = inspect.signature(ModelsClient.get_model)
 
-    assert ModelsClient.__module__ == "mlops_async.clients.models_client"
+    assert ModelsClient.__module__ == "mlops_async.clients.models.client"
     assert list(signature.parameters) == ["requester"]
     assert list(list_signature.parameters) == ["self", "start", "limit", "project_id"]
     assert list_signature.parameters["start"].default == 0

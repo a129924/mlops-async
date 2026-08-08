@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError, fields, is_dataclass
 
 import pytest
 
-from mlops_async.models import ModelDetail, ModelSummary, ModelsPage
+from mlops_async.clients.models.value_objects import ModelDetail, ModelSummary, ModelsPage
 
 
 def test_model_response_value_objects_are_frozen_slotted_semantic_types() -> None:

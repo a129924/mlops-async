@@ -4,12 +4,17 @@ from __future__ import annotations
 
 from json import JSONDecodeError, loads as json_loads
 from math import isfinite
-from typing import TypeGuard, cast
+from typing import TypeGuard
 
+from mlops_async.clients.models.value_objects import (
+    ModelDetail,
+    ModelsPage,
+    parse_model_detail,
+    parse_models_page,
+)
 from mlops_async.core.http_request import EndpointPath
 from mlops_async.core.requester import Requester
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse
-from mlops_async.models import ModelDetail, ModelsPage, parse_model_detail, parse_models_page
 from mlops_async.transport.exceptions import HttpErrorContext, InvalidJSONResponseException
 
 
@@ -88,15 +93,21 @@ def _is_json_value(value: object) -> TypeGuard[JSONValue]:
         return True
     if isinstance(value, float):
         return isfinite(value)
-    if isinstance(value, list):
-        list_value = cast(list[object], value)
-        return all(_is_json_value(item) for item in list_value)
-    if isinstance(value, dict):
-        dict_value = cast(dict[object, object], value)
-        return all(
-            isinstance(key, str) and _is_json_value(item) for key, item in dict_value.items()
-        )
+    if _is_runtime_list(value):
+        return all(_is_json_value(item) for item in value)
+    if _is_runtime_dict(value):
+        return all(isinstance(key, str) and _is_json_value(item) for key, item in value.items())
     return False
+
+
+def _is_runtime_list(value: object) -> TypeGuard[list[object]]:
+    """Narrow ``json.loads`` output before recursively validating list members."""
+    return isinstance(value, list)
+
+
+def _is_runtime_dict(value: object) -> TypeGuard[dict[object, object]]:
+    """Narrow ``json.loads`` output before validating dictionary keys and values."""
+    return isinstance(value, dict)
 
 
 def _error_context(response: RawClientResponse) -> HttpErrorContext:

@@ -1,29 +1,83 @@
 topic: models-endpoint-value-objects
 review: python-implementation-review
+review_status: COMPLETE
 verdict: approved
-traceability:
+planning_artifacts:
   requirements: analysis/models-endpoint-value-objects/requirements.md
   technical_spec: analysis/models-endpoint-value-objects/technical-spec.md
   topic_plan: plan/models-endpoint-value-objects/models-endpoint-value-objects.plan.md
-  implementation:
+  topic_spec: plan/models-endpoint-value-objects/models-endpoint-value-objects.spec.md
+  step_tracker: plan/models-endpoint-value-objects/models-endpoint-value-objects.step.md
+  tdd_verdict: plan/models-endpoint-value-objects/models-endpoint-value-objects.tdd-test-authoring.yaml
+step_gate:
+  verdict: passed
+  evidence: All five lines under Implementation Steps are marked [X].
+tdd_gate:
+  verdict: red-tests-ready
+  red_evidence: The YAML records the pre-implementation collection failure caused by the absent family package.
+  green_evidence: >-
+    WSL Linux .venv Python 3.10.20: uv run --no-sync --python 3.10.0 pytest
+    --override-ini "addopts=" tests/unit/clients/models/test_value_objects.py
+    tests/unit/clients/models/test_client.py -q; 24 passed in 0.81s.
+  environment_note: >-
+    uv reported the pre-existing Python 3.10.20 environment does not exactly
+    equal the requested 3.10.0, but executed through the verified Linux .venv.
+traceability_matrix:
+  - step: Tester records a red-tests-ready TDD verdict for the relocated tests.
+    status: done
+    evidence: plan/models-endpoint-value-objects/models-endpoint-value-objects.tdd-test-authoring.yaml:1-53
+  - step: Add Models value objects and delete the flat value-object module.
+    status: done
+    evidence: src/mlops_async/clients/models/value_objects.py:16-145; src/mlops_async/models.py deleted
+  - step: Add the injected family client/public surface and delete the flat client.
+    status: done
+    evidence: src/mlops_async/clients/models/__init__.py:3-16; src/mlops_async/clients/models/client.py:21-58; src/mlops_async/clients/models_client.py deleted
+  - step: Relocate Models tests and delete the flat test paths.
+    status: done
+    evidence: tests/unit/clients/models/test_client.py:72-310; tests/unit/clients/models/test_value_objects.py:10-92; old paths deleted
+  - step: Complete validation and use exactly the three family Tach edges.
+    status: done
+    evidence: tach.toml:27-36; target pytest/Ruff/Pyright/Tach passed in this review
+scope_creep_check:
+  verdict: pass
+  allowed_family_paths:
+    - src/mlops_async/clients/models/__init__.py
+    - src/mlops_async/clients/models/client.py
+    - src/mlops_async/clients/models/value_objects.py
+    - tests/unit/clients/models/test_client.py
+    - tests/unit/clients/models/test_value_objects.py
+  deleted_flat_paths:
     - src/mlops_async/models.py
     - src/mlops_async/clients/models_client.py
-  tests:
     - tests/unit/test_models_value_objects.py
     - tests/unit/clients/test_models_client.py
-scope_check:
-  verdict: pass
-  detail: Only the approved Models list/get Value Objects, client, tests, and two required Tach dependency edges are present.
+  detail: No package-root or clients-package export change is present; no compatibility shim remains.
 contract_check:
   verdict: pass
-  detail: ModelsClient uses EndpointPath and injected Requester.request(method, path, params=...) without HttpRequest, BaseUrl, Requester private state, or Requester API changes.
+  public_surface: mlops_async.clients.models re-exports ModelsClient, ModelSummary, ModelsPage, ModelDetail, and ModelsResponseError.
+  requester_endpointpath: >-
+    list_models uses EndpointPath.literal and exactly one Requester.request(GET, path, params);
+    get_model uses EndpointPath.from_segments and exactly one Requester.request(GET, path, params={}).
+  preserved_boundaries: No HttpRequest construction, BaseUrl input, Requester private-state access, Requester API change, lifecycle ownership, pagination, retry, or timeout behavior.
+  response_error_policy: >-
+    Semantic successful-response mismatches raise ModelsResponseError; requester transport/status/JSON
+    exception instances and asyncio cancellation propagate unchanged.
+  tach_mapping: >-
+    Removed only mlops_async.models and mlops_async.clients.models_client; added exactly
+    mlops_async.clients.models, mlops_async.clients.models.value_objects, and
+    mlops_async.clients.models.client with the specified dependencies.
 test_case_check:
   verdict: pass
-  detail: The approved request, parsing, error, cancellation, immutability, exclusion, and dependency-boundary TestCase coverage is present.
+  covered:
+    - default list request, project filter, and one-request page behavior
+    - EndpointPath dynamic identifier encoding and detail mapping
+    - frozen slotted semantic value objects without dataUris/files surfaces
+    - invalid input before I/O and malformed successful JSON response handling
+    - invalid JSON, transport/status exception identity, and cancellation identity
 validation:
+  linux_venv: /mnt/d/code/python/mlops-async.worktrees/agent-20260806-models-endpoint-value-objects/.venv/bin/python3
   targeted_pytest: 24 passed
-  full_pytest: 444 passed, 10 skipped
   ruff: passed
-  pyright: passed
+  pyright: 0 errors, 0 warnings, 0 informations
   tach: passed
 findings: []

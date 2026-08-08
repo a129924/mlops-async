@@ -2,9 +2,9 @@
 
 ## Acceptance Criteria
 
-0. Before topic commit, independent Reviewers record their approved-or-needs-rework results in `review-log/models-endpoint-value-objects/implementation-review.yaml` and `review-log/models-endpoint-value-objects/code-review.yaml`; a `needs-rework` result blocks commit.
+0. The flat-layout review evidence is invalidated by this family-package rework. Before a replacement topic commit, independent Reviewers must overwrite their approved-or-needs-rework results in `review-log/models-endpoint-value-objects/implementation-review.yaml` and `review-log/models-endpoint-value-objects/code-review.yaml`; a `needs-rework` result blocks commit.
 
-1. `ModelsClient` 僅從 `mlops_async.clients.models_client` 提供，建構時要求 injected `Requester`，沒有 package-root export 或資源 lifecycle API。
+1. `ModelsClient` 僅從 `mlops_async.clients.models` 提供；`src/mlops_async/clients/models/__init__.py` 是 family-local public surface。建構時要求 injected `Requester`，沒有 package-root export、`clients` package export 或資源 lifecycle API。
 2. `list_models(start=0, limit=20, project_id=None)` 以 `EndpointPath` 建構安全靜態 path，並只呼叫一次 `Requester.request(method, path, params=...)`；params 包含 `start=0` 與 `limit=20`，`project_id` 存在時額外且僅額外加入 `filter=in(projectId,"<project_id>")`。
 3. `get_model(model_id)` 以 `EndpointPath.from_segments()` 建立安全動態 path，並只呼叫一次 `Requester.request(method, path, params=...)`。
 4. list 成功回應產生 `ModelsPage` 與 tuple `ModelSummary`；get 成功回應產生 `ModelDetail`。任何回傳 Value Object 均沒有 `dataUris` 或 `files` surface。
@@ -12,7 +12,8 @@
 6. `HTTPStatusException`、`HttpTransportException`、`InvalidJSONResponseException` 與 `asyncio.CancelledError` 的原 instance 直接傳播；404 不轉成 `None`。
 7. ModelsClient 不構造 `HttpRequest`、不接收 `BaseUrl`、不檢視 `Requester` private state，且不新增/修改 Requester API；topic 也不新增 pagination、retry、timeout、lifecycle、data/file APIs、dependency、README、VERSION 或 release work。
 8. reviewer `approved` 後，Tester 在任何 production implementation 前建立 `plan/models-endpoint-value-objects/models-endpoint-value-objects.tdd-test-authoring.yaml`；它含完整 D1/test mapping verdict，且只有 `red-tests-ready` 可以使 implementation 繼續。
-9. `tach.toml` 僅可含讓 `src/mlops_async/models.py` 與 `src/mlops_async/clients/models_client.py` 符合 dependency guardrail 的必要 edges，且 Tach validation 必須通過。
+9. `tach.toml` 只可移除 `mlops_async.models` 與 `mlops_async.clients.models_client`，並新增 `mlops_async.clients.models -> [mlops_async.clients.models.client, mlops_async.clients.models.value_objects]`、`mlops_async.clients.models.value_objects -> [mlops_async.core, mlops_async.exceptions]`、`mlops_async.clients.models.client -> [mlops_async.clients.models.value_objects, mlops_async.core, mlops_async.transport]`；Tach validation 必須通過。
+10. source 實體路徑必須為 `src/mlops_async/clients/models/__init__.py`、`src/mlops_async/clients/models/client.py`、`src/mlops_async/clients/models/value_objects.py`；tests 實體路徑必須為 `tests/unit/clients/models/test_client.py` 與 `tests/unit/clients/models/test_value_objects.py`。四個 flat paths `src/mlops_async/models.py`、`src/mlops_async/clients/models_client.py`、`tests/unit/test_models_value_objects.py`、`tests/unit/clients/test_models_client.py` 必須刪除，且不得保留 compatibility shim。
 
 ## Behavioral Scenarios
 

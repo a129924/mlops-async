@@ -21,12 +21,13 @@ created: 2026-08-06
 
 ## Review Evidence
 
-- [X] `review-log/models-endpoint-value-objects/implementation-review.yaml` — Reviewer-owned implementation alignment verdict, required before marking `implementation-review` complete.
-- [X] `review-log/models-endpoint-value-objects/code-review.yaml` — Reviewer-owned Python quality verdict, required before marking `code-review` complete.
+- [X] `review-log/models-endpoint-value-objects/implementation-review.yaml` — Reviewer recorded the new approved family-package implementation alignment verdict; the invalid flat-layout verdict was not reused.
+- [X] `review-log/models-endpoint-value-objects/code-review.yaml` — Reviewer recorded the new approved family-package Python quality verdict; the invalid flat-layout verdict was not reused.
 
 ## Implementation Steps
 
-- [X] 1. Tester completed the approved TDD pass and recorded `red-tests-ready` in `plan/models-endpoint-value-objects/models-endpoint-value-objects.tdd-test-authoring.yaml`.
-- [X] 2. Creator added `src/mlops_async/models.py` with the planned Models response Value Objects and parsing boundary.
-- [X] 3. Creator added `src/mlops_async/clients/models_client.py` with the frozen `Requester.request()` and `EndpointPath` contract.
-- [X] 4. Creator completed target pytest, Ruff, Pyright, Tach, and diff validation evidence; any `tach.toml` change is limited to the required edges for `src/mlops_async/models.py` and `src/mlops_async/clients/models_client.py`.
+- [X] 1. Tester records a new `red-tests-ready` verdict in `plan/models-endpoint-value-objects/models-endpoint-value-objects.tdd-test-authoring.yaml` for `tests/unit/clients/models/test_value_objects.py` and `tests/unit/clients/models/test_client.py`.
+- [X] 2. Creator adds `src/mlops_async/clients/models/value_objects.py`, migrates the planned Models response Value Objects and parsing boundary, and deletes `src/mlops_async/models.py`.
+- [X] 3. Creator adds `src/mlops_async/clients/models/client.py` and `src/mlops_async/clients/models/__init__.py`, preserves the frozen `Requester.request()` and `EndpointPath` contract, and deletes `src/mlops_async/clients/models_client.py`.
+- [X] 4. Creator relocates tests to `tests/unit/clients/models/test_value_objects.py` and `tests/unit/clients/models/test_client.py`, then deletes `tests/unit/test_models_value_objects.py` and `tests/unit/clients/test_models_client.py`.
+- [X] 5. Creator completes target pytest, Ruff, Pyright, Tach, and diff validation evidence; `tach.toml` removes the two flat-module entries and adds only the three exact Models family module edges in the topic plan.

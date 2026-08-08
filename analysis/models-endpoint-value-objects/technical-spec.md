@@ -36,7 +36,7 @@ class ModelsClient:
     async def get_model(self, model_id: str) -> ModelDetail: ...
 ```
 
-- canonical import 為 `mlops_async.clients.models_client.ModelsClient`；不得 package-root re-export，也不得建立 package-level client。
+- canonical import 為 `mlops_async.clients.models.ModelsClient`；`src/mlops_async/clients/models/__init__.py` 是 Models family 唯一公開 surface，不得 package-root re-export，也不得修改 `clients` package export。
 - `ModelsClient` 只持有 caller 注入的 `Requester`，不建立、close、context-manage 或 cache transport；它不得接收 `BaseUrl`、檢視 `Requester` private state 或新增/修改 Requester API。
 - 每個公開方法對應一個直接 await 的 `Requester.request(method, path, params=...)`；沒有 preflight、retry、polling、背景工作或分頁迴圈，也不得構造 `HttpRequest`。
 
@@ -97,19 +97,23 @@ class ModelsClient:
 - `review-log/models-endpoint-value-objects/code-review.yaml`：Reviewer-owned Python quality verdict。
 
 - `plan/models-endpoint-value-objects/models-endpoint-value-objects.tdd-test-authoring.yaml`（Tester；reviewer `approved` 後、production implementation 前的 machine-readable TDD verdict）
-- `src/mlops_async/models.py`
-- `src/mlops_async/clients/models_client.py`
-- `tests/unit/test_models_value_objects.py`
-- `tests/unit/clients/test_models_client.py`
+- `src/mlops_async/clients/models/__init__.py`
+- `src/mlops_async/clients/models/client.py`
+- `src/mlops_async/clients/models/value_objects.py`
+- `tests/unit/clients/models/test_client.py`
+- `tests/unit/clients/models/test_value_objects.py`
 
 ## Modify
 
-- `tach.toml` 是唯一可修改的既有檔案，且只可新增/調整 `src/mlops_async/models.py` 與 `src/mlops_async/clients/models_client.py` 所需的 dependency edges。
+- `tach.toml` 是唯一可修改的既有檔案，且只可移除 `mlops_async.models` 與 `mlops_async.clients.models_client` edges，並新增 `mlops_async.clients.models -> [mlops_async.clients.models.client, mlops_async.clients.models.value_objects]`、`mlops_async.clients.models.value_objects -> [mlops_async.core, mlops_async.exceptions]`、`mlops_async.clients.models.client -> [mlops_async.clients.models.value_objects, mlops_async.core, mlops_async.transport]`。
 - 不得改變其他 module dependency policy、source、test、configuration 或 documentation 檔案；任何其他既有檔案修改皆為 scope drift 並停止。
 
 ## Deleted
 
-- 無。
+- `src/mlops_async/models.py`
+- `src/mlops_async/clients/models_client.py`
+- `tests/unit/test_models_value_objects.py`
+- `tests/unit/clients/test_models_client.py`
 
 ## TestCase
 
@@ -117,14 +121,15 @@ class ModelsClient:
 2. `ModelsPage` 與 `ModelDetail` 將 snake_case 語意欄位正確映射，且沒有 `files` 或 `data_uris` surface。
 3. page 不發出第二個 request；`count` 不等於 `len(items)` 時仍保留 server semantic metadata，不嘗試補頁。
 4. 輸入 invalid、JSON invalid、schema invalid、HTTP status、transport failure 與 cancellation 皆依本 spec 的 exact policy 驗證 identity/exception type。
-5. Tach validation 通過，且 `tach.toml` diff 僅限兩個 Models modules 所需的 dependency edges。
+5. Tach validation 通過；`tach.toml` diff 只移除兩個舊 Models module entries，並加入本 spec 列出的三個 Models family module entries。
+6. `ModelsClient` 與其 VOs 的實體 source/test paths 與 family package 對應；不得僅更新 import 而保留任何舊 path。
 
 ## 實作順序
 
 1. reviewer `approved` 後，Tester 先依 spec 產生 RED tests 與 `plan/models-endpoint-value-objects/models-endpoint-value-objects.tdd-test-authoring.yaml`；YAML 必須含 verdict、D1 verdict、test mapping、validation checks、issues 與 next step。只有 `red-tests-ready` 可以進入 production implementation。
 2. Creator 再建立 Value Objects 與純解析/驗證 helper，使已存在的 RED tests 轉為綠色，並維持 HTTP/JSON 翻譯與 domain response 形狀的單一邊界。
 3. Creator 實作 client 的 list/get 單一請求路徑；勿新增共用 facade、Protocol、Requester method 或 transport API。
-4. 只在需要讓 `src/mlops_async/models.py` 與 `src/mlops_async/clients/models_client.py` 通過既有 dependency guardrail 時修改 `tach.toml` 的必要 edges，並以 Tach validation 驗證；若需要其他 `tach.toml` policy、ReadOnly 路徑、未列 dependency、TDD verdict 不是 `red-tests-ready`，或未凍結 response 欄位，停止為 `BLOCKED` 或依 reviewer verdict 回到 rework，不得先寫 production code。
+4. 只以本 spec 列出的 exact module replacement 修改 `tach.toml`，並以 Tach validation 驗證；若需要其他 `tach.toml` policy、ReadOnly 路徑、未列 dependency、TDD verdict 不是 `red-tests-ready`，或未凍結 response 欄位，停止為 `BLOCKED` 或依 reviewer verdict 回到 rework，不得先寫 production code。
 
 ## 非同步基線
 
@@ -132,6 +137,12 @@ class ModelsClient:
 - Resource lifecycle: `Requester`、auth provider 與 transport 由 caller 擁有；`ModelsClient` 不提供 `aclose`、`__aenter__` 或 `__aexit__`。
 - Concurrency: 每次呼叫為一個直接 await；不同呼叫的並行性由 caller 決定，client 不建立 task 或 semaphore。
 - Failure/cancellation: 保留 cancellation 與既有 transport errors；不新增 retry 或 timeout policy。
+
+## Family package rework gate
+
+- `src/mlops_async/clients/models/` 是唯一的 Models endpoint-family package；`__init__.py` 只 re-export 此 family 的 `ModelsClient`、Value Objects 與 `ModelsResponseError`，不建立 root facade。
+- 此 rework 取代先前 flat-module implementation，四個 Deleted paths 不得保留 compatibility shim。
+- 先前 `review-log/models-endpoint-value-objects/implementation-review.yaml` 與 `review-log/models-endpoint-value-objects/code-review.yaml` 的 approved evidence 僅涵蓋 flat layout，對本 contract 無效；完成 rework 後必須由 independent Reviewers 重寫兩份 evidence 並重新審查。
 
 ## Workflow state
 

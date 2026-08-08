@@ -50,20 +50,24 @@
 
 - `review-log/models-endpoint-value-objects/implementation-review.yaml`：Reviewer-owned implementation alignment verdict；必須記錄 `verdict`、traceability、scope、contract 與 TestCase 檢查結果。
 - `review-log/models-endpoint-value-objects/code-review.yaml`：Reviewer-owned Python quality verdict；必須記錄 `verdict`、tooling 與 typing/lint/readability/error-handling/anti-patterns/test-quality/observability findings。
+- family-package rework 使既有兩份 review-log verdict 失效；完成新 layout 的 implementation 與 validation 後，Reviewer 必須覆寫兩份 evidence 並重新給出 verdict，才可重新標記 review stages 或 commit。
 
 - 規劃階段僅寫入本 topic 的兩個 `analysis/` artifacts 與三個 `plan/` artifacts。
 - Tester 必須在 reviewer `approved` 後、任何 production implementation 前寫入 `plan/models-endpoint-value-objects/models-endpoint-value-objects.tdd-test-authoring.yaml`；它是 test-first verdict 的唯一 machine-readable routing artifact。
-- 後續 creator 的允許新增檔案為 `src/mlops_async/models.py`、`src/mlops_async/clients/models_client.py`、`tests/unit/test_models_value_objects.py`、`tests/unit/clients/test_models_client.py`。
+- 後續 creator 的允許新增檔案為 `src/mlops_async/clients/models/__init__.py`、`src/mlops_async/clients/models/client.py`、`src/mlops_async/clients/models/value_objects.py`、`tests/unit/clients/models/test_client.py`、`tests/unit/clients/models/test_value_objects.py`。
 
 ## Modify
 
 - 本規劃階段沒有既有檔案修改。
-- 後續 creator 僅可修改 `tach.toml`，且限於讓 `src/mlops_async/models.py` 與 `src/mlops_async/clients/models_client.py` 納入既有 dependency guardrail 所需的 edges；不得改變其他 module dependency policy。
+- 後續 creator 僅可修改 `tach.toml`，且只可移除 `mlops_async.models` 與 `mlops_async.clients.models_client` edges，並新增以下 exact module edges：`mlops_async.clients.models -> [mlops_async.clients.models.client, mlops_async.clients.models.value_objects]`、`mlops_async.clients.models.value_objects -> [mlops_async.core, mlops_async.exceptions]`、`mlops_async.clients.models.client -> [mlops_async.clients.models.value_objects, mlops_async.core, mlops_async.transport]`；不得改變其他 module dependency policy。
 - 除上述 `tach.toml` 例外，creator 不得修改既有 production、configuration、documentation 或 request-gate 測試檔案；若實作證明需修改任何未列為 Written 或此 Modify 例外的路徑，必須停止並回報 scope drift。
 
 ## Deleted
 
-- 無。
+- `src/mlops_async/models.py`
+- `src/mlops_async/clients/models_client.py`
+- `tests/unit/test_models_value_objects.py`
+- `tests/unit/clients/test_models_client.py`
 
 ## TestCase
 
@@ -73,7 +77,8 @@
 - `start`、`limit`、`project_id`、`model_id` 的非法值在 I/O 前失敗且不呼叫 `Requester`。
 - 非 JSON 成功回應、成功但語意不完整的 JSON、4xx/5xx、transport failure 與 `asyncio.CancelledError` 分別遵守凍結的錯誤政策。
 - Test-first execution 先由 Tester 產生 YAML verdict；只有 `red-tests-ready` 才能讓 Creator 進入 implementation，其他 verdict 依 workflow 回到 rework 或保持 blocked，不能先寫 production code。
-- `tach.toml` 修改後必須以 Tach validation 驗證僅存在兩個 Models modules 所需的 dependency edges。
+- `tach.toml` 修改後必須以 Tach validation 驗證只存在本 rework 列出的三個 Models family module edges，且兩個舊 module entries 已移除。
+- 實體 tests 必須位於 `tests/unit/clients/models/test_client.py` 與 `tests/unit/clients/models/test_value_objects.py`；不得只改 import 而保留舊 tests 路徑。
 
 ## 可測量需求
 
