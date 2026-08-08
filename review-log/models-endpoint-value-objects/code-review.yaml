@@ -1,0 +1,95 @@
+topic: models-endpoint-value-objects
+review: python-code-review
+review_status: COMPLETE
+verdict: approved
+sequencing_gate:
+  verdict: passed
+  evidence: review-log/models-endpoint-value-objects/implementation-review.yaml reports approved.
+tooling:
+  typing: Pyright strict (pyproject.toml [tool.pyright].typeCheckingMode = strict)
+  lint: Ruff E,W,F,N,D,UP,B,A,C4,ARG,RUF
+  dependency: Tach
+validation:
+  current_target_pytest:
+    verdict: passed-reported
+    evidence: Implementer reports 24 targeted Models tests passed after the TypeGuard change.
+    reviewer_execution: not rerun by this code-quality review.
+  pyright:
+    verdict: not-rerun
+    limitation: >-
+      The existing Linux virtual environment lacks the pyright executable. No
+      uv sync, dependency installation, or environment recreation is authorized.
+    historical_evidence: >-
+      review-log/models-endpoint-value-objects/implementation-review.yaml:81
+      records 0 errors, 0 warnings, 0 informations before the narrow typing-only
+      change.
+  review_decision: >-
+    Approved: the prior blocking casts are gone; the replacement TypeGuards use
+    runtime isinstance checks and documented recursive json.loads validation.
+    Static inspection finds no new strict-typing escape hatch. The missing
+    current Pyright rerun is an environment limitation, not a quality blocker.
+review_scope:
+  source:
+    - src/mlops_async/clients/models/__init__.py
+    - src/mlops_async/clients/models/client.py
+    - src/mlops_async/clients/models/value_objects.py
+  tests:
+    - tests/unit/clients/models/test_client.py
+    - tests/unit/clients/models/test_value_objects.py
+  import_boundary:
+    verdict: pass
+    evidence: >-
+      The family __init__ is the only public re-export surface. No root or
+      clients-package re-export, flat compatibility module, or source/test import
+      of mlops_async.models or mlops_async.clients.models_client remains.
+findings:
+  typing:
+    - severity: warning
+      locations:
+        - tests/unit/clients/models/test_client.py:94
+        - tests/unit/clients/models/test_client.py:130
+        - tests/unit/clients/models/test_client.py:156
+        - tests/unit/clients/models/test_client.py:187
+        - tests/unit/clients/models/test_client.py:200
+        - tests/unit/clients/models/test_client.py:223
+        - tests/unit/clients/models/test_client.py:235
+        - tests/unit/clients/models/test_client.py:246
+        - tests/unit/clients/models/test_client.py:268
+        - tests/unit/clients/models/test_client.py:281
+        - tests/unit/clients/models/test_client.py:190
+        - tests/unit/clients/models/test_client.py:203
+        - tests/unit/clients/models/test_value_objects.py:75
+        - tests/unit/clients/models/test_value_objects.py:92
+      issue: >-
+        Test-only type-ignore comments suppress incompatible fake Requester calls
+        and intentional immutability violations without explaining the reason.
+        Tests are excluded from Pyright, so the ignores are not independently
+        checked by the configured type gate.
+      suggested_follow_up: >-
+        Use a typed Requester protocol/factory for the fake and document the two
+        deliberate invalid mutation assertions inline, or remove ignores that
+        are not needed.
+  lint: []
+  readability:
+    - severity: warning
+      location: tests/unit/clients/models/test_value_objects.py:10
+      issue: >-
+        One test combines dataclass identity/equality, slot surface, field lists,
+        unsupported-field omission, and frozen-instance behavior.
+      suggested_follow_up: Split the assertions into focused surface and immutability tests when this module changes.
+  error_handling: []
+  anti_patterns: []
+  test_quality:
+    - severity: warning
+      locations:
+        - src/mlops_async/clients/models/value_objects.py:118
+        - src/mlops_async/clients/models/value_objects.py:127
+        - tests/unit/clients/models/test_client.py:208
+      issue: >-
+        The semantic parser's malformed optional-metadata branches are not
+        explicitly exercised: present non-string projectId/modelType/
+        scoreCodeType/role values and boolean/non-finite version values lack
+        focused assertions that they raise ModelsResponseError.
+      suggested_follow_up: Add parameterized malformed-payload cases for each optional semantic field and version edge type.
+  observability: []
+blockers: []

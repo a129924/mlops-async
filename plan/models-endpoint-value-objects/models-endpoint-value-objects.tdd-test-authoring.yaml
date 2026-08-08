@@ -1,0 +1,54 @@
+verdict: red-tests-ready
+d1_verdict:
+  verdict: non-trivial
+  reason: Models list/get introduces a new public asynchronous client, immutable response value objects, request construction, validation, and error/cancellation semantics.
+test_mapping:
+  - requirement_id: AC1
+    test_case_name: test_models_client_has_only_the_frozen_canonical_public_surface
+    coverage_category: integration points
+  - requirement_id: AC2
+    test_case_name: test_list_models_decodes_one_immutable_page_and_builds_the_default_request
+    coverage_category: happy path
+  - requirement_id: AC2
+    test_case_name: test_list_models_preserves_server_page_metadata_and_uses_legacy_project_filter
+    coverage_category: state/side effects
+  - requirement_id: AC3
+    test_case_name: test_get_model_encodes_its_dynamic_identifier_and_returns_no_raw_payload
+    coverage_category: boundary/edge
+  - requirement_id: AC4
+    test_case_name: test_model_response_value_objects_are_frozen_slotted_semantic_types
+    coverage_category: happy path
+  - requirement_id: AC5
+    test_case_name: test_list_models_rejects_invalid_input_before_requester_io
+    coverage_category: boundary/edge
+  - requirement_id: AC5
+    test_case_name: test_successful_but_malformed_responses_raise_safe_models_response_error
+    coverage_category: error/exception
+  - requirement_id: AC6
+    test_case_name: test_requester_transport_exceptions_propagate_as_the_same_instance
+    coverage_category: error/exception
+  - requirement_id: AC6
+    test_case_name: test_requester_cancellation_propagates_unchanged_without_follow_up_work
+    coverage_category: error/exception
+validation_checks:
+  d1_decision: non-trivial
+  behavior_contract_source: plan/models-endpoint-value-objects/models-endpoint-value-objects.spec.md
+  requirements_mapped: true
+  public_contract_coverage: true
+  test_categories_present:
+    - happy path
+    - error/exception
+    - boundary/edge
+    - state/side effects
+    - integration points
+  expected_initial_status: red
+  production_code_modified: false
+  linux_venv_python: Python 3.10.20
+  uv_sync: Authorized WSL uv sync did not return before the wrapper timed out at 124.1 seconds; the observable uv sync process remained active and was not terminated or retried.
+  layout_rework: true
+  initial_red_execution: RED - `uv run --no-sync --python 3.10.0 pytest --override-ini "addopts=" tests/unit/clients/models/test_value_objects.py tests/unit/clients/models/test_client.py -q` exited 1 with 2 collection errors in 2.14 seconds because the planned `mlops_async.clients.models` family package and its `client` and `value_objects` modules do not yet exist.
+issues:
+  - The RED command warned that .venv Python 3.10.20 did not exactly satisfy the requested `--python 3.10.0`; it nevertheless executed the assigned tests through the verified Linux virtual environment.
+  - Both relocated test modules failed collection with `ModuleNotFoundError: No module named 'mlops_async.clients.models'`, which is the expected pre-implementation family-package RED result.
+  - Authorized uv sync remains observable after its wrapper timeout; it was not terminated or retried.
+next_step: Run the approved-path RED command for the relocated tests, then proceed to the Models family-package implementation from that recorded RED baseline.
