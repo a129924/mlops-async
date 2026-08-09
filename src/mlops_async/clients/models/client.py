@@ -7,6 +7,7 @@ from math import isfinite
 from typing import TypeGuard
 
 from mlops_async.clients.models.value_objects import (
+    ModelContent,
     ModelDetail,
     ModelsPage,
     parse_model_detail,
@@ -57,6 +58,49 @@ class ModelsClient:
         )
         return parse_model_detail(_decode_json_response(response))
 
+    async def get_model_content(
+        self,
+        model_id: str,
+        content_id: str,
+        *,
+        range_header: str | None = None,
+        if_range: str | None = None,
+    ) -> ModelContent:
+        """Download raw content for one model content identifier."""
+        _validate_identifier(model_id, "model_id")
+        _validate_identifier(content_id, "content_id")
+        _validate_optional_header(range_header, "range_header")
+        _validate_optional_header(if_range, "if_range")
+        if if_range is not None and range_header is None:
+            raise ValueError("if_range requires range_header")
+
+        headers: dict[str, str] = {}
+        if range_header is not None:
+            headers["Range"] = range_header
+        if if_range is not None:
+            headers["If-Range"] = if_range
+
+        endpoint_path = EndpointPath.from_segments(
+            "modelRepository",
+            "models",
+            model_id,
+            "contents",
+            content_id,
+            "content",
+        )
+        response = await self._requester.request(
+            HttpMethod.GET,
+            endpoint_path.value,
+            headers=headers,
+            params={},
+        )
+        return ModelContent(
+            content=response.content,
+            content_type=response.headers.get("Content-Type"),
+            etag=response.headers.get("ETag"),
+            content_range=response.headers.get("Content-Range"),
+        )
+
 
 def _validate_page_input(start: object, limit: object, project_id: object) -> None:
     if not isinstance(start, int) or isinstance(start, bool) or start < 0:
@@ -70,6 +114,11 @@ def _validate_page_input(start: object, limit: object, project_id: object) -> No
 def _validate_identifier(value: object, name: str) -> None:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{name} must be a non-empty string")
+
+
+def _validate_optional_header(value: object, name: str) -> None:
+    if value is not None and (not isinstance(value, str) or not value.strip()):
+        raise ValueError(f"{name} must be a non-empty string when provided")
 
 
 def _decode_json_response(response: RawClientResponse) -> JSONValue:

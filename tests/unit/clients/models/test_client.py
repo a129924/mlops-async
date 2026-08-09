@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import pytest
 
 import mlops_async
-from mlops_async.clients.models import ModelsClient
+from mlops_async.clients.models import ModelContent, ModelsClient
 from mlops_async.core.http_request import EndpointPath
 from mlops_async.core.requester import Requester
 from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
@@ -29,6 +29,7 @@ from mlops_async.transport.exceptions import (
 class _RecordedRequest:
     method: HttpMethod
     path: str
+    headers: dict[str, str]
     params: dict[str, str]
 
 
@@ -42,28 +43,41 @@ class _FakeRequester:
         method: HttpMethod,
         path: str,
         *,
+        headers: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
     ) -> RawClientResponse:
-        self.requests.append(_RecordedRequest(method=method, path=path, params=dict(params or {})))
+        self.requests.append(
+            _RecordedRequest(
+                method=method,
+                path=path,
+                headers=dict(headers or {}),
+                params=dict(params or {}),
+            )
+        )
         outcome = self._outcomes.pop(0)
         if isinstance(outcome, BaseException):
             raise outcome
         return outcome
 
 
-def _response(payload: bytes) -> RawClientResponse:
+def _response(
+    payload: bytes,
+    *,
+    status_code: int = 200,
+    headers: ResponseHeaders | None = None,
+) -> RawClientResponse:
     return RawClientResponse(
-        status_code=200,
-        headers=ResponseHeaders(),
+        status_code=status_code,
+        headers=headers or ResponseHeaders(),
         content=payload,
         method=HttpMethod.GET,
         url="https://viya.example.test/modelRepository/models",
     )
 
 
-def _error_context() -> HttpErrorContext:
+def _error_context(status_code: int = 503) -> HttpErrorContext:
     return HttpErrorContext(
-        status_code=503,
+        status_code=status_code,
         method="GET",
         url="https://viya.example.test/modelRepository/models",
     )
@@ -166,6 +180,151 @@ async def test_get_model_encodes_its_dynamic_identifier_and_returns_no_raw_paylo
     assert requester.requests[0].method is HttpMethod.GET
     assert requester.requests[0].path == "/modelRepository/models/name%20with%2Fslash"
     assert requester.requests[0].params == {}
+    assert len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_get_model_content_downloads_raw_bytes_and_present_metadata() -> None:
+    requester = _FakeRequester(
+        [
+            _response(
+                b"\x00model content\xff",
+                headers=ResponseHeaders(
+                    (
+                        ("content-type", "application/octet-stream"),
+                        ("ETag", '"model-content-v1"'),
+                    )
+                ),
+            )
+        ]
+    )
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    content = await client.get_model_content("model id/slash", "content id/slash")
+
+    assert type(content) is ModelContent
+    assert content.content == b"\x00model content\xff"
+    assert content.content_type == "application/octet-stream"
+    assert content.etag == '"model-content-v1"'
+    assert content.content_range is None
+    assert len(requester.requests) == 1
+    request = requester.requests[0]
+    assert request.method is HttpMethod.GET
+    assert request.path == (
+        "/modelRepository/models/model%20id%2Fslash/contents/content%20id%2Fslash/content"
+    )
+    assert request.headers == {}
+    assert request.params == {}
+
+
+@pytest.mark.asyncio
+async def test_get_model_content_sends_requested_range_headers_and_maps_partial_metadata() -> None:
+    requester = _FakeRequester(
+        [
+            _response(
+                b"partial",
+                status_code=206,
+                headers=ResponseHeaders(
+                    (
+                        ("CONTENT-TYPE", "application/octet-stream"),
+                        ("etag", '"model-content-v1"'),
+                        ("content-range", "bytes 0-6/14"),
+                    )
+                ),
+            )
+        ]
+    )
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    content = await client.get_model_content(
+        "model-1",
+        "content-1",
+        range_header="bytes=0-6",
+        if_range='"model-content-v1"',
+    )
+
+    assert content.content == b"partial"
+    assert content.content_type == "application/octet-stream"
+    assert content.etag == '"model-content-v1"'
+    assert content.content_range == "bytes 0-6/14"
+    assert requester.requests == [
+        _RecordedRequest(
+            method=HttpMethod.GET,
+            path="/modelRepository/models/model-1/contents/content-1/content",
+            headers={"Range": "bytes=0-6", "If-Range": '"model-content-v1"'},
+            params={},
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_model_content_maps_missing_metadata_headers_to_none() -> None:
+    requester = _FakeRequester([_response(b"content")])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    content = await client.get_model_content("model-1", "content-1")
+
+    assert content.content == b"content"
+    assert content.content_type is None
+    assert content.etag is None
+    assert content.content_range is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "kwargs",
+    (
+        {"model_id": ""},
+        {"model_id": "  "},
+        {"model_id": 1},
+        {"content_id": ""},
+        {"content_id": "  "},
+        {"content_id": 1},
+        {"range_header": ""},
+        {"range_header": "  "},
+        {"range_header": 1},
+        {"if_range": ""},
+        {"if_range": "  "},
+        {"if_range": 1},
+        {"if_range": '"model-content-v1"'},
+    ),
+)
+async def test_get_model_content_rejects_invalid_input_before_requester_io(
+    kwargs: dict[str, object],
+) -> None:
+    requester = _FakeRequester([])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+    model_id = kwargs.get("model_id", "model-1")
+    content_id = kwargs.get("content_id", "content-1")
+    header_kwargs = {
+        name: value for name, value in kwargs.items() if name not in {"model_id", "content_id"}
+    }
+
+    with pytest.raises(ValueError, match=r".+"):
+        await client.get_model_content(model_id, content_id, **header_kwargs)  # type: ignore[arg-type]
+
+    assert requester.requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "exception",
+    (
+        HTTPStatusException(_error_context(status_code=416)),
+        HttpTransportException(_error_context()),
+        asyncio.CancelledError(),
+    ),
+)
+async def test_get_model_content_propagates_requester_exceptions_unchanged(
+    exception: BaseException,
+) -> None:
+    requester = _FakeRequester([exception])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(type(exception)) as error_info:
+        await client.get_model_content("model-1", "content-1")
+
+    assert error_info.value is exception
     assert len(requester.requests) == 1
 
 
@@ -287,10 +446,11 @@ async def test_requester_cancellation_propagates_unchanged_without_follow_up_wor
     assert len(requester.requests) == 1
 
 
-def test_models_client_has_only_the_frozen_canonical_public_surface() -> None:
+def test_models_client_has_the_frozen_public_surface_with_content_download() -> None:
     signature = inspect.signature(ModelsClient)
     list_signature = inspect.signature(ModelsClient.list_models)
     get_signature = inspect.signature(ModelsClient.get_model)
+    content_signature = inspect.signature(ModelsClient.get_model_content)
 
     assert ModelsClient.__module__ == "mlops_async.clients.models.client"
     assert list(signature.parameters) == ["requester"]
@@ -300,6 +460,19 @@ def test_models_client_has_only_the_frozen_canonical_public_surface() -> None:
     assert list_signature.parameters["project_id"].default is None
     assert list_signature.parameters["start"].kind is inspect.Parameter.KEYWORD_ONLY
     assert get_signature.parameters["model_id"].kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+    assert list(content_signature.parameters) == [
+        "self",
+        "model_id",
+        "content_id",
+        "range_header",
+        "if_range",
+    ]
+    content_id_parameter = content_signature.parameters["content_id"]
+    assert content_id_parameter.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+    assert content_signature.parameters["range_header"].default is None
+    assert content_signature.parameters["range_header"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert content_signature.parameters["if_range"].default is None
+    assert content_signature.parameters["if_range"].kind is inspect.Parameter.KEYWORD_ONLY
     assert not hasattr(ModelsClient, "close")
     assert not hasattr(ModelsClient, "aclose")
     assert not hasattr(ModelsClient, "__aenter__")

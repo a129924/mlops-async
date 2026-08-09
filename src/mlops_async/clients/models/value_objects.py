@@ -8,13 +8,29 @@ from typing import NoReturn, TypeAlias, TypeGuard
 from mlops_async.core.types import JSONValue
 from mlops_async.exceptions import MlopsAsyncBaseException
 
-__all__ = ["ModelDetail", "ModelSummary", "ModelsPage", "ModelsResponseError"]
+__all__ = [
+    "ModelContent",
+    "ModelDetail",
+    "ModelSummary",
+    "ModelsPage",
+    "ModelsResponseError",
+]
 
 ModelVersion: TypeAlias = int | float | None
 
 
 class ModelsResponseError(MlopsAsyncBaseException):
     """A successful Models response did not match its semantic contract."""
+
+
+@dataclass(frozen=True, slots=True)
+class ModelContent:
+    """Raw model content and optional response metadata from one download."""
+
+    content: bytes
+    content_type: str | None
+    etag: str | None
+    content_range: str | None
 
 
 @dataclass(frozen=True, slots=True)

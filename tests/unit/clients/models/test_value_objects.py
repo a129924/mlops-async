@@ -4,7 +4,12 @@ from dataclasses import FrozenInstanceError, fields, is_dataclass
 
 import pytest
 
-from mlops_async.clients.models.value_objects import ModelDetail, ModelSummary, ModelsPage
+from mlops_async.clients.models.value_objects import (
+    ModelContent,
+    ModelDetail,
+    ModelSummary,
+    ModelsPage,
+)
 
 
 def test_model_response_value_objects_are_frozen_slotted_semantic_types() -> None:
@@ -90,3 +95,23 @@ def test_models_page_items_are_already_an_immutable_tuple() -> None:
     assert type(page.items) is tuple
     with pytest.raises(AttributeError):
         page.items.append(summary)  # type: ignore[attr-defined]
+
+
+def test_model_content_is_a_frozen_slotted_raw_content_value_object() -> None:
+    content = ModelContent(
+        content=b"binary content",
+        content_type="application/octet-stream",
+        etag='"model-content-v1"',
+        content_range=None,
+    )
+
+    assert is_dataclass(content)
+    assert not hasattr(content, "__dict__")
+    assert {field.name for field in fields(content)} == {
+        "content",
+        "content_type",
+        "etag",
+        "content_range",
+    }
+    with pytest.raises(FrozenInstanceError):
+        content.content = b"changed"  # type: ignore[misc]
