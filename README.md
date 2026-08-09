@@ -37,6 +37,19 @@ transport lifecycle 或 close 行為。
 若日後實作，它將接收已設定的 `TokenEndpointClientProtocol`、建立 `.auth`，但不擁有或
 關閉 transport。
 
+**v0.16.0 release** closes PR #61 by adding the Models endpoint-family import
+`mlops_async.clients.models`. The injected `ModelsClient` provides bounded,
+single-request `list_models()` and `get_model()` operations with semantic
+models-only value objects, while preserving requester error and cancellation
+semantics. Pagination, content/file operations, and package-root exports remain
+out of scope.
+
+**v0.16.0 release** 完成 PR #61，新增 Models endpoint family import
+`mlops_async.clients.models`。注入式 `ModelsClient` 提供有界、單一 request 的
+`list_models()` 與 `get_model()`，並回傳僅限 models 語意的 Value Objects，同時保留
+Requester 的 error 與 cancellation semantics。pagination、content/file 操作與
+package-root export 仍不在此 release scope。
+
 **v0.15.1 release preparation** corrects password-grant obtain-response
 handling: `refresh_token` may be omitted, in which case it is represented as
 `None`. When the field is present, `null`, blank, and non-string values remain
