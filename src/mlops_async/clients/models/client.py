@@ -10,6 +10,7 @@ from mlops_async.clients.models.value_objects import (
     ModelContent,
     ModelDetail,
     ModelsPage,
+    ModelsResponseError,
     parse_model_detail,
     parse_models_page,
 )
@@ -74,7 +75,7 @@ class ModelsClient:
         if if_range is not None and range_header is None:
             raise ValueError("if_range requires range_header")
 
-        headers: dict[str, str] = {}
+        headers: dict[str, str] = {"Accept": "*/*"}
         if range_header is not None:
             headers["Range"] = range_header
         if if_range is not None:
@@ -94,6 +95,10 @@ class ModelsClient:
             headers=headers,
             params={},
         )
+        if response.status_code not in {200, 206}:
+            raise ModelsResponseError(
+                "Models content response semantic mismatch: expected status 200 or 206"
+            )
         return ModelContent(
             content=response.content,
             content_type=response.headers.get("Content-Type"),
@@ -117,7 +122,9 @@ def _validate_identifier(value: object, name: str) -> None:
 
 
 def _validate_optional_header(value: object, name: str) -> None:
-    if value is not None and (not isinstance(value, str) or not value.strip()):
+    if value is not None and (
+        not isinstance(value, str) or not value.strip() or "\r" in value or "\n" in value
+    ):
         raise ValueError(f"{name} must be a non-empty string when provided")
 
 

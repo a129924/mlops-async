@@ -213,7 +213,9 @@ async def test_get_model_content_downloads_raw_bytes_and_present_metadata() -> N
     assert request.path == (
         "/modelRepository/models/model%20id%2Fslash/contents/content%20id%2Fslash/content"
     )
-    assert request.headers == {}
+    assert request.headers == {"Accept": "*/*"}
+    assert "Authorization" not in request.headers
+    assert "Access-Quarantine" not in request.headers
     assert request.params == {}
 
 
@@ -251,7 +253,11 @@ async def test_get_model_content_sends_requested_range_headers_and_maps_partial_
         _RecordedRequest(
             method=HttpMethod.GET,
             path="/modelRepository/models/model-1/contents/content-1/content",
-            headers={"Range": "bytes=0-6", "If-Range": '"model-content-v1"'},
+            headers={
+                "Accept": "*/*",
+                "Range": "bytes=0-6",
+                "If-Range": '"model-content-v1"',
+            },
             params={},
         )
     ]
@@ -283,9 +289,11 @@ async def test_get_model_content_maps_missing_metadata_headers_to_none() -> None
         {"range_header": ""},
         {"range_header": "  "},
         {"range_header": 1},
+        {"range_header": "bytes=0-6\r\nAuthorization: injected"},
         {"if_range": ""},
         {"if_range": "  "},
         {"if_range": 1},
+        {"if_range": '"model-content-v1"\nAccess-Quarantine: injected'},
         {"if_range": '"model-content-v1"'},
     ),
 )
@@ -304,6 +312,20 @@ async def test_get_model_content_rejects_invalid_input_before_requester_io(
         await client.get_model_content(model_id, content_id, **header_kwargs)  # type: ignore[arg-type]
 
     assert requester.requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status_code", (201, 204))
+async def test_get_model_content_rejects_unexpected_success_status_without_constructing_content(
+    status_code: int,
+) -> None:
+    requester = _FakeRequester([_response(b"unexpected", status_code=status_code)])
+    client = ModelsClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(ModelsResponseError, match="expected status 200 or 206"):
+        await client.get_model_content("model-1", "content-1")
+
+    assert len(requester.requests) == 1
 
 
 @pytest.mark.asyncio
