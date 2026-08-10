@@ -51,6 +51,18 @@ path = "mlops_async.clients.job_execution.client"
 depends_on = ["mlops_async.clients.job_execution.value_objects", "mlops_async.core", "mlops_async.transport"]
 
 [[modules]]
+path = "mlops_async.clients.projects"
+depends_on = ["mlops_async.clients.projects.client", "mlops_async.clients.projects.value_objects"]
+
+[[modules]]
+path = "mlops_async.clients.projects.value_objects"
+depends_on = ["mlops_async.core", "mlops_async.exceptions"]
+
+[[modules]]
+path = "mlops_async.clients.projects.client"
+depends_on = ["mlops_async.clients.projects.value_objects", "mlops_async.core", "mlops_async.transport"]
+
+[[modules]]
 path = "mlops_async.transport"
 depends_on = ["mlops_async", "mlops_async.core", "mlops_async.exceptions"]
 
