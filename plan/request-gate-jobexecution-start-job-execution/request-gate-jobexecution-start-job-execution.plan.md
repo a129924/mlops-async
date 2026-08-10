@@ -64,7 +64,7 @@
 
 ## Status / Allowed Transitions
 
-- **Current**: `review-ready`
+- **Current**: `approved`
 - **Execution model**: follow the canonical creator -> reviewer -> publish -> merge path；
   本 topic 是 execution topic，但不包含 release action
 - **Allowed transitions**:

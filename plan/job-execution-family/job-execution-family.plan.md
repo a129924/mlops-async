@@ -154,7 +154,7 @@ surface 的需求，都必須停止並回報 `BLOCKED`。
 
 ## Status / Allowed Transitions
 
-- **Current**: `approved`
+- **Current**: `creator-in-progress`
 - **Execution model**: canonical creator -> reviewer -> publish -> merge；本 topic 在
   `merged` 結束，沒有 release phase。
 - **Allowed transitions**:
@@ -191,8 +191,8 @@ Routing notes:
 | Family public surface | `src/mlops_async/clients/job_execution/__init__.py` | Creator | Family-local public re-exports only |
 | Job Execution client | `src/mlops_async/clients/job_execution/client.py` | Creator | Injected `Requester` three-endpoint client |
 | Job Execution Value Objects | `src/mlops_async/clients/job_execution/value_objects.py` | Creator | `Job`/`JobState` semantics and response errors |
-| Client tests | `tests/unit/clients/job_execution/test_client.py` | Creator | One-request, headers, path, parameter, errors, and cancellation tests |
-| Value Object tests | `tests/unit/clients/job_execution/test_value_objects.py` | Creator | Enum, Job semantic parse, exact plain-text state parse, and error tests |
+| Client tests | `tests/unit/clients/job_execution/test_job_execution_client.py` | Creator | One-request, headers, path, parameter, errors, and cancellation tests |
+| Value Object tests | `tests/unit/clients/job_execution/test_job_execution_value_objects.py` | Creator | Enum, Job semantic parse, exact plain-text state parse, and error tests |
 | Dependency guardrail | `tach.toml` | Creator | Add only the three locked Job Execution family module entries |
 
 Artifact path notes:
@@ -218,12 +218,12 @@ Artifact path notes:
    `get_job_state(job_id) -> JobState`；每個方法只 direct await 一次，使用 locked
    `EndpointPath`、headers 與 `params={}`，且不傳 request body/query/submitter。完成且
    驗證後才標記 step tracker 的 Gate 2。
-3. Creator：在 `tests/unit/clients/job_execution/test_value_objects.py` 建立獨立 tests，
+3. Creator：在 `tests/unit/clients/job_execution/test_job_execution_value_objects.py` 建立獨立 tests，
    覆蓋六個 enum values、完整 `Job` wire-to-public-field mapping、所有 optional-field
    缺席、存在欄位的 exact type、`stateDetails` conjunction、raw referenced containers、
    unknown top-level keys ignored、unknown state、invalid UTF-8 及任何空白/換行 text/plain
    state 都是 `JobExecutionResponseError`。完成且驗證後才標記 step tracker 的 Gate 3。
-4. Creator：在 `tests/unit/clients/job_execution/test_client.py` 建立獨立 fake requester
+4. Creator：在 `tests/unit/clients/job_execution/test_job_execution_client.py` 建立獨立 fake requester
    與 tests，覆蓋三端點的 exactly-one await、encoded dynamic path、各 endpoint locked
    headers、`params={}`、`start_job` 無 body/query/submitter、error/cancellation identity，
    並確保不新增 shared harness。完成且驗證後才標記 step tracker 的 Gate 4。
@@ -258,8 +258,8 @@ Artifact path notes:
 - 使用現有 project configuration 透過 WSL 驗證：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/wsl-run.ps1 uv run --python 3.10.0 pytest --override-ini addopts='' tests/unit/clients/job_execution/test_value_objects.py tests/unit/clients/job_execution/test_client.py -q
-powershell -ExecutionPolicy Bypass -File scripts/wsl-run.ps1 uv run --python 3.10.0 ruff check src/mlops_async/clients/job_execution/__init__.py src/mlops_async/clients/job_execution/client.py src/mlops_async/clients/job_execution/value_objects.py tests/unit/clients/job_execution/test_value_objects.py tests/unit/clients/job_execution/test_client.py
+powershell -ExecutionPolicy Bypass -File scripts/wsl-run.ps1 uv run --python 3.10.0 pytest --override-ini addopts='' tests/unit/clients/job_execution/test_job_execution_value_objects.py tests/unit/clients/job_execution/test_job_execution_client.py -q
+powershell -ExecutionPolicy Bypass -File scripts/wsl-run.ps1 uv run --python 3.10.0 ruff check src/mlops_async/clients/job_execution/__init__.py src/mlops_async/clients/job_execution/client.py src/mlops_async/clients/job_execution/value_objects.py tests/unit/clients/job_execution/test_job_execution_value_objects.py tests/unit/clients/job_execution/test_job_execution_client.py
 powershell -ExecutionPolicy Bypass -File scripts/wsl-run.ps1 uv run --python 3.10.0 pyright
 powershell -ExecutionPolicy Bypass -File scripts/wsl-run.ps1 uv run --python 3.10.0 tach check
 ```
