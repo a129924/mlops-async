@@ -2,6 +2,7 @@
 
 from mlops_async.clients.models.client import ModelsClient
 from mlops_async.clients.models.value_objects import (
+    ModelContent,
     ModelDetail,
     ModelSummary,
     ModelsPage,
@@ -9,6 +10,7 @@ from mlops_async.clients.models.value_objects import (
 )
 
 __all__ = [
+    "ModelContent",
     "ModelDetail",
     "ModelSummary",
     "ModelsClient",
