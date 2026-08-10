@@ -38,6 +38,7 @@ pr: 65
 - The sole test-package change is the empty `tests/unit/clients/projects/__init__.py` marker. It isolates Projects collection only and must not alter Models, parent test packages, runtime code, public APIs, or peer-family rules.
 
 - `ProjectsClient` 只公開 `list_projects`、`get_project`、`get_project_by_name`、`get_champion`，constructor 只接收 caller-owned `Requester`。
+- Human override（本次唯一新增 contract change）：`ChampionModel.score_code_type: str | None`。Champion response 的 `scoreCodeType` 缺失或 JSON `null` 解析為 `None`；只有字串可成為值，非字串且非 null 值必須拋出 `ProjectsResponseError`。
 - `ChampionModel.files` 保留 `ChampionFile` tuple；file `id`/`name` 是 caller-observable references。Projects 不定義內容下載 result type。
 - caller 在取得 champion 後，自己選擇是否呼叫 `ModelsClient.get_model_content(champion.id, file.id)`，並自行承擔 gather、failure/cancellation 與 result aggregation。Projects 不參與、包裝或測試這些 choices。
 - `ProjectsResponseError` 與既有 transport/JSON error propagation contract 不變；不得新增 facade 或改動 root/transport exception architecture。
@@ -50,8 +51,8 @@ Planning actor 只修改五份 topic artifacts。post-review Implementer 可變�
 
 ## Status / Allowed Transitions
 
-- **Current**: `pr-open`。PR #65 仍為 Draft；rebase 衝突已解決，本機 HEAD `106b974` 已完成 validation 與獨立 implementation/code review。
-- **Execution model**: 下一步僅限 force-push 已 rebase 的 branch，然後將 Draft PR 轉為 Ready for review。此兩項尚未完成；其後保留 human review 與 merge boundary。
+- **Current**: `pr-open`。PR #65 仍為 Ready for review；本機 human override 的 `ChampionModel.score_code_type: str | None` contract correction、對應 RED tests、implementation、independent `python-implementation-review` 與 independent `python-code-review` 均已完成。local workflow 為 `commit/push-ready`；topic comment-fix 尚未 commit 或 push，因此尚未成為 PR #65 的遠端內容。
+- **Execution model**: 下一步由 Main Agent 對 topic comment-fix 依序 commit、push。GitHub review threads 仍未回覆且未 resolve；本更新不宣稱已處理任何遠端 comment。push 後仍須依 PR feedback routing 與 human review/merge boundary 行事，無 release action。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -96,12 +97,12 @@ Planning actor 只修改五份 topic artifacts。post-review Implementer 可變�
 
 ## Implementation Steps
 
-0. Before authoring or collecting Projects tests, create the empty `tests/unit/clients/projects/__init__.py` marker. Do not add a Models marker, alter a parent test package, or modify runtime/public contract code; this is the minimal family-local collection-isolation repair.
+0. Before authoring or collecting Projects tests, confirm the existing empty `tests/unit/clients/projects/__init__.py` marker remains the sole family-local collection-isolation repair. Do not add a Models marker, alter a parent test package, or modify runtime/public contract code.
 
 下列 steps 屬於 post-review Implementer；舊 aggregate steps 一律不保留為完成狀態。
 
-1. 在 `tests/unit/clients/projects/test_value_objects.py` 與 `tests/unit/clients/projects/test_client.py` 作者 RED tests：VO/parser、request construction、pre-I/O validation、全部 lookup invariants、exact match/exhaustion/later error、Champion metadata/file references，以及 Projects 無 peer-family imports/construction/injection/type-only dependency。
-2. 建立 `src/mlops_async/clients/projects/value_objects.py` 的 frozen/slotted Project、Champion、`ProjectsResponseError` 與 parser；保留 `ChampionModel.files`/`ChampionFile` references，不加入 content result object。
+1. 在 `tests/unit/clients/projects/test_value_objects.py` 與 `tests/unit/clients/projects/test_client.py` 作者 RED tests：VO/parser、request construction、pre-I/O validation、全部 lookup invariants、exact match/exhaustion/later error、Champion metadata/file references、`scoreCodeType` missing/null/non-string parser matrix，以及 Projects 無 peer-family imports/construction/injection/type-only dependency。
+2. 建立 `src/mlops_async/clients/projects/value_objects.py` 的 frozen/slotted Project、Champion、`ProjectsResponseError` 與 parser；`ChampionModel.score_code_type` 必須為 `str | None`，只將 missing/null materialize 為 `None`，將 non-string/non-null `scoreCodeType` 翻譯為 `ProjectsResponseError`；保留 `ChampionModel.files`/`ChampionFile` references，不加入 content result object。
 3. 建立 `src/mlops_async/clients/projects/client.py` 的 single-page list、encoded get、sequential name lookup 與 champion metadata request/parsing；constructor 只持有 `Requester`。
 4. 建立 family-local `src/mlops_async/clients/projects/__init__.py` exports，且不改 Models/core/transport public contract。
 5. 在 `tach.toml` 新增 locked exact Projects package/client/value-objects declarations：value objects 只依賴 core/root exceptions，client 只依賴 Projects value objects/core/transport，package 只依賴其 child modules；不得建立 `clients.models` edge 或 architecture escape hatch。
@@ -111,9 +112,10 @@ Planning actor 只修改五份 topic artifacts。post-review Implementer 可變�
 
 - Collection-isolation acceptance: after the marker exists, run full test collection with `uv run pytest tests/ --collect-only`; it must collect the Projects and Models sibling `test_client.py` files without an import-file-mismatch error. This validates test discovery only and does not change public/runtime or peer-family contracts.
 
-- 靜態 planning acceptance：五份 artifacts 不含 cross-family aggregate API/type；public signatures 只含 `Requester`；future test matrix 只保留 family-local metadata/file-reference targets。
+- 靜態 planning acceptance：五份 artifacts 不含 cross-family aggregate API/type；public signatures 只含 `Requester`；future test matrix 明確涵蓋 `ChampionModel.score_code_type: str | None` 與 `scoreCodeType` missing/null/non-string，且只保留 family-local metadata/file-reference targets。
 - 靜態 boundary acceptance：`tach.toml` 的 post-review exact declaration 與 allowed core/transport/root-exceptions edges 被記錄；不得建立 `clients.models` edge 或提出新 facade。
-- Post-review Implementer acceptance：request/path encoding、pre-I/O validation、所有 pagination invariants、exact search/exhaustion/later transport error、Champion metadata/file-reference parsing/immutability、no Models import/injection/type-only dependency，以及 Tach check。
+- Post-review Implementer acceptance：request/path encoding、pre-I/O validation、所有 pagination invariants、exact search/exhaustion/later transport error、Champion `scoreCodeType` missing/null -> `None` 與 non-string/non-null -> `ProjectsResponseError`、metadata/file-reference parsing/immutability、no Models import/injection/type-only dependency，以及 Tach check。
+- Latest local validation evidence：Projects targeted suite `46 passed`；full suite `554 passed`，coverage `95.35%`。此 evidence 驗證 local correction；independent implementation review 與 code review 已完成，但不能取代尚未完成的 commit、push 或 GitHub review-thread 回覆／resolve。
 - 本 planning pass 僅執行 artifact shape/search 與 `git diff --check`；不執行 tests、lint、type check、Tach check、commit、push 或 PR。
 
 ## Reviewer Handoff
@@ -140,6 +142,6 @@ None. The post-review `tach.toml` declaration form and ownership are locked.
 
 ## Workflow state
 
-- current_step: `pr-open`
-- next_step: `force-push-rebased-branch-then-ready-pr`
-- status: `COMPLETE`
+- current_step: `commit-push-ready`
+- next_step: `topic comment-fix commit -> push`
+- status: `IN_PROGRESS`

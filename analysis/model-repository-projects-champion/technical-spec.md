@@ -32,7 +32,7 @@ class ProjectsClient:
     async def get_champion(self, project_id: str) -> ChampionModel: ...
 ```
 
-`ProjectsResponseError` 維持繼承 `MlopsAsyncBaseException`，只處理 semantic response/invariant errors。public VOs 僅包含 `ProjectSummary`、`ProjectDetail`、`ProjectsPage`、`ChampionFile`、`ChampionModel`。`ChampionModel.files` 是 caller-observable `tuple[ChampionFile, ...]`；`ChampionFile.id` 與 `ChampionFile.name` 是 nullable metadata references。content download 或 aggregate result type 不屬於此 family。
+`ProjectsResponseError` 維持繼承 `MlopsAsyncBaseException`，只處理 semantic response/invariant errors。public VOs 僅包含 `ProjectSummary`、`ProjectDetail`、`ProjectsPage`、`ChampionFile`、`ChampionModel`。`ChampionModel.score_code_type` 是 `str | None`：response 的 `scoreCodeType` 缺失或 JSON `null` 解析為 `None`，只有 JSON string 可成為值，其他型別一律為 `ProjectsResponseError`。`ChampionModel.files` 是 caller-observable `tuple[ChampionFile, ...]`；`ChampionFile.id` 與 `ChampionFile.name` 是 nullable metadata references。content download 或 aggregate result type 不屬於此 family。
 
 ## Request、parsing 與 pagination
 
@@ -41,7 +41,7 @@ class ProjectsClient:
 - JSON/non-JSON/transport/HTTP error 沿用既有 Models family decoding boundary；不重建 transport/auth/client lifecycle，也不改 public error contract。
 - page parser 要求 `count`、`start`、`limit`、`items`；list/detail 要求 `id`、`name`。只 materialize 支援的語義欄位。
 - name lookup 驗證 non-empty name/positive page_size，自 start 0 sequential `list_projects()`。first page establishes expected count；每頁必須驗證 response start、limit、count、items length；scan exact name 後，只有 empty/short/final full page 的真正 exhaust 才 `None`。非終止頁用 `len(items)` 前進，絕不以 metadata mismatch 正常結束。
-- `get_champion` 要求 `id`、`name`、`scoreCodeType`；raw `files` absent 成為空 tuple，present files 逐一 materialize 為 `ChampionFile`，供 caller 觀察及後續自行編排。
+- `get_champion` 要求 `id`、`name`；`scoreCodeType` 缺失或 JSON `null` 成為 `ChampionModel.score_code_type is None`，只有 JSON string 可 materialize，非字串且非 null 值拋出 `ProjectsResponseError`。raw `files` absent 成為空 tuple，present files 逐一 materialize 為 `ChampionFile`，供 caller 觀察及後續自行編排。
 
 ## Peer-family boundary
 
@@ -81,7 +81,7 @@ depends_on = ["mlops_async.clients.projects.value_objects", "mlops_async.core", 
 - `tests/unit/clients/projects/test_value_objects.py`
 - `tach.toml`
 
-上述 allowed code/test paths 不含 aggregate test targets。它們保留 request construction、encoding、pre-I/O validation、semantic parser error、全部 pagination invariants、exact match/exhaustion/later request failure、Champion metadata/file-reference parsing、immutability 與 peer-family import/signature isolation。`tach.toml` 僅能依上列 exact declaration 由 post-review Implementer 修改。
+上述 allowed code/test paths 不含 aggregate test targets。它們保留 request construction、encoding、pre-I/O validation、semantic parser error、全部 pagination invariants、exact match/exhaustion/later request failure、Champion `scoreCodeType` missing/null/non-string parser matrix、metadata/file-reference parsing、immutability 與 peer-family import/signature isolation。`tach.toml` 僅能依上列 exact declaration 由 post-review Implementer 修改。
 
 ## Metadata/release boundary
 

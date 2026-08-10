@@ -115,7 +115,9 @@ async def test_get_project_encodes_identifier_and_discards_unmodeled_payload() -
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("kwargs", ({"start": True}, {"start": -1}, {"limit": True}, {"limit": 0}))
+@pytest.mark.parametrize(
+    "kwargs", ({"start": True}, {"start": -1}, {"limit": True}, {"limit": 0}, {"limit": 1001})
+)
 async def test_list_projects_rejects_invalid_input_before_io(kwargs: dict[str, object]) -> None:
     requester = _FakeRequester([])
     client = ProjectsClient(requester)  # type: ignore[arg-type]
@@ -348,6 +350,46 @@ async def test_get_champion_accepts_present_empty_and_missing_files() -> None:
 
     assert champion.files == ()
     assert missing_files.files == ()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload",
+    (
+        {"id": "model-1", "name": "Champion"},
+        {"id": "model-1", "name": "Champion", "scoreCodeType": None},
+    ),
+)
+async def test_get_champion_maps_missing_or_null_score_code_type_to_none(
+    payload: dict[str, object],
+) -> None:
+    requester = _FakeRequester([_response(payload)])
+    client = ProjectsClient(requester)  # type: ignore[arg-type]
+
+    champion = await client.get_champion("project-1")
+
+    assert champion.score_code_type is None
+    assert len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_get_champion_propagates_invalid_score_code_type_as_response_error() -> None:
+    requester = _FakeRequester(
+        [_response({"id": "model-1", "name": "Champion", "scoreCodeType": 1})]
+    )
+    client = ProjectsClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(ProjectsResponseError):
+        await client.get_champion("project-1")
+
+    assert requester.requests == [
+        _RecordedRequest(
+            HttpMethod.GET,
+            "/modelRepository/projects/project-1/champion",
+            {},
+            {},
+        )
+    ]
 
 
 @pytest.mark.asyncio

@@ -86,8 +86,8 @@ class ProjectsClient:
 def _validate_page_input(start: object, limit: object) -> None:
     if not isinstance(start, int) or isinstance(start, bool) or start < 0:
         raise ValueError("start must be a non-boolean integer greater than or equal to zero")
-    if not isinstance(limit, int) or isinstance(limit, bool) or limit <= 0:
-        raise ValueError("limit must be a non-boolean positive integer")
+    if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 1000:
+        raise ValueError("limit must be a non-boolean integer from 1 through 1000")
 
 
 def _validate_lookup_page_size(page_size: object) -> None:
@@ -150,10 +150,12 @@ def _is_json_value(value: object) -> TypeGuard[JSONValue]:
 
 
 def _is_runtime_list(value: object) -> TypeGuard[list[object]]:
+    """Narrow ``json.loads`` output before recursively validating list members."""
     return isinstance(value, list)
 
 
 def _is_runtime_dict(value: object) -> TypeGuard[dict[object, object]]:
+    """Narrow ``json.loads`` output before validating dictionary keys and values."""
     return isinstance(value, dict)
 
 

@@ -62,7 +62,7 @@ class ChampionModel:
 
     id: str
     name: str
-    score_code_type: str
+    score_code_type: str | None
     files: tuple[ChampionFile, ...]
 
 
@@ -102,7 +102,7 @@ def parse_champion_model(value: JSONValue) -> ChampionModel:
     return ChampionModel(
         id=_require_string(response, "id", "champion"),
         name=_require_string(response, "name", "champion"),
-        score_code_type=_require_string(response, "scoreCodeType", "champion"),
+        score_code_type=_optional_nullable_string(response, "scoreCodeType", "champion"),
         files=files,
     )
 
@@ -145,6 +145,17 @@ def _require_string(response: dict[str, JSONValue], field: str, endpoint: str) -
 
 def _optional_string(response: dict[str, JSONValue], field: str, endpoint: str) -> str | None:
     if field not in response:
+        return None
+    value = response[field]
+    if isinstance(value, str):
+        return value
+    _raise_semantic_error(endpoint, f"{field} must be a string when present")
+
+
+def _optional_nullable_string(
+    response: dict[str, JSONValue], field: str, endpoint: str
+) -> str | None:
+    if field not in response or response[field] is None:
         return None
     value = response[field]
     if isinstance(value, str):

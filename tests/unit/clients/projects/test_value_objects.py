@@ -75,7 +75,7 @@ def test_projects_value_objects_are_frozen_slotted_semantic_types() -> None:
         (parse_project_detail, {"id": "project-1", "name": ""}),
         (
             parse_champion_model,
-            {"id": "model-1", "name": "Champion", "scoreCodeType": None},
+            {"id": "model-1", "name": "Champion", "scoreCodeType": 0},
         ),
         (
             parse_champion_model,
@@ -94,6 +94,35 @@ def test_projects_parsers_translate_malformed_required_fields_to_response_error(
 ) -> None:
     with pytest.raises(ProjectsResponseError):
         parser(payload)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    (
+        {"id": "model-1", "name": "Champion"},
+        {"id": "model-1", "name": "Champion", "scoreCodeType": None},
+    ),
+)
+def test_champion_parser_materializes_missing_or_null_score_code_type_as_none(
+    payload: JSONValue,
+) -> None:
+    champion = parse_champion_model(payload)
+
+    assert champion.score_code_type is None
+
+
+@pytest.mark.parametrize("score_code_type", (0, True, [], {}))
+def test_champion_parser_rejects_non_string_non_null_score_code_type(
+    score_code_type: JSONValue,
+) -> None:
+    with pytest.raises(ProjectsResponseError):
+        parse_champion_model(
+            {
+                "id": "model-1",
+                "name": "Champion",
+                "scoreCodeType": score_code_type,
+            }
+        )
 
 
 def test_projects_parsers_exclude_unknown_response_fields_from_semantic_objects() -> None:
