@@ -26,16 +26,25 @@ def test_job_state_has_the_six_locked_wire_values() -> None:
 
 def test_parse_job_maps_the_supported_wire_fields_without_retaining_payload_containers() -> None:
     payload = {
-        "id": "job-1", "state": "running", "stateDetails": "waiting for a worker",
-        "results": {"outputTable": "SCORED"}, "error": {"code": "none", "nested": {"safe": True}},
-        "jobRequest": {"id": "request-1"}, "heartbeatInterval": 30,
-        "heartbeatTimeStamp": "2026-08-10T01:02:03Z", "creationTimeStamp": "2026-08-10T01:00:00Z",
-        "modifiedTimeStamp": "2026-08-10T01:02:00Z", "endTimeStamp": "2026-08-10T01:03:00Z",
+        "id": "job-1",
+        "state": "running",
+        "stateDetails": "waiting for a worker",
+        "results": {"outputTable": "SCORED"},
+        "error": {"code": "none", "nested": {"safe": True}},
+        "jobRequest": {"id": "request-1"},
+        "heartbeatInterval": 30,
+        "heartbeatTimeStamp": "2026-08-10T01:02:03Z",
+        "creationTimeStamp": "2026-08-10T01:00:00Z",
+        "modifiedTimeStamp": "2026-08-10T01:02:00Z",
+        "endTimeStamp": "2026-08-10T01:03:00Z",
         "elapsedTime": 120.5,
         "logLocation": "/logs/job-1",
         "expirationTimeStamp": "2026-08-11T01:00:00Z",
-        "createdBy": "creator", "modifiedBy": "modifier", "submittedByApplication": "mlops-async",
-        "links": [{"rel": "self", "uri": "/jobExecution/jobs/job-1"}], "version": 4,
+        "createdBy": "creator",
+        "modifiedBy": "modifier",
+        "submittedByApplication": "mlops-async",
+        "links": [{"rel": "self", "uri": "/jobExecution/jobs/job-1"}],
+        "version": 4,
         "ignoredByTheClient": "not retained",
     }
 
@@ -48,11 +57,25 @@ def test_parse_job_maps_the_supported_wire_fields_without_retaining_payload_cont
     assert is_dataclass(job)
     assert not hasattr(job, "__dict__")
     assert {field.name for field in fields(job)} == {
-        "id", "state", "state_details", "results", "error", "job_request", "heartbeat_interval",
-        "heartbeat_timestamp", "creation_timestamp", "modified_timestamp", "end_timestamp",
-        "elapsed_time", "log_location", "expiration_timestamp", "created_by", "modified_by",
+        "id",
+        "state",
+        "state_details",
+        "results",
+        "error",
+        "job_request",
+        "heartbeat_interval",
+        "heartbeat_timestamp",
+        "creation_timestamp",
+        "modified_timestamp",
+        "end_timestamp",
+        "elapsed_time",
+        "log_location",
+        "expiration_timestamp",
+        "created_by",
+        "modified_by",
         "submitted_by_application",
-        "links", "version",
+        "links",
+        "version",
     }
     assert job.id == "job-1"
     assert job.state is JobState.RUNNING
@@ -73,9 +96,18 @@ def test_parse_job_maps_the_supported_wire_fields_without_retaining_payload_cont
 @pytest.mark.parametrize(
     "payload",
     (
-        [], {"state": "unknown"}, {"state": 1}, {"stateDetails": 1}, {"results": {"output": 1}},
-        {"error": []}, {"jobRequest": []}, {"heartbeatInterval": True}, {"elapsedTime": True},
-        {"links": {}}, {"links": ["not-an-object"]}, {"version": 1.0},
+        [],
+        {"state": "unknown"},
+        {"state": 1},
+        {"stateDetails": 1},
+        {"results": {"output": 1}},
+        {"error": []},
+        {"jobRequest": []},
+        {"heartbeatInterval": True},
+        {"elapsedTime": True},
+        {"links": {}},
+        {"links": ["not-an-object"]},
+        {"version": 1.0},
     ),
 )
 def test_parse_job_rejects_semantic_mismatches(payload: object) -> None:
@@ -84,14 +116,29 @@ def test_parse_job_rejects_semantic_mismatches(payload: object) -> None:
 
 
 def test_parse_job_allows_absent_optional_fields_and_preserves_null_as_none() -> None:
-    job = parse_job({
-        "id": None, "state": None, "stateDetails": None, "results": None, "error": None,
-        "jobRequest": None, "heartbeatInterval": None, "heartbeatTimeStamp": None,
-        "creationTimeStamp": None, "modifiedTimeStamp": None, "endTimeStamp": None,
-        "elapsedTime": None, "logLocation": None, "expirationTimeStamp": None,
-        "createdBy": None, "modifiedBy": None, "submittedByApplication": None, "links": None,
-        "version": None,
-    })
+    job = parse_job(
+        {
+            "id": None,
+            "state": None,
+            "stateDetails": None,
+            "results": None,
+            "error": None,
+            "jobRequest": None,
+            "heartbeatInterval": None,
+            "heartbeatTimeStamp": None,
+            "creationTimeStamp": None,
+            "modifiedTimeStamp": None,
+            "endTimeStamp": None,
+            "elapsedTime": None,
+            "logLocation": None,
+            "expirationTimeStamp": None,
+            "createdBy": None,
+            "modifiedBy": None,
+            "submittedByApplication": None,
+            "links": None,
+            "version": None,
+        }
+    )
     assert all(getattr(job, field.name) is None for field in fields(job))
 
 

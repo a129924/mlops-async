@@ -67,8 +67,9 @@ def _response(content: bytes, *, method: HttpMethod = HttpMethod.GET) -> RawClie
 
 
 @pytest.mark.asyncio
-async def test_start_job_makes_one_bodyless_post_with_locked_headers_and_encoded_identifier(
-) -> None:
+async def test_start_job_makes_one_bodyless_post_with_locked_headers_and_encoded_identifier() -> (
+    None
+):
     requester = _FakeRequester(
         [_response(b'{"id":"job-1","state":"pending"}', method=HttpMethod.POST)]
     )
@@ -107,8 +108,7 @@ async def test_get_job_makes_one_request_with_locked_headers_and_no_body() -> No
 
 
 @pytest.mark.asyncio
-async def test_get_job_state_makes_one_plain_text_request_without_json_decoding_or_normalization(
-) -> None:
+async def test_get_job_state_makes_one_plain_text_request_without_json_decoding_or_normalization():
     requester = _FakeRequester([_response(b"timedOut")])
 
     client = JobExecutionClient(requester)  # type: ignore[arg-type]

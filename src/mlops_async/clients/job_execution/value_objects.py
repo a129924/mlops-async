@@ -131,9 +131,7 @@ def _optional_results(response: dict[str, JSONValue]) -> Mapping[str, str] | Non
     return deepcopy(results)
 
 
-def _optional_object(
-    response: dict[str, JSONValue], field: str
-) -> Mapping[str, JSONValue] | None:
+def _optional_object(response: dict[str, JSONValue], field: str) -> Mapping[str, JSONValue] | None:
     value = response.get(field)
     if value is None:
         return None
