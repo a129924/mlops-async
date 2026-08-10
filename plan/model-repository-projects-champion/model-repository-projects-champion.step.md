@@ -1,8 +1,8 @@
 ---
 topic: model-repository-projects-champion
-phase: plan-authoring
+phase: pr-open
 created: 2026-08-10
-status: review-ready
+status: pr-open
 ---
 
 # model-repository-projects-champion Step Tracking
@@ -14,11 +14,11 @@ status: review-ready
 ## Workflow Stages
 
 - [X] plan-authoring（已加入最小 Projects-local test collection boundary，規劃可供獨立審查）
-- [ ] plan-review
-- [ ] tdd-test-authoring
-- [ ] implementation
-- [ ] implementation-review
-- [ ] code-review
+- [X] plan-review
+- [X] tdd-test-authoring
+- [X] implementation
+- [X] implementation-review
+- [X] code-review
 
 ## Implementation Steps
 

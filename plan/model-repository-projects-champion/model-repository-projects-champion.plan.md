@@ -1,3 +1,10 @@
+---
+topic: model-repository-projects-champion
+phase: pr-open
+status: pr-open
+pr: 65
+---
+
 # Model Repository Projects Champion
 
 ## Analysis Routing
@@ -43,8 +50,8 @@ Planning actor 只修改五份 topic artifacts。post-review Implementer 可變�
 
 ## Status / Allowed Transitions
 
-- **Current**: `review-ready`。
-- **Execution model**: corrected planning contract is complete; next actor is independent Plan-Reviewer. `tach.toml` remains unmodified until post-review implementation.
+- **Current**: `pr-open`。PR #65 仍為 Draft；rebase 衝突已解決，本機 HEAD `106b974` 已完成 validation 與獨立 implementation/code review。
+- **Execution model**: 下一步僅限 force-push 已 rebase 的 branch，然後將 Draft PR 轉為 Ready for review。此兩項尚未完成；其後保留 human review 與 merge boundary。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`
@@ -133,6 +140,6 @@ None. The post-review `tach.toml` declaration form and ownership are locked.
 
 ## Workflow state
 
-- current_step: `DONE`
-- next_step: `plan-review`
+- current_step: `pr-open`
+- next_step: `force-push-rebased-branch-then-ready-pr`
 - status: `COMPLETE`
