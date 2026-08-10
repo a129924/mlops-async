@@ -1,6 +1,6 @@
 ---
 topic: models-get-content
-phase: plan-authoring
+phase: merged
 created: 2026-08-09
 ---
 
@@ -12,12 +12,12 @@ created: 2026-08-09
 
 ## Workflow stages
 
-1. [ ] `plan-authoring`
-2. [ ] `plan-review`
-3. [ ] `tdd-test-authoring`
-4. [ ] `implementation`
-5. [ ] `implementation-review`
-6. [ ] `code-review`
+1. [X] `plan-authoring`
+2. [X] `plan-review`
+3. [X] `tdd-test-authoring`
+4. [X] `implementation`
+5. [X] `implementation-review`
+6. [X] `code-review`
 
 ## Implementation Steps
 
