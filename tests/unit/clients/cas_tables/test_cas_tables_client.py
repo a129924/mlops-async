@@ -6,6 +6,7 @@ from collections.abc import Mapping
 
 import pytest
 
+import mlops_async.clients.cas_tables.client as cas_tables_client_module
 from mlops_async.clients.cas_tables import (
     CasTablesClient,
     CasTablesResponseError,
@@ -176,6 +177,25 @@ async def test_invalid_json_and_semantic_response_raise_family_error() -> None:
         await client.list_tables("source")
     with pytest.raises(CasTablesResponseError):
         await client.get_table("source", "table")
+
+
+@pytest.mark.asyncio
+async def test_recursive_decoded_json_response_raises_family_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    decoded: list[object] = []
+    decoded.append(decoded)
+    monkeypatch.setattr(cas_tables_client_module, "json_loads", lambda _content: decoded)
+    requester = _FakeRequester([_response(b"[]")])
+    client = CasTablesClient(requester)  # type: ignore[arg-type]
+
+    with pytest.raises(
+        CasTablesResponseError,
+        match="CAS Tables response semantic mismatch: invalid JSON",
+    ) as error_info:
+        await client.list_tables("source")
+
+    assert isinstance(error_info.value.__cause__, RecursionError)
 
 
 def test_public_surface_is_frozen_and_has_no_lifecycle_helpers() -> None:

@@ -97,10 +97,12 @@ def _validate_state_input(value: object) -> TableState:
 def _decode_json_response(response: RawClientResponse) -> JSONValue:
     try:
         decoded: object = json_loads(response.content)
+        if not _is_json_value(decoded):
+            raise CasTablesResponseError(
+                "CAS Tables response semantic mismatch: invalid JSON value"
+            )
     except (JSONDecodeError, UnicodeDecodeError, RecursionError) as exc:
         raise CasTablesResponseError("CAS Tables response semantic mismatch: invalid JSON") from exc
-    if not _is_json_value(decoded):
-        raise CasTablesResponseError("CAS Tables response semantic mismatch: invalid JSON value")
     return decoded
 
 
