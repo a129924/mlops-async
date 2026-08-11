@@ -12,11 +12,9 @@
           "response": {
             "status_code": 200,
             "headers": {
-              "Content-Type": "application/json"
+              "Content-Type": "text/plain"
             },
-            "json_body": {
-              "state": "running"
-            }
+            "text_body": "running"
           }
         }
       ]

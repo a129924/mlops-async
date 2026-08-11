@@ -154,9 +154,14 @@ surface 的需求，都必須停止並回報 `BLOCKED`。
 
 ## Status / Allowed Transitions
 
-- **Current**: `creator-in-progress`
+- **Current**: `merged`
 - **Execution model**: canonical creator -> reviewer -> publish -> merge；本 topic 在
   `merged` 結束，沒有 release phase。
+- **Historical routing**: PR #64 已以 merge SHA
+  `7411c65dea56aaab3e07e647c5a671849a924b5d` 合併；合併後的有限 correction 依
+  `plan/job-execution-family/job-execution-family.post-merge.correction-plan.md` 與
+  `plan/job-execution-family/job-execution-family.post-merge.correction-step.md` 追蹤，
+  不重開 parent plan 或 parent step。
 - **Allowed transitions**:
   - `planned` -> `creator-in-progress`
   - `creator-in-progress` -> `review-ready`

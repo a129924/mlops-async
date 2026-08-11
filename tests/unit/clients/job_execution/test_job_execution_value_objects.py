@@ -115,6 +115,14 @@ def test_parse_job_rejects_semantic_mismatches(payload: object) -> None:
         parse_job(payload)  # type: ignore[arg-type]
 
 
+@pytest.mark.parametrize(
+    "payload", ({"stateDetails": "detail"}, {"state": None, "stateDetails": "detail"})
+)
+def test_parse_job_rejects_state_details_without_a_valid_state(payload: object) -> None:
+    with pytest.raises(JobExecutionResponseError):
+        parse_job(payload)  # type: ignore[arg-type]
+
+
 def test_parse_job_allows_absent_optional_fields_and_preserves_null_as_none() -> None:
     job = parse_job(
         {

@@ -57,10 +57,14 @@ class Job:
 def parse_job(value: JSONValue) -> Job:
     """Parse a JSON Job document into the family-local semantic value object."""
     response = _require_object(value, "job")
+    state = _optional_state(response)
+    state_details = _optional_string(response, "stateDetails")
+    if state_details is not None and state is None:
+        _raise_semantic_error("job", "stateDetails requires a valid state")
     return Job(
         id=_optional_string(response, "id"),
-        state=_optional_state(response),
-        state_details=_optional_string(response, "stateDetails"),
+        state=state,
+        state_details=state_details,
         results=_optional_results(response),
         error=_optional_object(response, "error"),
         job_request=_optional_object(response, "jobRequest"),

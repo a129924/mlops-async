@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from mlops_async.clients.job_execution import JobState
 from tests.unit.request_contract.contract_case import (
     EndpointContractCase,
     FakeResponse,
@@ -39,12 +40,14 @@ async def test_get_job_state_direct_identifier_request_shape(
             required_headers={
                 "Authorization": "Bearer ",
                 "Accept": GET_JOB_STATE_ACCEPT_HEADER,
+                "Delegate-Domain": "",
+                "Content-Type": "application/json",
             },
         ),
         response=FakeResponse(
             status_code=200,
-            json_body={"state": "running"},
-            headers={"Content-Type": "application/json"},
+            text_body="running",
+            headers={"Content-Type": "text/plain"},
         ),
         source_observed=SourceObservedFixture(
             request_path=f"{FIXTURE_ROOT}/get_job_state.request-flow.json#direct_identifier",
@@ -54,7 +57,7 @@ async def test_get_job_state_direct_identifier_request_shape(
 
     result = await job_execution_state_contract.run(case_get_job_state_direct_identifier)
 
-    assert getattr(result, "state", None) == "running"
+    assert result is JobState.RUNNING
     assert job_execution_state_contract.last_request is not None
     assert (
         job_execution_state_contract.last_request["path"]
@@ -66,8 +69,8 @@ async def test_get_job_state_direct_identifier_request_shape(
     assert isinstance(headers, dict)
     assert str(headers["authorization"]).startswith("Bearer ")
     assert headers["accept"] == GET_JOB_STATE_ACCEPT_HEADER
-    assert "Delegate-Domain" not in headers
-    assert "content-type" not in headers
+    assert headers["delegate-domain"] == ""
+    assert headers["content-type"] == "application/json"
 
 
 @pytest.mark.asyncio
@@ -116,8 +119,8 @@ async def test_get_job_state_interceptor_fails_fast_on_unregistered_request(
         ),
         response=FakeResponse(
             status_code=200,
-            json_body={"state": "running"},
-            headers={"Content-Type": "application/json"},
+            text_body="running",
+            headers={"Content-Type": "text/plain"},
         ),
         source_observed=None,
     )

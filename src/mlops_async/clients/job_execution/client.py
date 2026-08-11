@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from json import JSONDecodeError, loads as json_loads
-from math import isfinite
-from typing import TypeGuard
+from typing import NoReturn, cast
 
 from mlops_async.clients.job_execution.value_objects import (
     Job,
@@ -24,6 +23,7 @@ _JOB_ACCEPT = (
 )
 _COMMON_HEADERS = {"Delegate-Domain": "", "Content-Type": "application/json"}
 _JOB_HEADERS = {**_COMMON_HEADERS, "Accept": _JOB_ACCEPT}
+_STATE_HEADERS = {**_COMMON_HEADERS, "Accept": "text/plain"}
 
 
 class JobExecutionClient:
@@ -58,7 +58,7 @@ class JobExecutionClient:
         _validate_identifier(job_id, "job_id")
         endpoint_path = EndpointPath.from_segments("jobExecution", "jobs", job_id, "state")
         response = await self._requester.request(
-            HttpMethod.GET, endpoint_path.value, headers=_COMMON_HEADERS, params={}
+            HttpMethod.GET, endpoint_path.value, headers=_STATE_HEADERS, params={}
         )
         return parse_job_state(response.content)
 
@@ -70,31 +70,11 @@ def _validate_identifier(value: object, name: str) -> None:
 
 def _decode_json_response(response: RawClientResponse) -> JSONValue:
     try:
-        decoded: object = json_loads(response.content)
-    except (JSONDecodeError, UnicodeDecodeError, RecursionError) as exc:
+        decoded = json_loads(response.content, parse_constant=_reject_nonstandard_json_constant)
+    except (JSONDecodeError, UnicodeDecodeError, RecursionError, ValueError) as exc:
         raise JobExecutionResponseError("Job response semantic mismatch: invalid JSON") from exc
-    if not _is_json_value(decoded):
-        raise JobExecutionResponseError("Job response semantic mismatch: invalid JSON value")
-    return decoded
+    return cast(JSONValue, decoded)
 
 
-def _is_json_value(value: object) -> TypeGuard[JSONValue]:
-    if value is None or isinstance(value, str | bool | int):
-        return True
-    if isinstance(value, float):
-        return isfinite(value)
-    if _is_runtime_list(value):
-        return all(_is_json_value(item) for item in value)
-    if _is_runtime_dict(value):
-        return all(isinstance(key, str) and _is_json_value(item) for key, item in value.items())
-    return False
-
-
-def _is_runtime_list(value: object) -> TypeGuard[list[object]]:
-    """Narrow decoded JSON before recursively validating list members."""
-    return isinstance(value, list)
-
-
-def _is_runtime_dict(value: object) -> TypeGuard[dict[object, object]]:
-    """Narrow decoded JSON before recursively validating dictionary members."""
-    return isinstance(value, dict)
+def _reject_nonstandard_json_constant(value: str) -> NoReturn:
+    raise ValueError(f"Non-standard JSON constant: {value}")
