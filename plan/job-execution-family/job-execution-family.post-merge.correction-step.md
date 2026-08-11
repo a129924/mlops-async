@@ -8,6 +8,17 @@ status: approved
 
 # Job Execution Family — Post-merge Correction Step Tracker
 
+## PR #66 Review-Fix Evidence
+
+- [X] ADDRESS: modeled raw `error`, `jobRequest`, and `links` containers now use an
+  iterative defensive copy; no nested raw-container validation was added.
+- [X] ADDRESS: modeled numeric fields reject non-finite values, including an
+  `elapsedTime` decoded as infinity from JSON `1e400`.
+- [X] Family unit regressions cover a deeply nested modeled raw object and
+  non-finite `elapsedTime` values.
+- [ ] Independent focused WSL verification, commit, push, and review-thread
+  resolution remain owned by their respective workflow roles.
+
 本 tracker 只追蹤 `job-execution-family` 的 post-merge correction。它不改變
 `job-execution-family.plan.md` 與 `.step.md` 的已合併歷史。
 

@@ -93,6 +93,30 @@ def test_parse_job_maps_the_supported_wire_fields_without_retaining_payload_cont
         job.id = "changed"  # type: ignore[misc]
 
 
+def test_parse_job_defensively_copies_a_deep_modeled_raw_object_without_recursion() -> None:
+    raw_error: dict[str, object] = {"leaf": "original"}
+    for _ in range(2_000):
+        raw_error = {"nested": raw_error}
+
+    job = parse_job({"error": raw_error})  # type: ignore[arg-type]
+
+    raw_leaf = raw_error
+    copied_leaf = job.error
+    assert copied_leaf is not None
+    for _ in range(2_000):
+        raw_leaf = raw_leaf["nested"]  # type: ignore[assignment]
+        copied_leaf = copied_leaf["nested"]  # type: ignore[assignment]
+    raw_leaf["leaf"] = "changed"
+
+    assert copied_leaf["leaf"] == "original"
+
+
+@pytest.mark.parametrize("elapsed_time", (float("inf"), float("-inf")))
+def test_parse_job_rejects_non_finite_modeled_elapsed_time(elapsed_time: float) -> None:
+    with pytest.raises(JobExecutionResponseError):
+        parse_job({"elapsedTime": elapsed_time})
+
+
 @pytest.mark.parametrize(
     "payload",
     (

@@ -6,12 +6,15 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import NoReturn, TypeGuard
+from math import isfinite
+from typing import NoReturn, TypeAlias, TypeGuard
 
 from mlops_async.core.types import JSONValue
 from mlops_async.exceptions import MlopsAsyncBaseException
 
 __all__ = ["Job", "JobExecutionResponseError", "JobState"]
+
+_JSONContainer: TypeAlias = dict[str, JSONValue] | list[JSONValue]
 
 
 class JobExecutionResponseError(MlopsAsyncBaseException):
@@ -141,7 +144,7 @@ def _optional_object(response: dict[str, JSONValue], field: str) -> Mapping[str,
         return None
     if not _is_json_object(value):
         _raise_semantic_error("job", f"{field} must be an object when present")
-    return deepcopy(value)
+    return _copy_json_object(value)
 
 
 def _optional_int(response: dict[str, JSONValue], field: str) -> int | None:
@@ -157,7 +160,9 @@ def _optional_number(response: dict[str, JSONValue], field: str) -> int | float 
     value = response.get(field)
     if value is None:
         return None
-    if isinstance(value, int | float) and not isinstance(value, bool):
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, float) and isfinite(value):
         return value
     _raise_semantic_error("job", f"{field} must be a number when present")
 
@@ -174,8 +179,55 @@ def _optional_links(
     for item in value:
         if not _is_json_object(item):
             _raise_semantic_error("job", "links must be an array of objects when present")
-        links.append(deepcopy(item))
+        links.append(_copy_json_object(item))
     return tuple(links)
+
+
+def _copy_json_object(value: dict[str, JSONValue]) -> dict[str, JSONValue]:
+    copied = _copy_json_value(value)
+    if _is_json_object(copied):
+        return copied
+    raise AssertionError("JSON object copy produced a non-object")
+
+
+def _copy_json_value(value: JSONValue) -> JSONValue:
+    """Copy raw JSON containers iteratively without adding nested validation."""
+    if not isinstance(value, dict | list):
+        return value
+
+    copied_root: _JSONContainer = {} if isinstance(value, dict) else []
+    pending: list[tuple[_JSONContainer, _JSONContainer]] = [(value, copied_root)]
+    while pending:
+        source, destination = pending.pop()
+        if isinstance(source, dict):
+            if not isinstance(destination, dict):
+                raise AssertionError("JSON container type changed during copy")
+            for key, item in source.items():
+                if isinstance(item, dict):
+                    copied_item: _JSONContainer = {}
+                    destination[key] = copied_item
+                    pending.append((item, copied_item))
+                elif isinstance(item, list):
+                    copied_item = []
+                    destination[key] = copied_item
+                    pending.append((item, copied_item))
+                else:
+                    destination[key] = item
+        else:
+            if not isinstance(destination, list):
+                raise AssertionError("JSON container type changed during copy")
+            for item in source:
+                if isinstance(item, dict):
+                    copied_item = {}
+                    destination.append(copied_item)
+                    pending.append((item, copied_item))
+                elif isinstance(item, list):
+                    copied_item = []
+                    destination.append(copied_item)
+                    pending.append((item, copied_item))
+                else:
+                    destination.append(item)
+    return copied_root
 
 
 def _is_json_object(value: JSONValue) -> TypeGuard[dict[str, JSONValue]]:
