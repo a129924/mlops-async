@@ -7,11 +7,11 @@ import json
 from collections.abc import Awaitable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from types import SimpleNamespace
 from typing import cast
 
 import pytest
 
+from mlops_async.clients.job_execution import JobExecutionClient
 from mlops_async.core.request_options import ClientRequestOptions
 from mlops_async.core.requester import Requester
 from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
@@ -20,12 +20,11 @@ from tests.unit.request_contract.contract_case import (
     FakeResponse,
     RequestShape,
 )
-from tests.unit.request_contract.header_families import JOB_EXECUTION_JOB_ACCEPT_HEADER
 
 BASE_URL = "https://example.test"
 DUMMY_TOKEN = "fake-token"
 FIXTURE_DIR = Path(__file__).with_name("fixtures")
-GET_JOB_STATE_ACCEPT_HEADER = JOB_EXECUTION_JOB_ACCEPT_HEADER
+GET_JOB_STATE_ACCEPT_HEADER = "text/plain"
 TOPIC_PACKAGE_DIR = Path(__file__).resolve().parent
 AUTHORITY_CLASS = "non-authoritative-shape-only"
 ALLOWED_USE = "keep-as-shape-baseline"
@@ -70,38 +69,13 @@ def _normalize_job_id(job_id: object) -> str:
     return job_id
 
 
-try:
-    from mlops_async._api.job_execution_jobs import JobExecutionJobsClient as _ImportedClient
-except ModuleNotFoundError as error:
-    if error.name not in {"mlops_async._api", "mlops_async._api.job_execution_jobs"}:
-        raise
-    # Keep non-authoritative shape-only request-gate tests
-    # collectible until src/_api is materialized.
-    _ImportedClient = None
-
-
 class JobExecutionJobsStateClient:
     def __init__(self, requester: Requester) -> None:
-        self._requester = requester
-        self._delegate = _ImportedClient(requester) if _ImportedClient is not None else None
+        self._delegate = JobExecutionClient(requester)
 
     async def get_job_state(self, job_id: object) -> object:
         normalized_job_id = _normalize_job_id(job_id)
-        if self._delegate is not None and hasattr(self._delegate, "get_job_state"):
-            return await cast(Awaitable[object], self._delegate.get_job_state(normalized_job_id))
-
-        response = await self._requester.request(
-            HttpMethod.GET,
-            f"/jobExecution/jobs/{normalized_job_id}/state",
-            headers={"Accept": GET_JOB_STATE_ACCEPT_HEADER},
-        )
-        if not response.content:
-            return SimpleNamespace()
-
-        payload = json.loads(response.content.decode("utf-8"))
-        if not isinstance(payload, dict):
-            raise TypeError("Fallback get_job_state response must decode to a JSON object.")
-        return SimpleNamespace(**payload)
+        return await cast(Awaitable[object], self._delegate.get_job_state(normalized_job_id))
 
 
 def _load_json_fixture_from_path(path: Path) -> dict[str, object]:

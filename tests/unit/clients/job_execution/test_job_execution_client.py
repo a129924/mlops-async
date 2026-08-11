@@ -22,6 +22,11 @@ _JOB_ACCEPT = (
     "application/vnd.sas.job.execution.job.request+json, "
     "application/vnd.sas.error+json, application/json"
 )
+_STATE_HEADERS = {
+    "Delegate-Domain": "",
+    "Content-Type": "application/json",
+    "Accept": "text/plain",
+}
 
 
 @dataclass(frozen=True)
@@ -119,7 +124,7 @@ async def test_get_job_state_makes_one_plain_text_request_without_json_decoding_
         _RecordedRequest(
             HttpMethod.GET,
             "/jobExecution/jobs/job%20id%2Fslash/state",
-            {"Delegate-Domain": "", "Content-Type": "application/json"},
+            _STATE_HEADERS,
             {},
             None,
         )
@@ -167,6 +172,38 @@ async def test_semantic_response_failures_raise_the_family_error(
         await getattr(client, method_name)("job-1")
 
     assert len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_start_job_translates_non_utf8_json_success_response_to_family_error() -> None:
+    requester = _FakeRequester([_response(b"\xff", method=HttpMethod.POST)])
+
+    with pytest.raises(JobExecutionResponseError):
+        await JobExecutionClient(requester).start_job("job-1")  # type: ignore[arg-type]
+
+    assert len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_get_job_rejects_non_finite_elapsed_time_decoded_from_json() -> None:
+    requester = _FakeRequester([_response(b'{"elapsedTime":1e400}')])
+
+    with pytest.raises(JobExecutionResponseError):
+        await JobExecutionClient(requester).get_job("job-1")  # type: ignore[arg-type]
+
+    assert len(requester.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_json_response_allows_a_deeply_nested_unmodeled_container() -> None:
+    nested_container = "[" * 400 + "null" + "]" * 400
+    content = ('{"id":"job-1","state":"running","unmodeled":' + nested_container + "}").encode()
+    requester = _FakeRequester([_response(content)])
+
+    job = await JobExecutionClient(requester).get_job("job-1")  # type: ignore[arg-type]
+
+    assert job.id == "job-1"
+    assert job.state is JobState.RUNNING
 
 
 def test_job_execution_client_has_the_frozen_caller_owned_public_surface() -> None:
