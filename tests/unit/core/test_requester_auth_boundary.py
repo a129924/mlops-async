@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+import inspect
 
 import mlops_async.core.auth as auth
 import mlops_async.core.headers as headers_mod
+import mlops_async.core.request_failure as request_failure
 import mlops_async.core.requester as requester_mod
 import pytest
 
@@ -364,3 +366,82 @@ async def test_requester_primitive_adapter_matches_direct_canonical_execution() 
     assert primitive_request.url == canonical_request.url
     assert primitive_request.json_body == canonical_request.json_body
     assert primitive_request.headers.as_dict() == canonical_request.headers.as_dict()
+
+
+class _UnauthorizedThenSuccessTransport(_FakeHttpClient):
+    def __init__(self, error: BaseException, failure: object) -> None:
+        super().__init__()
+        self._error = error
+        self._failure = failure
+        self.send_calls = 0
+
+    async def request(
+        self,
+        method: HttpMethod,
+        path: str,
+        *,
+        headers: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
+        json_body: object | None = None,
+        content: bytes | None = None,
+        options: ClientRequestOptions | None = None,
+    ) -> RawClientResponse:
+        self.send_calls += 1
+        self.requests.append(
+            _RecordedRequest(method, path, headers, params, json_body, content, options)
+        )
+        if self.send_calls == 1:
+            raise self._error
+        return RawClientResponse(204, ResponseHeaders(), b"", method, f"https://example.test{path}")
+
+    def failure_for(self, exception: BaseException) -> object | None:
+        return self._failure if exception is self._error else None
+
+
+def _response_failure(status_code: int) -> object:
+    return request_failure.RequestFailure(
+        kind="response",
+        metadata=request_failure.ResponseFailureMetadata(status_code, None),
+    )
+
+
+@pytest.mark.asyncio
+async def test_initial_401_refreshes_once_then_replays_with_refreshed_token() -> None:
+    unauthorized = auth.AuthException("HTTP 401")
+    transport = _UnauthorizedThenSuccessTransport(unauthorized, _response_failure(401))
+    transport.request_json_responses.extend(
+        [
+            {
+                "access_token": "initial-token",
+                "refresh_token": "refresh-token",
+                "expires_in": 3600,
+            },
+            {
+                "access_token": "replacement-token",
+                "refresh_token": "rotated-refresh",
+                "expires_in": 3600,
+            },
+        ]
+    )
+    manager = auth.TokenManager(
+        InMemoryTokenStorage(),
+        TokenEndpointClient(transport, client_id="client-id", client_secret="secret"),
+    )
+    requester = requester_mod.Requester(transport, auth_provider=auth.AuthProvider(manager))
+
+    response = await requester.request(HttpMethod.GET, "/items")
+
+    assert response.status_code == 204
+    assert transport.send_calls == 2
+    assert transport.request_json_calls == 2
+    assert transport.requests[0].headers is not None
+    assert transport.requests[0].headers["authorization"] == "Bearer initial-token"
+    assert transport.requests[1].headers is not None
+    assert transport.requests[1].headers["authorization"] == "Bearer replacement-token"
+
+
+def test_raw_token_endpoint_fetch_path_is_not_composed_through_requester_resilience() -> None:
+    source = inspect.getsource(TokenEndpointClient.fetch_access_token)
+
+    assert "_RequesterResilienceDecorator" not in source
+    assert "self._transport.request_json" in source

@@ -133,3 +133,25 @@ def test_invalid_json_response_exception_handles_empty_success_body_mapping() ->
     assert str(error) == (
         "GET /base/items -> invalid JSON response (HTTP 200) [request_id=req-empty]"
     )
+
+
+def test_transport_failure_metadata_preserves_existing_exception_contract() -> None:
+    context = transport_exceptions.HttpErrorContext(
+        status_code=503,
+        method="GET",
+        url="https://example.test/items",
+        body=b"busy",
+        request_id="req-503",
+    )
+    error = transport_exceptions.HTTPStatusException(context)
+
+    metadata = error.failure_metadata
+
+    assert metadata.status_code == 503
+    assert metadata.retry_after is None
+    assert error.context is context
+    assert error.status_code == 503
+    assert error.method == "GET"
+    assert error.url == "https://example.test/items"
+    assert error.request_id == "req-503"
+    assert str(error) == "GET /items -> HTTP 503 [request_id=req-503]"

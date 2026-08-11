@@ -10,6 +10,18 @@ import pytest
 from mlops_async.core.token_endpoint_client import TokenEndpointClientError
 
 
+def _access_token(
+    value: str,
+    *,
+    refresh_token: str | None = "refresh-token",
+) -> token_storage.AccessToken:
+    return token_storage.AccessToken(
+        value=value,
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+        refresh_token=refresh_token,
+    )
+
+
 class _RecordingTokenEndpointClient:
     def __init__(self, *, fetch_token: object, refresh_token: object | None = None) -> None:
         self.fetch_token = fetch_token
@@ -419,3 +431,97 @@ async def test_token_manager_preserves_previous_token_state_on_refresh_cancellat
     assert fetcher.refresh_inputs == [previous_token]
     assert storage.get_token() is previous_token
     assert storage.get_token().refresh_token == "previous-refresh-token"
+
+
+@pytest.mark.asyncio
+async def test_refresh_if_current_refreshes_once_and_returns_the_replacement_token() -> None:
+    current_token = _access_token("current-token")
+    replacement_token = _access_token("replacement-token", refresh_token="rotated-refresh")
+    storage = token_storage.InMemoryTokenStorage()
+    storage.set_token(current_token)
+    fetcher = _RecordingTokenEndpointClient(
+        fetch_token=_access_token("unused-fetch"),
+        refresh_token=replacement_token,
+    )
+    manager = auth.TokenManager(storage, fetcher)
+
+    resolved = await manager.refresh_if_current(current_token)
+
+    assert resolved is replacement_token
+    assert storage.get_token() is replacement_token
+    assert fetcher.fetch_calls == 0
+    assert fetcher.refresh_calls == 1
+    assert fetcher.refresh_inputs == [current_token]
+
+
+@pytest.mark.asyncio
+async def test_refresh_if_current_reuses_changed_state_and_never_fetches_for_cleared_storage(
+) -> None:
+    initial_token = _access_token("initial-token")
+    changed_token = _access_token("changed-token")
+    storage = token_storage.InMemoryTokenStorage()
+    storage.set_token(changed_token)
+    fetcher = _RecordingTokenEndpointClient(fetch_token=_access_token("unexpected-fetch"))
+    manager = auth.TokenManager(storage, fetcher)
+
+    changed_result = await manager.refresh_if_current(initial_token)
+    storage.set_token(None)
+    cleared_result = await manager.refresh_if_current(changed_token)
+
+    assert changed_result is changed_token
+    assert cleared_result is None
+    assert fetcher.fetch_calls == 0
+    assert fetcher.refresh_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_refresh_if_current_coordinates_concurrent_same_token_callers() -> None:
+    current_token = _access_token("current-token")
+    replacement_token = _access_token("replacement-token")
+    storage = token_storage.InMemoryTokenStorage()
+    storage.set_token(current_token)
+    fetcher = _BlockingTokenEndpointClient(
+        fetch_token=_access_token("unused-fetch"),
+        refresh_token=replacement_token,
+    )
+    manager = auth.TokenManager(storage, fetcher)
+
+    tasks = [asyncio.create_task(manager.refresh_if_current(current_token)) for _ in range(5)]
+    await asyncio.wait_for(fetcher.started.wait(), timeout=1)
+    fetcher.release.set()
+    results = await asyncio.gather(*tasks)
+
+    assert results == [replacement_token] * 5
+    assert storage.get_token() is replacement_token
+    assert fetcher.fetch_calls == 0
+    assert fetcher.refresh_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_refresh_if_current_preserves_storage_on_failure_and_cancellation() -> None:
+    current_token = _access_token("current-token")
+    storage = token_storage.InMemoryTokenStorage()
+    storage.set_token(current_token)
+    failure = RuntimeError("refresh failed")
+    manager = auth.TokenManager(storage, _FailingTokenEndpointClient(failure))
+
+    with pytest.raises(auth.TokenFetchException) as failure_info:
+        await manager.refresh_if_current(current_token)
+
+    assert failure_info.value.__cause__ is failure
+    assert storage.get_token() is current_token
+
+    blocking_fetcher = _BlockingTokenEndpointClient(
+        fetch_token=_access_token("unused-fetch"),
+        refresh_token=_access_token("replacement-token"),
+    )
+    cancelled_manager = auth.TokenManager(storage, blocking_fetcher)
+    task = asyncio.create_task(cancelled_manager.refresh_if_current(current_token))
+    await asyncio.wait_for(blocking_fetcher.started.wait(), timeout=1)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert storage.get_token() is current_token
+    assert blocking_fetcher.fetch_calls == 0
+    assert blocking_fetcher.refresh_calls == 1

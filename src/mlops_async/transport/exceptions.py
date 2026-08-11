@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 from urllib.parse import urlsplit
 
+from mlops_async.core.request_failure import RequestFailureKind, ResponseFailureMetadata
 from mlops_async.exceptions import MlopsAsyncBaseException
+
+_FailureKind = Literal["connection", "timeout", "response"]
 
 __all__ = [  # noqa: RUF022 - export order is locked by the topic contract and tested directly.
     "HttpErrorContext",
@@ -32,9 +36,27 @@ class HttpErrorContext:
 class HttpTransportException(MlopsAsyncBaseException):
     """Transport-level request failure."""
 
-    def __init__(self, context: HttpErrorContext, message: str | None = None) -> None:
+    def __init__(
+        self,
+        context: HttpErrorContext,
+        message: str | None = None,
+        *,
+        failure_kind: RequestFailureKind | None = None,
+        retry_after: str | None = None,
+    ) -> None:
         """Capture structured context and build a normalized error message."""
         self._context = context
+        self._failure_metadata = ResponseFailureMetadata(
+            status_code=context.status_code,
+            retry_after=retry_after,
+        )
+        self._failure_kind: _FailureKind | None = (
+            failure_kind
+            if failure_kind is not None
+            else "response"
+            if context.status_code
+            else None
+        )
         super().__init__(message or self._build_message(context))
 
     @property
@@ -66,6 +88,16 @@ class HttpTransportException(MlopsAsyncBaseException):
     def request_id(self) -> str | None:
         """Request correlation ID from the response headers, if present."""
         return self._context.request_id
+
+    @property
+    def failure_metadata(self) -> ResponseFailureMetadata:
+        """Private transport-neutral metadata for request failure classification."""
+        return self._failure_metadata
+
+    @property
+    def failure_kind(self) -> _FailureKind | None:
+        """Private transport-neutral failure kind for request classification."""
+        return self._failure_kind
 
     @staticmethod
     def _normalized_path(url: str) -> str:

@@ -177,6 +177,25 @@ than replace normal source files.
 - `git-post-merge-workflow`
 - `git-release-management`
 
+## Private resilient request execution
+
+The authenticated `Requester` path has a private resilience decorator around
+both primitive and canonical JSON-domain sends. It only treats `GET` and
+`HEAD` as eligible. Eligible connection, timeout, and `429`, `502`, `503`, or
+`504` response failures receive at most three sends per initial or replay path.
+An initial `401` may coordinate one conditional token refresh and one replay;
+the replay never refreshes again. This policy uses direct awaits only and keeps
+the transport's per-send timeout unchanged.
+
+`HttpClient` remains a single-send transport. It annotates its existing
+exceptions with private, transport-neutral failure metadata; `core` classifies
+that metadata without importing `httpx` or the transport package. Raw
+`TokenEndpointClient.request_json` stays on the direct transport path and does
+not enter the requester resilience decorator.
+
+`POST` and every other non-eligible method have no retry or replay policy.
+Adding such behavior requires endpoint runtime evidence and explicit approval.
+
 ## Custom agents
 
 This repository includes 1 custom workflow agent.

@@ -91,3 +91,12 @@ def test_client_primitive_adapter_and_canonical_execution_have_matching_request_
     )
     assert tuple(execute_signature.parameters) == ("self", "request")
     assert get_type_hints(Client.request)["return"] is RawClientResponse
+
+
+def test_client_exposes_only_the_internal_failure_classification_boundary() -> None:
+    failure_for_signature = inspect.signature(Client.failure_for)
+    failure_for_hints = get_type_hints(Client.failure_for)
+
+    assert tuple(failure_for_signature.parameters) == ("self", "exception")
+    assert "RequestFailure" in str(failure_for_hints["return"])
+    assert "httpx" not in inspect.getsource(core_client)

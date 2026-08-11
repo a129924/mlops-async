@@ -244,3 +244,23 @@ implementation。現況沒有 package-level facade、package-root export 或 `.a
 - `AuthProvider` 是否被擴張成 token client
 - `PackageLevelClient.__init__` 是否被描述成先拿到 token
 - `TokenEndpointClient` 是否被替換成不清楚的 session/global side-effect model
+
+## Private resilience policy
+
+`Requester` owns the private authenticated request resilience boundary. It
+allows bounded retry only for `GET` and `HEAD`: connection, timeout, `429`,
+`502`, `503`, and `504` failures have a maximum of three sends in each initial
+or replay sequence. Retry delay is jittered exponential backoff, with a valid
+`Retry-After` response value taking precedence.
+
+An initial `401` uses `TokenManager.refresh_if_current` under the existing
+lock. A changed stored token is replayed without another refresh; cleared
+storage does not fetch or refresh. Refresh failure and cancellation preserve
+storage, and replay has no second refresh path. Each operation is directly
+awaited in the caller task, with no background work.
+
+`HttpClient` attaches private failure metadata while staying single-send and
+preserving its exception contract. `TokenEndpointClient.request_json` bypasses
+this decorator and retains raw token-endpoint behavior. `POST` retry or replay
+is prohibited unless runtime endpoint evidence and separate explicit approval
+authorize it.
