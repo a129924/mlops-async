@@ -181,12 +181,19 @@ async def test_invalid_json_and_semantic_response_raise_family_error() -> None:
 def test_public_surface_is_frozen_and_has_no_lifecycle_helpers() -> None:
     assert list(inspect.signature(CasTablesClient).parameters) == ["requester"]
     assert list(inspect.signature(CasTablesClient.list_tables).parameters) == [
-        "self", "data_source_id", "start", "limit"
+        "self",
+        "data_source_id",
+        "start",
+        "limit",
     ]
     list_parameters = inspect.signature(CasTablesClient.list_tables).parameters
     assert list_parameters["start"].kind is inspect.Parameter.KEYWORD_ONLY
     assert list(inspect.signature(CasTablesClient.change_table_state).parameters) == [
-        "self", "server", "caslib", "table_name", "state"
+        "self",
+        "server",
+        "caslib",
+        "table_name",
+        "state",
     ]
     state_parameter = inspect.signature(CasTablesClient.change_table_state).parameters["state"]
     assert state_parameter.annotation == "str"
