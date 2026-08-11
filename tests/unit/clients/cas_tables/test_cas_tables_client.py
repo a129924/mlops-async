@@ -6,7 +6,7 @@ from collections.abc import Mapping
 
 import pytest
 
-import mlops_async.clients.cas_tables.client as cas_tables_client_module
+import mlops_async.clients.cas_tables.client as cas_tables_client
 from mlops_async.clients.cas_tables import (
     CasTablesClient,
     CasTablesResponseError,
@@ -185,7 +185,7 @@ async def test_recursive_decoded_json_response_raises_family_error(
 ) -> None:
     decoded: list[object] = []
     decoded.append(decoded)
-    monkeypatch.setattr(cas_tables_client_module, "json_loads", lambda _content: decoded)
+    monkeypatch.setattr(cas_tables_client, "json_loads", lambda _content: decoded)
     requester = _FakeRequester([_response(b"[]")])
     client = CasTablesClient(requester)  # type: ignore[arg-type]
 
