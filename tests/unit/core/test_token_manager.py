@@ -455,8 +455,9 @@ async def test_refresh_if_current_refreshes_once_and_returns_the_replacement_tok
 
 
 @pytest.mark.asyncio
-async def test_refresh_if_current_reuses_changed_state_and_never_fetches_for_cleared_storage(
-) -> None:
+async def test_refresh_if_current_reuses_changed_state_and_never_fetches_for_cleared_storage() -> (
+    None
+):
     initial_token = _access_token("initial-token")
     changed_token = _access_token("changed-token")
     storage = token_storage.InMemoryTokenStorage()

@@ -172,9 +172,7 @@ def _is_eligible_method(method: HttpMethod) -> bool:
 
 def _is_unauthorized(failure: RequestFailure | None) -> bool:
     return (
-        failure is not None
-        and failure.metadata is not None
-        and failure.metadata.status_code == 401
+        failure is not None and failure.metadata is not None and failure.metadata.status_code == 401
     )
 
 
