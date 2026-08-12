@@ -80,6 +80,27 @@ def test_parse_table_detail_maps_and_preserves_full_metadata() -> None:
     )
 
 
+def test_parse_table_detail_preserves_empty_metadata_strings() -> None:
+    detail = parse_table_detail(
+        _detail_response(
+            created="",
+            lastModified="",
+            lastAccessed="",
+            sourceLastModified="",
+        )
+    )
+
+    assert detail == TableDetail(
+        name="INPUT",
+        caslib="CASUSER",
+        state=TableState.LOADED,
+        created="",
+        last_modified="",
+        last_accessed="",
+        source_last_modified="",
+    )
+
+
 def test_parse_tables_page_returns_an_immutable_tuple() -> None:
     page = parse_tables_page(
         {
@@ -135,7 +156,7 @@ def test_parse_table_detail_maps_null_optional_metadata_to_none() -> None:
 
 
 @pytest.mark.parametrize("field", ("created", "lastModified"))
-@pytest.mark.parametrize("invalid_value", (None, "", 1, [], {}))
+@pytest.mark.parametrize("invalid_value", (None, 1, [], {}))
 def test_parse_table_detail_rejects_malformed_required_metadata(
     field: str, invalid_value: JSONValue
 ) -> None:
@@ -153,7 +174,7 @@ def test_parse_table_detail_rejects_missing_required_metadata(field: str) -> Non
 
 
 @pytest.mark.parametrize("field", ("lastAccessed", "sourceLastModified"))
-@pytest.mark.parametrize("invalid_value", ("", 1, [], {}))
+@pytest.mark.parametrize("invalid_value", (1, [], {}))
 def test_parse_table_detail_rejects_malformed_optional_metadata(
     field: str, invalid_value: JSONValue
 ) -> None:

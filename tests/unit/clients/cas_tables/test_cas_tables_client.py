@@ -60,9 +60,7 @@ def _response(payload: bytes) -> RawClientResponse:
 
 @pytest.mark.asyncio
 async def test_list_tables_sends_one_request_with_explicit_page_query() -> None:
-    requester = _FakeRequester(
-        [_response(b'{"items":[' + _TABLE_DETAIL_RESPONSE + b']}')]
-    )
+    requester = _FakeRequester([_response(b'{"items":[' + _TABLE_DETAIL_RESPONSE + b"]}")])
     client = CasTablesClient(requester)  # type: ignore[arg-type]
 
     page = await client.list_tables("source id/with slash", start=0, limit=20)

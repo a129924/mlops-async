@@ -68,10 +68,12 @@ def _parse_table_detail(value: JSONValue, context: str) -> TableDetail:
         name=_require_string(response, "name", context),
         caslib=_require_string(response, "caslib", context),
         state=_require_state(response, context),
-        created=_require_string(response, "created", context),
-        last_modified=_require_string(response, "lastModified", context),
-        last_accessed=_require_optional_string(response, "lastAccessed", context),
-        source_last_modified=_require_optional_string(response, "sourceLastModified", context),
+        created=_require_metadata_string(response, "created", context),
+        last_modified=_require_metadata_string(response, "lastModified", context),
+        last_accessed=_require_optional_metadata_string(response, "lastAccessed", context),
+        source_last_modified=_require_optional_metadata_string(
+            response, "sourceLastModified", context
+        ),
     )
 
 
@@ -106,15 +108,22 @@ def _require_string(response: dict[str, JSONValue], field: str, context: str) ->
     _raise_semantic_error(context, f"{field} must be a non-empty string")
 
 
-def _require_optional_string(
+def _require_metadata_string(response: dict[str, JSONValue], field: str, context: str) -> str:
+    value = response.get(field)
+    if isinstance(value, str):
+        return value
+    _raise_semantic_error(context, f"{field} must be a string")
+
+
+def _require_optional_metadata_string(
     response: dict[str, JSONValue], field: str, context: str
 ) -> str | None:
     value = response.get(field)
     if value is None:
         return None
-    if isinstance(value, str) and value:
+    if isinstance(value, str):
         return value
-    _raise_semantic_error(context, f"{field} must be a non-empty string when present")
+    _raise_semantic_error(context, f"{field} must be a string when present")
 
 
 def _require_state(response: dict[str, JSONValue], context: str) -> TableState:

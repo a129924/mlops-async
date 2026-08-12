@@ -71,7 +71,7 @@ Workflow state:
 
 - `python-implementation-review`: approved.
 - `python-code-review`: approved; zero findings.
-- Validation: focused pytest 74 passed; Ruff, Tach, and Pyright passed.
+- Latest PR #69 follow-up validation: focused pytest 71 passed; repository-wide Ruff format check, relevant Ruff check, Tach, and Pyright passed.
 - Canonical transition: `approved -> publish-in-progress`.
 - Commit, push, PR, and merge remain pending and are not authorized or performed by this state update.
 
@@ -81,24 +81,7 @@ Workflow state:
 - Before any further sync, Ubuntu marker check confirmed `.venv/bin/pyright` is executable, so no extra group sync was necessary.
 - Planned command `uv run --no-sync --python 3.10.0 pyright` completed with `0 errors, 0 warnings, 0 informations`.
 - The command retained the known warning that Python 3.10.20 does not satisfy the exact requested Python 3.10.0, and Pyright reported only an available 1.1.411 upgrade; neither is a validation failure.
-- No further environment sync was executed. Focused pytest (74 passed), Ruff, Tach, and native diff checks had already passed after completed sync; step 4 is now complete and the topic is ready for independent implementation review.
-
-## 2026-08-12 Additional Validation Evidence
-
-- Authorized Ubuntu `uv sync` timed out after 64 seconds; follow-up marker check confirmed `.venv/bin/python` exists at `/mnt/d/code/python/mlops-async.worktrees/agent-20260812-cas-table-metadata/.venv/bin/python`.
-- `uv run --no-sync --python 3.10.0 pytest --override-ini addopts="" tests/unit/clients/cas_tables/test_cas_tables_value_objects.py tests/unit/clients/cas_tables/test_cas_tables_client.py -q`: 74 passed in 2.28s.
-- `uv run --no-sync --python 3.10.0 ruff check src/mlops_async/clients/cas_tables/value_objects.py tests/unit/clients/cas_tables/test_cas_tables_value_objects.py tests/unit/clients/cas_tables/test_cas_tables_client.py`: All checks passed.
-- `uv run --no-sync --python 3.10.0 pyright`: failed before analysis because `pyright` could not be spawned (`No such file or directory`, os error 2).
-- `uv run --no-sync --python 3.10.0 tach check`: All modules validated.
-- Every `--no-sync --python 3.10.0` command warned that the materialized `.venv` Python does not satisfy 3.10.0. Pyright is an environment/sync-completeness blocker, not a functional or coverage failure; step 4 remains pending.
-
-## 2026-08-12 Completed-Sync Validation Evidence
-
-- Retry of the authorized Ubuntu `uv sync` completed: `Resolved 60 packages in 4ms` and `Checked 59 packages in 302ms`.
-- `.venv/bin/python --version` reported `Python 3.10.20`; every plan command still warned that this does not satisfy the exact requested `Python 3.10.0`.
-- After completed sync, focused pytest passed: `74 passed in 1.78s`; assertions and collection passed, while coverage was not evaluated because the approved command cleared `addopts`.
-- After completed sync, Ruff reported `All checks passed!` and Tach reported `All modules validated!`.
-- After completed sync, Pyright again failed before analysis because `pyright` could not be spawned (`No such file or directory`, os error 2). This is an environment/tooling blocker, so step 4 remains pending.
+- No further environment sync was executed. The earlier focused pytest result (74 passed), Ruff, Tach, and native diff checks had already passed after completed sync; the latest PR #69 follow-up validation is recorded above. Step 4 remains complete.
 
 ## Creator 實作與驗證證據
 
