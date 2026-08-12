@@ -19,6 +19,14 @@ from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeader
 from mlops_async.transport.exceptions import HttpErrorContext, HttpTransportException
 
 
+_TABLE_DETAIL_RESPONSE = (
+    b'{"name":"INPUT","caslib":"CASUSER","state":"loaded",'
+    b'"created":"2026-08-12T08:00:00Z",'
+    b'"lastModified":"2026-08-12T09:00:00Z",'
+    b'"lastAccessed":null,"sourceLastModified":"source timestamp"}'
+)
+
+
 class _FakeRequester:
     def __init__(self, outcomes: list[RawClientResponse | BaseException]) -> None:
         self._outcomes = outcomes
@@ -52,14 +60,24 @@ def _response(payload: bytes) -> RawClientResponse:
 
 @pytest.mark.asyncio
 async def test_list_tables_sends_one_request_with_explicit_page_query() -> None:
-    requester = _FakeRequester(
-        [_response(b'{"items":[{"name":"INPUT","caslib":"CASUSER","state":"loaded"}]}')]
-    )
+    requester = _FakeRequester([_response(b'{"items":[' + _TABLE_DETAIL_RESPONSE + b"]}")])
     client = CasTablesClient(requester)  # type: ignore[arg-type]
 
     page = await client.list_tables("source id/with slash", start=0, limit=20)
 
-    assert page == TablesPage((TableDetail("INPUT", "CASUSER", TableState.LOADED),))
+    assert page == TablesPage(
+        (
+            TableDetail(
+                "INPUT",
+                "CASUSER",
+                TableState.LOADED,
+                "2026-08-12T08:00:00Z",
+                "2026-08-12T09:00:00Z",
+                None,
+                "source timestamp",
+            ),
+        )
+    )
     assert requester.requests == [
         (
             HttpMethod.GET,
@@ -73,12 +91,20 @@ async def test_list_tables_sends_one_request_with_explicit_page_query() -> None:
 
 @pytest.mark.asyncio
 async def test_get_table_sends_one_request_and_parses_a_strict_detail() -> None:
-    requester = _FakeRequester([_response(b'{"name":"INPUT","caslib":"CASUSER","state":"loaded"}')])
+    requester = _FakeRequester([_response(_TABLE_DETAIL_RESPONSE)])
     client = CasTablesClient(requester)  # type: ignore[arg-type]
 
     detail = await client.get_table("source", "INPUT/TABLE")
 
-    assert detail == TableDetail("INPUT", "CASUSER", TableState.LOADED)
+    assert detail == TableDetail(
+        "INPUT",
+        "CASUSER",
+        TableState.LOADED,
+        "2026-08-12T08:00:00Z",
+        "2026-08-12T09:00:00Z",
+        None,
+        "source timestamp",
+    )
     assert requester.requests == [
         (
             HttpMethod.GET,
@@ -92,12 +118,20 @@ async def test_get_table_sends_one_request_and_parses_a_strict_detail() -> None:
 
 @pytest.mark.asyncio
 async def test_change_table_state_validates_string_then_sends_empty_body_put() -> None:
-    requester = _FakeRequester([_response(b'{"name":"INPUT","caslib":"CASUSER","state":"loaded"}')])
+    requester = _FakeRequester([_response(_TABLE_DETAIL_RESPONSE)])
     client = CasTablesClient(requester)  # type: ignore[arg-type]
 
     detail = await client.change_table_state("server", "CAS/USER", "INPUT", "loaded")
 
-    assert detail == TableDetail("INPUT", "CASUSER", TableState.LOADED)
+    assert detail == TableDetail(
+        "INPUT",
+        "CASUSER",
+        TableState.LOADED,
+        "2026-08-12T08:00:00Z",
+        "2026-08-12T09:00:00Z",
+        None,
+        "source timestamp",
+    )
     assert requester.requests == [
         (
             HttpMethod.PUT,
