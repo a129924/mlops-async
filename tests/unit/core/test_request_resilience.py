@@ -82,6 +82,42 @@ class _RawExecutor(RequestExecutor):
         return outcome
 
 
+class _AuthRecordingExecutor(AuthRecoveryExecutor):
+    def __init__(self) -> None:
+        self.prepared: list[RequestInvocation] = []
+        self.sent: list[RequestInvocation] = []
+
+    async def request(
+        self,
+        method: HttpMethod,
+        path: str,
+        *,
+        headers: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
+        json_body: object | None = None,
+        content: bytes | None = None,
+        options: ClientRequestOptions | None = None,
+    ) -> RawClientResponse:
+        attempt = await self.prepare_auth_recovery_attempt(
+            RequestInvocation(method, path, headers, params, json_body, content, options)
+        )
+        return await attempt.send()
+
+    async def prepare_auth_recovery_attempt(
+        self, invocation: RequestInvocation
+    ) -> AuthRecoveryAttempt:
+        self.prepared.append(invocation)
+
+        async def send() -> RawClientResponse:
+            self.sent.append(invocation)
+            return _response()
+
+        return AuthRecoveryAttempt(token=_token("managed"), send=send)
+
+    async def refresh_if_current(self, token: AccessToken) -> AccessToken | None:
+        return token
+
+
 class _RecordingPolicy(RequestPolicy):
     def __init__(self, name: str, events: list[str]) -> None:
         self._name = name
@@ -105,6 +141,32 @@ class _RecordingPolicy(RequestPolicy):
         )
         self._events.append(f"{self._name}:after")
         return response
+
+
+class _RewritingPolicy(RequestPolicy):
+    async def execute(
+        self,
+        invocation: RequestInvocation,
+        downstream: RequestExecutor,
+        *_: object,
+    ) -> RawClientResponse:
+        return await downstream.request(
+            invocation.method,
+            "/rewritten",
+            headers={"x-inner-policy": "applied"},
+            json_body={"rewritten": True},
+        )
+
+
+class _ShortCircuitingPolicy(RequestPolicy):
+    async def execute(
+        self,
+        invocation: RequestInvocation,
+        downstream: RequestExecutor,
+        *_: object,
+    ) -> RawClientResponse:
+        del invocation, downstream
+        return _response()
 
 
 def test_stable_non_root_contracts_are_not_promoted_to_package_root() -> None:
@@ -153,6 +215,46 @@ async def test_custom_policies_are_injected_and_run_left_to_right_outermost() ->
     assert raw.requests == [
         RequestInvocation(HttpMethod.GET, "/items", None, {"tag": "one"}, None, None, None)
     ]
+
+
+@pytest.mark.asyncio
+async def test_nested_pipeline_prepares_auth_after_inner_policy_rewrites_invocation() -> None:
+    auth_raw = _AuthRecordingExecutor()
+    inner = PolicyRequestExecutor(auth_raw, [_RewritingPolicy()])
+    outer = PolicyRequestExecutor(inner, [])
+
+    response = await outer.request(
+        HttpMethod.GET,
+        "/original",
+        headers={"x-request": "original"},
+        json_body={"original": True},
+    )
+
+    expected = RequestInvocation(
+        HttpMethod.GET,
+        "/rewritten",
+        {"x-inner-policy": "applied"},
+        None,
+        {"rewritten": True},
+        None,
+        None,
+    )
+    assert response.status_code == 204
+    assert auth_raw.prepared == [expected]
+    assert auth_raw.sent == [expected]
+
+
+@pytest.mark.asyncio
+async def test_nested_pipeline_short_circuit_does_not_prepare_auth_attempt() -> None:
+    auth_raw = _AuthRecordingExecutor()
+    inner = PolicyRequestExecutor(auth_raw, [_ShortCircuitingPolicy()])
+    outer = PolicyRequestExecutor(inner, [])
+
+    response = await outer.request(HttpMethod.GET, "/items")
+
+    assert response.status_code == 204
+    assert auth_raw.prepared == []
+    assert auth_raw.sent == []
 
 
 @pytest.mark.asyncio

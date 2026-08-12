@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
 import mlops_async.core.auth as auth
@@ -81,6 +82,21 @@ class _BlockingTokenEndpointClient:
         self.started.set()
         await self.release.wait()
         return self.refresh_token
+
+
+class _DefensiveCopyTokenStorage(token_storage.TokenStorage):
+    """Return a value-equal token copy to model defensive storage boundaries."""
+
+    def __init__(self) -> None:
+        self._token: token_storage.AccessToken | None = None
+
+    def get_token(self) -> token_storage.AccessToken | None:
+        if self._token is None:
+            return None
+        return replace(self._token)
+
+    def set_token(self, token: token_storage.AccessToken | None) -> None:
+        self._token = token
 
 
 @pytest.mark.asyncio
@@ -452,6 +468,27 @@ async def test_refresh_if_current_refreshes_once_and_returns_the_replacement_tok
     assert fetcher.fetch_calls == 0
     assert fetcher.refresh_calls == 1
     assert fetcher.refresh_inputs == [current_token]
+
+
+@pytest.mark.asyncio
+async def test_refresh_if_current_matches_value_equal_defensive_storage_token() -> None:
+    current_token = _access_token("current-token")
+    replacement_token = _access_token("replacement-token", refresh_token="rotated-refresh")
+    storage = _DefensiveCopyTokenStorage()
+    storage.set_token(current_token)
+    fetcher = _RecordingTokenEndpointClient(
+        fetch_token=_access_token("unused-fetch"),
+        refresh_token=replacement_token,
+    )
+    manager = auth.TokenManager(storage, fetcher)
+
+    resolved = await manager.refresh_if_current(current_token)
+
+    assert resolved is replacement_token
+    assert fetcher.fetch_calls == 0
+    assert fetcher.refresh_calls == 1
+    assert fetcher.refresh_inputs == [current_token]
+    assert fetcher.refresh_inputs[0] is not current_token
 
 
 @pytest.mark.asyncio

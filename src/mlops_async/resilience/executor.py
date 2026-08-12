@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Callable, Mapping
 from typing import TypeGuard
 
 from mlops_async.core.request_execution import (
@@ -54,36 +54,22 @@ class PolicyRequestExecutor(RequestExecutor):
     ) -> RawClientResponse:
         """Run one invocation through the configured policy pipeline."""
         invocation = RequestInvocation(method, path, headers, params, json_body, content, options)
+        return await self._request_with_auth_attempt_callback(invocation)
+
+    async def _request_with_auth_attempt_callback(
+        self,
+        invocation: RequestInvocation,
+        on_auth_attempt: Callable[[AuthRecoveryAttempt], None] | None = None,
+    ) -> RawClientResponse:
+        """Run a nested pipeline while forwarding its leaf auth attempt to its caller."""
         context = _PolicyExecutionContext(
             self._raw,
             self._classifier,
             self._policies,
             auth_executor=self._find_auth_recovery_executor(self._raw),
-            prepare_auth_attempt=self._prepare_inner_auth_attempt,
+            on_auth_attempt=on_auth_attempt,
         )
         return await context.run_from(0, invocation)
-
-    async def _prepare_auth_recovery_attempt(
-        self, invocation: RequestInvocation
-    ) -> AuthRecoveryAttempt:
-        """Prepare a nested attempt without skipping this executor's policies."""
-        auth_executor = self._find_auth_recovery_executor(self._raw)
-        if auth_executor is None:
-            raise TypeError("raw executor does not provide auth recovery capability")
-        attempt = await self._prepare_inner_auth_attempt(invocation)
-
-        async def send() -> RawClientResponse:
-            context = _PolicyExecutionContext(
-                self._raw,
-                self._classifier,
-                self._policies,
-                auth_executor=auth_executor,
-                prepare_auth_attempt=self._prepare_inner_auth_attempt,
-                prepared_auth_attempt=attempt,
-            )
-            return await context.run_from(0, invocation)
-
-        return AuthRecoveryAttempt(token=attempt.token, send=send)
 
     def _validate_pipeline(self, policies: list[RequestPolicy]) -> list[RequestPolicy]:
         """Return a concrete typed policy list after runtime invariant checks."""
@@ -116,17 +102,6 @@ class PolicyRequestExecutor(RequestExecutor):
             return executor
         return None
 
-    async def _prepare_inner_auth_attempt(
-        self, invocation: RequestInvocation
-    ) -> AuthRecoveryAttempt:
-        """Prepare one leaf-auth attempt while retaining nested policy decorators."""
-        if isinstance(self._raw, PolicyRequestExecutor):
-            return await self._raw._prepare_auth_recovery_attempt(invocation)
-        auth_executor = self._find_auth_recovery_executor(self._raw)
-        if auth_executor is None:
-            raise TypeError("raw executor does not provide auth recovery capability")
-        return await auth_executor.prepare_auth_recovery_attempt(invocation)
-
     @staticmethod
     def _builtin_policy_types(executor: RequestExecutor) -> set[type[RequestPolicy]]:
         """Collect built-in policies from all nested decorators before adding another."""
@@ -154,16 +129,14 @@ class _PolicyExecutionContext:
         policies: tuple[RequestPolicy, ...],
         *,
         auth_executor: AuthRecoveryExecutor | None,
-        prepare_auth_attempt: Callable[[RequestInvocation], Awaitable[AuthRecoveryAttempt]],
-        prepared_auth_attempt: AuthRecoveryAttempt | None = None,
+        on_auth_attempt: Callable[[AuthRecoveryAttempt], None] | None,
     ) -> None:
         self._raw = raw
         self.classifier = classifier
         self._policies = policies
         self._auth_executor = auth_executor
-        self._prepare_auth_attempt = prepare_auth_attempt
+        self._on_auth_attempt = on_auth_attempt
         self.last_auth_attempt: AuthRecoveryAttempt | None = None
-        self._prepared_auth_attempt = prepared_auth_attempt
 
     async def run_from(self, policy_index: int, invocation: RequestInvocation) -> RawClientResponse:
         """Run policies from the selected index through the raw executor."""
@@ -174,16 +147,22 @@ class _PolicyExecutionContext:
         return await policy.execute(invocation, downstream, self)
 
     async def _send_raw(self, invocation: RequestInvocation) -> RawClientResponse:
-        if self._prepared_auth_attempt is not None:
-            attempt = self._prepared_auth_attempt
-            self._prepared_auth_attempt = None
-            self.last_auth_attempt = attempt
-            return await attempt.send()
+        if isinstance(self._raw, PolicyRequestExecutor):
+            return await self._raw._request_with_auth_attempt_callback(  # pyright: ignore[reportPrivateUsage]
+                invocation,
+                self._record_auth_attempt,
+            )
         if self._auth_executor is not None:
-            attempt = await self._prepare_auth_attempt(invocation)
-            self.last_auth_attempt = attempt
+            attempt = await self._auth_executor.prepare_auth_recovery_attempt(invocation)
+            self._record_auth_attempt(attempt)
             return await attempt.send()
         return await forward_request(self._raw, invocation)
+
+    def _record_auth_attempt(self, attempt: AuthRecoveryAttempt) -> None:
+        """Remember the leaf attempt locally and expose it to an outer wrapper."""
+        self.last_auth_attempt = attempt
+        if self._on_auth_attempt is not None:
+            self._on_auth_attempt(attempt)
 
     async def replay_from(
         self, policy_index: int, invocation: RequestInvocation

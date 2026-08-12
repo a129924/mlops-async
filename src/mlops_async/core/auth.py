@@ -87,7 +87,7 @@ class TokenManager:
             cached_token = self._storage.get_token()
             if cached_token is None:
                 return None
-            if cached_token is not token:
+            if cached_token != token:
                 return cached_token
             return await self._resolve_token(cached_token)
 
