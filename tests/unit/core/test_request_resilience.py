@@ -3,15 +3,18 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta, timezone
+from email.utils import format_datetime
 
 import pytest
 
 from mlops_async.core.auth import AuthProvider, TokenManager
 from mlops_async.core.request_execution import (
     AuthRecoveryAttempt,
+    AuthRecoveryExecutor,
     RequestExecutor,
     RequestFailureClassifier,
     RequestInvocation,
+    thaw_json_body,
 )
 from mlops_async.core.request_failure import RequestFailure, ResponseFailureMetadata
 from mlops_async.core.request_options import ClientRequestOptions
@@ -47,6 +50,11 @@ class _FailureMap(RequestFailureClassifier):
     def classify(self, error: BaseException) -> RequestFailure | None:
         self.seen.append(error)
         return self._failures.get(error)
+
+
+class _FalseyFailureMap(_FailureMap):
+    def __bool__(self) -> bool:
+        return False
 
 
 class _RawExecutor(RequestExecutor):
@@ -147,6 +155,54 @@ async def test_custom_policies_are_injected_and_run_left_to_right_outermost() ->
     ]
 
 
+@pytest.mark.asyncio
+async def test_invocation_is_an_immutable_snapshot_of_caller_owned_request_data() -> None:
+    class _MutationAttemptPolicy(RequestPolicy):
+        async def execute(
+            self,
+            invocation: RequestInvocation,
+            downstream: RequestExecutor,
+            *_: object,
+        ) -> RawClientResponse:
+            assert invocation.headers is not None
+            assert invocation.params is not None
+            assert invocation.json_body is not None
+            with pytest.raises(TypeError):
+                invocation.headers["x-policy"] = "mutated"  # type: ignore[index]
+            with pytest.raises(TypeError):
+                invocation.params["page"] = "2"  # type: ignore[index]
+            with pytest.raises(TypeError):
+                invocation.json_body["nested"] = None  # type: ignore[index]
+            return await downstream.request(
+                invocation.method,
+                invocation.path,
+                headers=invocation.headers,
+                params=invocation.params,
+                json_body=invocation.json_body,
+            )
+
+    headers = {"x-request": "original"}
+    params = {"page": "1"}
+    json_body = {"nested": {"items": ["original"]}}
+    raw = _RawExecutor([_response()])
+    executor = PolicyRequestExecutor(raw, [_MutationAttemptPolicy()])
+
+    await executor.request(
+        HttpMethod.GET,
+        "/items",
+        headers=headers,
+        params=params,
+        json_body=json_body,
+    )
+
+    assert headers == {"x-request": "original"}
+    assert params == {"page": "1"}
+    assert json_body == {"nested": {"items": ["original"]}}
+    assert raw.requests[0].headers == headers
+    assert raw.requests[0].params == params
+    assert thaw_json_body(raw.requests[0].json_body) == json_body
+
+
 @pytest.mark.parametrize(
     "policies",
     ([object()], [TransientRetryPolicy(), TransientRetryPolicy()]),
@@ -184,6 +240,57 @@ async def test_classifier_none_leaves_original_error_unchanged_without_retry() -
     assert captured.value is error
     assert classifier.seen == [error]
     assert len(raw.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_falsey_injected_classifier_is_not_replaced_by_default_classifier() -> None:
+    error = RuntimeError("unclassified")
+    classifier = _FalseyFailureMap({})
+    executor = PolicyRequestExecutor(
+        _RawExecutor([error]),
+        [TransientRetryPolicy()],
+        classifier=classifier,
+    )
+
+    with pytest.raises(RuntimeError) as captured:
+        await executor.request(HttpMethod.GET, "/items")
+
+    assert captured.value is error
+    assert classifier.seen == [error]
+
+
+def test_raw_only_nested_decorators_do_not_advertise_auth_recovery_capability() -> None:
+    raw = _RawExecutor([_response()])
+    inner = PolicyRequestExecutor(raw, [])
+    outer = PolicyRequestExecutor(inner, [])
+
+    assert not isinstance(inner, AuthRecoveryExecutor)
+    assert not isinstance(outer, AuthRecoveryExecutor)
+    with pytest.raises(TypeError, match="auth recovery capability"):
+        PolicyRequestExecutor(outer, [UnauthorizedRecoveryPolicy()])
+
+
+@pytest.mark.parametrize(
+    "policy_type",
+    (TransientRetryPolicy, UnauthorizedRecoveryPolicy),
+)
+def test_nested_pipeline_rejects_duplicate_builtin_policy_types(
+    policy_type: type[TransientRetryPolicy] | type[UnauthorizedRecoveryPolicy],
+) -> None:
+    raw: RequestExecutor
+    if policy_type is UnauthorizedRecoveryPolicy:
+        storage = InMemoryTokenStorage()
+        storage.set_token(_token("initial"))
+        raw = Requester(
+            _AuthenticatedTransport([_response()]),
+            auth_provider=AuthProvider(TokenManager(storage, _RefreshFetcher(_token("next")))),
+        )
+    else:
+        raw = _RawExecutor([_response()])
+    inner = PolicyRequestExecutor(raw, [policy_type()])
+
+    with pytest.raises(ValueError, match="duplicate built-in request policy"):
+        PolicyRequestExecutor(inner, [policy_type()])
 
 
 @pytest.mark.asyncio
@@ -519,3 +626,41 @@ async def test_token_manager_coordinates_conditional_refresh_for_policy_recovery
 
     assert fetcher.refreshes == [initial]
     assert results == [replacement] * 5
+
+
+@pytest.mark.parametrize(
+    "retry_after",
+    ("NaN", "Infinity", "-1", "1.5", "1e2", "not-a-retry-after"),
+)
+def test_retry_after_rejects_non_integer_delta_values_and_uses_jitter(
+    retry_after: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    policy = TransientRetryPolicy()
+    failure = RequestFailure(
+        kind="response",
+        metadata=ResponseFailureMetadata(status_code=429, retry_after=retry_after),
+    )
+    monkeypatch.setattr(policies_mod.random, "uniform", lambda *_: 0.125)
+
+    assert policy._delay_for(failure, 0) == 0.125
+
+
+@pytest.mark.parametrize(
+    ("retry_after", "expected"),
+    (("0", 0.0), ("5", 5.0), ("999", 30.0)),
+)
+def test_retry_after_accepts_ascii_nonnegative_integer_delta(
+    retry_after: str,
+    expected: float,
+) -> None:
+    assert TransientRetryPolicy()._parse_retry_after(retry_after) == expected
+
+
+def test_retry_after_retains_valid_http_date() -> None:
+    future = datetime.now(timezone.utc) + timedelta(seconds=10)
+
+    delay = TransientRetryPolicy()._parse_retry_after(format_datetime(future, usegmt=True))
+
+    assert delay is not None
+    assert 0.0 < delay <= 10.0

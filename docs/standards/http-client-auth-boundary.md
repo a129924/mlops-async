@@ -245,23 +245,20 @@ implementation。現況沒有 package-level facade、package-root export 或 `.a
 - `PackageLevelClient.__init__` 是否被描述成先拿到 token
 - `TokenEndpointClient` 是否被替換成不清楚的 session/global side-effect model
 
-## Composable resilience policy
+## 可組合的 resilience policy
 
-`Requester` owns only raw auth/header composition and has no installed retry or
-recovery behavior. Applications that want resilience explicitly inject it as
+`Requester` 僅擁有 raw auth/header composition，不內建 retry 或 recovery 行為。
+需要 resilience 的 application 必須明確注入
 `PolicyRequestExecutor(requester, [UnauthorizedRecoveryPolicy(),
-TransientRetryPolicy()])`; the first item is outermost. Endpoint clients accept
-the shared `RequestExecutor` contract, so the same client can receive either a
-raw requester or this decorated executor.
+TransientRetryPolicy()])`；第一個 item 是最外層。Endpoint client 接受共用的
+`RequestExecutor` contract，因此同一個 client 可接收 raw requester 或此 decorator executor。
 
-The injected classifier controls whether a failure is eligible. The default
-classifier reads transport-neutral metadata from the single-send `HttpClient`;
-`core` never imports the transport package. A safe-method 401 uses the exact
-attempt token with `TokenManager.refresh_if_current`, then replays through the
-inner policy chain once. Retry covers only `GET`/`HEAD` connection, timeout,
-`429`, `502`, `503`, and `504` failures with bounded sends, jittered backoff,
-and `Retry-After`; cancellation always propagates.
+注入的 classifier 決定 failure 是否符合處理資格。預設 classifier 從 single-send
+`HttpClient` 讀取 transport-neutral metadata；`core` 不會 import transport package。
+safe-method 的 401 會以該次 attempt 的 exact token 呼叫
+`TokenManager.refresh_if_current`，然後只透過 inner policy chain replay 一次。retry
+僅處理 `GET`/`HEAD` 的 connection、timeout、`429`、`502`、`503` 與 `504` failure，
+並遵守 bounded sends、jittered backoff 與 `Retry-After`；cancellation 一律傳遞。
 
-`TokenEndpointClient.request_json` remains raw transport wiring. `POST` retry
-or replay is prohibited unless runtime endpoint evidence and separate explicit
-approval authorize it.
+`TokenEndpointClient.request_json` 維持 raw transport wiring。除非有 runtime endpoint
+evidence 與另一份明確授權，否則禁止 `POST` retry 或 replay。

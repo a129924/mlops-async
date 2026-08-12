@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from typing import TypeGuard
 
 from mlops_async.core.request_execution import (
@@ -38,7 +38,7 @@ class PolicyRequestExecutor(RequestExecutor):
     ) -> None:
         """Store explicit policy wiring after validating its bounded invariants."""
         self._raw = raw
-        self._classifier = classifier or TransportRequestFailureClassifier()
+        self._classifier = TransportRequestFailureClassifier() if classifier is None else classifier
         self._policies = tuple(self._validate_pipeline(policies))
 
     async def request(
@@ -59,17 +59,18 @@ class PolicyRequestExecutor(RequestExecutor):
             self._classifier,
             self._policies,
             auth_executor=self._find_auth_recovery_executor(self._raw),
+            prepare_auth_attempt=self._prepare_inner_auth_attempt,
         )
         return await context.run_from(0, invocation)
 
-    async def prepare_auth_recovery_attempt(
+    async def _prepare_auth_recovery_attempt(
         self, invocation: RequestInvocation
     ) -> AuthRecoveryAttempt:
         """Prepare a nested attempt without skipping this executor's policies."""
         auth_executor = self._find_auth_recovery_executor(self._raw)
         if auth_executor is None:
             raise TypeError("raw executor does not provide auth recovery capability")
-        attempt = await auth_executor.prepare_auth_recovery_attempt(invocation)
+        attempt = await self._prepare_inner_auth_attempt(invocation)
 
         async def send() -> RawClientResponse:
             context = _PolicyExecutionContext(
@@ -77,22 +78,16 @@ class PolicyRequestExecutor(RequestExecutor):
                 self._classifier,
                 self._policies,
                 auth_executor=auth_executor,
+                prepare_auth_attempt=self._prepare_inner_auth_attempt,
                 prepared_auth_attempt=attempt,
             )
             return await context.run_from(0, invocation)
 
         return AuthRecoveryAttempt(token=attempt.token, send=send)
 
-    async def refresh_if_current(self, token: AccessToken) -> AccessToken | None:
-        """Delegate conditional refresh to the raw auth-capable executor."""
-        auth_executor = self._find_auth_recovery_executor(self._raw)
-        if auth_executor is None:
-            raise TypeError("raw executor does not provide auth recovery capability")
-        return await auth_executor.refresh_if_current(token)
-
     def _validate_pipeline(self, policies: list[RequestPolicy]) -> list[RequestPolicy]:
         """Return a concrete typed policy list after runtime invariant checks."""
-        seen_builtin_types: set[type[RequestPolicy]] = set()
+        seen_builtin_types = self._builtin_policy_types(self._raw)
         validated: list[RequestPolicy] = []
         for policy in policies:
             if not _is_request_policy(policy):
@@ -116,12 +111,32 @@ class PolicyRequestExecutor(RequestExecutor):
     ) -> AuthRecoveryExecutor | None:
         """Find a forwarded auth capability without treating every nested wrapper as one."""
         if isinstance(executor, PolicyRequestExecutor):
-            if PolicyRequestExecutor._find_auth_recovery_executor(executor._raw) is None:
-                return None
-            return executor
+            return PolicyRequestExecutor._find_auth_recovery_executor(executor._raw)
         if isinstance(executor, AuthRecoveryExecutor):
             return executor
         return None
+
+    async def _prepare_inner_auth_attempt(
+        self, invocation: RequestInvocation
+    ) -> AuthRecoveryAttempt:
+        """Prepare one leaf-auth attempt while retaining nested policy decorators."""
+        if isinstance(self._raw, PolicyRequestExecutor):
+            return await self._raw._prepare_auth_recovery_attempt(invocation)
+        auth_executor = self._find_auth_recovery_executor(self._raw)
+        if auth_executor is None:
+            raise TypeError("raw executor does not provide auth recovery capability")
+        return await auth_executor.prepare_auth_recovery_attempt(invocation)
+
+    @staticmethod
+    def _builtin_policy_types(executor: RequestExecutor) -> set[type[RequestPolicy]]:
+        """Collect built-in policies from all nested decorators before adding another."""
+        if not isinstance(executor, PolicyRequestExecutor):
+            return set()
+        nested_types = PolicyRequestExecutor._builtin_policy_types(executor._raw)
+        for policy in executor._policies:
+            if isinstance(policy, UnauthorizedRecoveryPolicy | TransientRetryPolicy):
+                nested_types.add(type(policy))
+        return nested_types
 
 
 def _is_request_policy(value: object) -> TypeGuard[RequestPolicy]:
@@ -139,12 +154,14 @@ class _PolicyExecutionContext:
         policies: tuple[RequestPolicy, ...],
         *,
         auth_executor: AuthRecoveryExecutor | None,
+        prepare_auth_attempt: Callable[[RequestInvocation], Awaitable[AuthRecoveryAttempt]],
         prepared_auth_attempt: AuthRecoveryAttempt | None = None,
     ) -> None:
         self._raw = raw
         self.classifier = classifier
         self._policies = policies
         self._auth_executor = auth_executor
+        self._prepare_auth_attempt = prepare_auth_attempt
         self.last_auth_attempt: AuthRecoveryAttempt | None = None
         self._prepared_auth_attempt = prepared_auth_attempt
 
@@ -163,7 +180,7 @@ class _PolicyExecutionContext:
             self.last_auth_attempt = attempt
             return await attempt.send()
         if self._auth_executor is not None:
-            attempt = await self._auth_executor.prepare_auth_recovery_attempt(invocation)
+            attempt = await self._prepare_auth_attempt(invocation)
             self.last_auth_attempt = attempt
             return await attempt.send()
         return await forward_request(self._raw, invocation)

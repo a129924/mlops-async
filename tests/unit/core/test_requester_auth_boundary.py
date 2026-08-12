@@ -21,6 +21,7 @@ from mlops_async.core.http_request import (
 from mlops_async.core.token_endpoint_client import TokenEndpointClient
 from mlops_async.core.token_storage import InMemoryTokenStorage
 from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
+from mlops_async.resilience import PolicyRequestExecutor
 
 
 @dataclass
@@ -365,6 +366,20 @@ async def test_requester_primitive_adapter_matches_direct_canonical_execution() 
     assert primitive_request.url == canonical_request.url
     assert primitive_request.json_body == canonical_request.json_body
     assert primitive_request.headers.as_dict() == canonical_request.headers.as_dict()
+
+
+@pytest.mark.asyncio
+async def test_requester_materializes_policy_json_snapshot_at_transport_boundary() -> None:
+    transport = _ParityTransport()
+    executor = PolicyRequestExecutor(requester_mod.Requester(transport), [])
+
+    await executor.request(
+        HttpMethod.POST,
+        "/api/v1/items",
+        json_body={"nested": [{"name": "demo"}]},
+    )
+
+    assert transport.primitive_requests[0].json_body == {"nested": [{"name": "demo"}]}
 
 
 def test_raw_token_endpoint_fetch_path_is_not_composed_through_requester_resilience() -> None:

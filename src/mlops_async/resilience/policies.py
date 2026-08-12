@@ -7,16 +7,19 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import random
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Protocol, TypedDict, runtime_checkable
 
-from mlops_async.core.request_execution import RequestExecutor, RequestInvocation
+from mlops_async.core.request_execution import (
+    AuthRecoveryAttempt,
+    RequestExecutor,
+    RequestFailureClassifier,
+    RequestInvocation,
+    thaw_json_body,
+)
 from mlops_async.core.request_failure import RequestFailure
 from mlops_async.core.request_options import ClientRequestOptions
+from mlops_async.core.token_storage import AccessToken
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse
-from mlops_async.resilience._policy_protocols import (
-    PolicyExecutionContext,
-    ReplayableRequestExecutor,
-)
 
 if TYPE_CHECKING:
     from mlops_async.resilience.classifier import TransportRequestFailureClassifier
@@ -29,6 +32,22 @@ __all__ = [
     "TransportRequestFailureClassifier",
     "UnauthorizedRecoveryPolicy",
 ]
+
+
+class PolicyExecutionContext(Protocol):
+    """Internal per-request services made available to a resilience policy."""
+
+    classifier: RequestFailureClassifier
+    last_auth_attempt: AuthRecoveryAttempt | None
+
+    async def refresh_if_current(self, token: AccessToken) -> AccessToken | None: ...
+
+
+@runtime_checkable
+class ReplayableRequestExecutor(RequestExecutor, Protocol):
+    """Internal capability for replaying through an inner policy pipeline."""
+
+    async def replay(self, invocation: RequestInvocation) -> RawClientResponse: ...
 
 
 class RequestPolicy:
@@ -148,10 +167,8 @@ class TransientRetryPolicy(RequestPolicy):
     def _parse_retry_after(self, retry_after: str | None) -> float | None:
         if retry_after is None:
             return None
-        try:
-            return min(self._RETRY_AFTER_CAP_SECONDS, max(0.0, float(retry_after)))
-        except ValueError:
-            pass
+        if retry_after.isascii() and retry_after.isdecimal():
+            return min(self._RETRY_AFTER_CAP_SECONDS, float(retry_after))
         try:
             retry_at = parsedate_to_datetime(retry_after)
         except (TypeError, ValueError):
@@ -185,7 +202,7 @@ async def forward_request(
     if invocation.params is not None:
         request_kwargs["params"] = invocation.params
     if invocation.json_body is not None:
-        request_kwargs["json_body"] = invocation.json_body
+        request_kwargs["json_body"] = thaw_json_body(invocation.json_body)
     if invocation.content is not None:
         request_kwargs["content"] = invocation.content
     if invocation.options is not None:

@@ -13,6 +13,7 @@ from mlops_async.core.request_execution import (
     AuthRecoveryAttempt,
     AuthRecoveryExecutor,
     RequestInvocation,
+    thaw_json_body,
 )
 from mlops_async.core.request_options import ClientRequestOptions
 from mlops_async.core.token_storage import AccessToken
@@ -99,7 +100,7 @@ class Requester(AuthRecoveryExecutor):
                 invocation.path,
                 headers=request_headers,
                 params=invocation.params,
-                json_body=invocation.json_body,
+                json_body=thaw_json_body(invocation.json_body),
                 content=invocation.content,
                 options=invocation.options,
             )

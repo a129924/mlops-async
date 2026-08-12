@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from types import MappingProxyType
+from typing import Protocol, TypeAlias, cast, runtime_checkable
 
 from mlops_async.core.request_failure import RequestFailure
 from mlops_async.core.request_options import ClientRequestOptions
@@ -19,6 +20,16 @@ __all__ = [
     "RequestInvocation",
 ]
 
+_FrozenJSONValue: TypeAlias = (
+    str
+    | int
+    | float
+    | bool
+    | None
+    | tuple["_FrozenJSONValue", ...]
+    | Mapping[str, "_FrozenJSONValue"]
+)
+
 
 @dataclass(frozen=True, slots=True)
 class RequestInvocation:
@@ -31,6 +42,35 @@ class RequestInvocation:
     json_body: JSONValue | None = None
     content: bytes | None = None
     options: ClientRequestOptions | None = None
+
+    def __post_init__(self) -> None:
+        """Snapshot caller-owned collections before policies can observe them."""
+        if self.headers is not None:
+            object.__setattr__(self, "headers", MappingProxyType(dict(self.headers)))
+        if self.params is not None:
+            object.__setattr__(self, "params", MappingProxyType(dict(self.params)))
+        object.__setattr__(self, "json_body", _freeze_json(self.json_body))
+
+
+def thaw_json_body(value: JSONValue | None) -> JSONValue | None:
+    """Return a mutable JSON value for the transport boundary from an invocation snapshot."""
+    return _thaw_json(cast(_FrozenJSONValue | None, value))
+
+
+def _freeze_json(value: JSONValue | None) -> _FrozenJSONValue | None:
+    if isinstance(value, list):
+        return tuple(_freeze_json(item) for item in value)
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _freeze_json(item) for key, item in value.items()})
+    return value
+
+
+def _thaw_json(value: _FrozenJSONValue | None) -> JSONValue | None:
+    if isinstance(value, tuple):
+        return [_thaw_json(item) for item in value]
+    if isinstance(value, Mapping):
+        return {key: _thaw_json(item) for key, item in value.items()}
+    return value
 
 
 @dataclass(frozen=True, slots=True)
