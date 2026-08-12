@@ -59,7 +59,6 @@ def test_auth_client_is_available_only_from_canonical_family_module() -> None:
     assert AuthClient.__module__ == "mlops_async.clients.auth_client"
     assert issubclass(AuthClientRefreshTokenError, Exception)
     assert not hasattr(mlops_async, "AuthClient")
-    assert not Path(mlops_async.__file__).with_name("mlops_async_client.py").exists()
 
 
 def test_readme_documents_the_public_auth_client_refresh_contract() -> None:

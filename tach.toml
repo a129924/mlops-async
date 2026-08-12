@@ -9,7 +9,15 @@ forbid_circular_dependencies = true
 
 [[modules]]
 path = "mlops_async"
-depends_on = []
+depends_on = [
+    "mlops_async.clients",
+    "mlops_async.core",
+    "mlops_async.transport",
+    "mlops_async.clients.cas_tables",
+    "mlops_async.clients.job_execution",
+    "mlops_async.clients.models",
+    "mlops_async.clients.projects",
+]
 
 [[modules]]
 path = "mlops_async.exceptions"
@@ -83,7 +91,7 @@ depends_on = ["mlops_async.clients.cas_tables.value_objects", "mlops_async.core"
 
 [[modules]]
 path = "mlops_async.transport"
-depends_on = ["mlops_async", "mlops_async.core", "mlops_async.exceptions"]
+depends_on = ["mlops_async.core", "mlops_async.exceptions"]
 
 [[modules]]
 path = "mlops_async._repo_hooks"
