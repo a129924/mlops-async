@@ -169,6 +169,22 @@ class _ShortCircuitingPolicy(RequestPolicy):
         return _response()
 
 
+class _DerivedTransientRetryPolicy(TransientRetryPolicy):
+    pass
+
+
+class _OtherDerivedTransientRetryPolicy(TransientRetryPolicy):
+    pass
+
+
+class _DerivedUnauthorizedRecoveryPolicy(UnauthorizedRecoveryPolicy):
+    pass
+
+
+class _OtherDerivedUnauthorizedRecoveryPolicy(UnauthorizedRecoveryPolicy):
+    pass
+
+
 def test_stable_non_root_contracts_are_not_promoted_to_package_root() -> None:
     import mlops_async
 
@@ -318,6 +334,104 @@ def test_pipeline_rejects_nonpolicies_and_duplicate_builtin_policies_before_io(
         PolicyRequestExecutor(raw, policies)
 
     assert raw.requests == []
+
+
+@pytest.mark.parametrize(
+    "policies",
+    (
+        [TransientRetryPolicy(), _DerivedTransientRetryPolicy()],
+        [_DerivedTransientRetryPolicy(), _OtherDerivedTransientRetryPolicy()],
+    ),
+)
+def test_pipeline_rejects_builtin_retry_family_subclasses_before_io(
+    policies: list[RequestPolicy],
+) -> None:
+    raw = _RawExecutor([_response()])
+
+    with pytest.raises(ValueError, match="duplicate built-in request policy"):
+        PolicyRequestExecutor(raw, policies)
+
+    assert raw.requests == []
+
+
+@pytest.mark.parametrize(
+    "policies",
+    (
+        [UnauthorizedRecoveryPolicy(), _DerivedUnauthorizedRecoveryPolicy()],
+        [_DerivedUnauthorizedRecoveryPolicy(), _OtherDerivedUnauthorizedRecoveryPolicy()],
+    ),
+)
+def test_pipeline_rejects_builtin_unauthorized_family_subclasses_before_io(
+    policies: list[RequestPolicy],
+) -> None:
+    raw = _AuthRecordingExecutor()
+
+    with pytest.raises(ValueError, match="duplicate built-in request policy"):
+        PolicyRequestExecutor(raw, policies)
+
+    assert raw.prepared == []
+
+
+@pytest.mark.parametrize(
+    ("outer_policy", "inner_policy"),
+    (
+        (TransientRetryPolicy(), _DerivedTransientRetryPolicy()),
+        (_DerivedTransientRetryPolicy(), _OtherDerivedTransientRetryPolicy()),
+    ),
+)
+def test_nested_pipeline_rejects_builtin_retry_family_subclasses_before_io(
+    outer_policy: RequestPolicy,
+    inner_policy: RequestPolicy,
+) -> None:
+    raw = _RawExecutor([_response()])
+    inner = PolicyRequestExecutor(raw, [inner_policy])
+
+    with pytest.raises(ValueError, match="duplicate built-in request policy"):
+        PolicyRequestExecutor(inner, [outer_policy])
+
+    assert raw.requests == []
+
+
+@pytest.mark.parametrize(
+    ("outer_policy", "inner_policy"),
+    (
+        (UnauthorizedRecoveryPolicy(), _DerivedUnauthorizedRecoveryPolicy()),
+        (_DerivedUnauthorizedRecoveryPolicy(), _OtherDerivedUnauthorizedRecoveryPolicy()),
+    ),
+)
+def test_nested_pipeline_rejects_builtin_unauthorized_family_subclasses_before_io(
+    outer_policy: RequestPolicy,
+    inner_policy: RequestPolicy,
+) -> None:
+    raw = _AuthRecordingExecutor()
+    inner = PolicyRequestExecutor(raw, [inner_policy])
+
+    with pytest.raises(ValueError, match="duplicate built-in request policy"):
+        PolicyRequestExecutor(inner, [outer_policy])
+
+    assert raw.prepared == []
+
+
+def test_pipeline_rejects_reverse_builtin_order_before_io() -> None:
+    raw = _AuthRecordingExecutor()
+
+    with pytest.raises(ValueError, match="UnauthorizedRecoveryPolicy must be outermost"):
+        PolicyRequestExecutor(
+            raw,
+            [_DerivedTransientRetryPolicy(), _DerivedUnauthorizedRecoveryPolicy()],
+        )
+
+    assert raw.prepared == []
+
+
+def test_nested_pipeline_rejects_reverse_builtin_order_before_io() -> None:
+    raw = _AuthRecordingExecutor()
+    inner = PolicyRequestExecutor(raw, [_DerivedUnauthorizedRecoveryPolicy()])
+
+    with pytest.raises(ValueError, match="UnauthorizedRecoveryPolicy must be outermost"):
+        PolicyRequestExecutor(inner, [_DerivedTransientRetryPolicy()])
+
+    assert raw.prepared == []
 
 
 def test_unauthorized_policy_requires_auth_recovery_capability_before_io() -> None:

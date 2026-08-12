@@ -73,7 +73,6 @@ class PolicyRequestExecutor(RequestExecutor):
 
     def _validate_pipeline(self, policies: list[RequestPolicy]) -> list[RequestPolicy]:
         """Return a concrete typed policy list after runtime invariant checks."""
-        seen_builtin_types = self._builtin_policy_types(self._raw)
         validated: list[RequestPolicy] = []
         for policy in policies:
             if not _is_request_policy(policy):
@@ -83,12 +82,20 @@ class PolicyRequestExecutor(RequestExecutor):
                 and self._find_auth_recovery_executor(self._raw) is None
             ):
                 raise TypeError("UnauthorizedRecoveryPolicy requires auth recovery capability")
-            if isinstance(policy, UnauthorizedRecoveryPolicy | TransientRetryPolicy):
-                policy_type = type(policy)
-                if policy_type in seen_builtin_types:
-                    raise ValueError("duplicate built-in request policy")
-                seen_builtin_types.add(policy_type)
             validated.append(policy)
+
+        families = (
+            *self._builtin_policy_families(validated),
+            *self._builtin_policy_families(self._raw),
+        )
+        if len(families) != len(set(families)):
+            raise ValueError("duplicate built-in request policy")
+        if (
+            UnauthorizedRecoveryPolicy in families
+            and TransientRetryPolicy in families
+            and families.index(TransientRetryPolicy) < families.index(UnauthorizedRecoveryPolicy)
+        ):
+            raise ValueError("UnauthorizedRecoveryPolicy must be outermost to TransientRetryPolicy")
         return validated
 
     @staticmethod
@@ -103,20 +110,41 @@ class PolicyRequestExecutor(RequestExecutor):
         return None
 
     @staticmethod
-    def _builtin_policy_types(executor: RequestExecutor) -> set[type[RequestPolicy]]:
-        """Collect built-in policies from all nested decorators before adding another."""
+    def _builtin_policy_families(
+        policies_or_executor: list[RequestPolicy] | RequestExecutor,
+    ) -> tuple[type[UnauthorizedRecoveryPolicy] | type[TransientRetryPolicy], ...]:
+        """Collect canonical built-in policy families in effective outer-to-inner order."""
+        if isinstance(policies_or_executor, list):
+            families: list[type[UnauthorizedRecoveryPolicy] | type[TransientRetryPolicy]] = []
+            for policy in policies_or_executor:
+                family = _builtin_policy_family(policy)
+                if family is not None:
+                    families.append(family)
+            return tuple(families)
+
+        executor = policies_or_executor
         if not isinstance(executor, PolicyRequestExecutor):
-            return set()
-        nested_types = PolicyRequestExecutor._builtin_policy_types(executor._raw)
-        for policy in executor._policies:
-            if isinstance(policy, UnauthorizedRecoveryPolicy | TransientRetryPolicy):
-                nested_types.add(type(policy))
-        return nested_types
+            return ()
+        return (
+            *PolicyRequestExecutor._builtin_policy_families(list(executor._policies)),
+            *PolicyRequestExecutor._builtin_policy_families(executor._raw),
+        )
 
 
 def _is_request_policy(value: object) -> TypeGuard[RequestPolicy]:
     """Narrow untrusted runtime configuration without weakening the API type."""
     return isinstance(value, RequestPolicy)
+
+
+def _builtin_policy_family(
+    policy: RequestPolicy,
+) -> type[UnauthorizedRecoveryPolicy] | type[TransientRetryPolicy] | None:
+    """Return the canonical built-in family, including subclasses of a policy."""
+    if isinstance(policy, UnauthorizedRecoveryPolicy):
+        return UnauthorizedRecoveryPolicy
+    if isinstance(policy, TransientRetryPolicy):
+        return TransientRetryPolicy
+    return None
 
 
 class _PolicyExecutionContext:
