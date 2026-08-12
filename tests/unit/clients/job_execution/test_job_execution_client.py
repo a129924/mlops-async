@@ -14,8 +14,9 @@ from mlops_async.clients.job_execution import (
     JobExecutionResponseError,
     JobState,
 )
-from mlops_async.core.requester import Requester
+from mlops_async.core.request_execution import RequestExecutor
 from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
+from mlops_async.resilience import PolicyRequestExecutor
 
 _JOB_ACCEPT = (
     "application/vnd.sas.job.execution.job+json, "
@@ -105,6 +106,25 @@ async def test_get_job_makes_one_request_with_locked_headers_and_no_body() -> No
         _RecordedRequest(
             HttpMethod.GET,
             "/jobExecution/jobs/job%20id%2Fslash",
+            {"Delegate-Domain": "", "Content-Type": "application/json", "Accept": _JOB_ACCEPT},
+            {},
+            None,
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_job_execution_client_accepts_a_decorated_executor_without_shape_drift() -> None:
+    raw = _FakeRequester([_response(b'{"id":"job-1","state":"running"}')])
+    client = JobExecutionClient(PolicyRequestExecutor(raw, []))
+
+    job = await client.get_job("job-1")
+
+    assert job.id == "job-1"
+    assert raw.requests == [
+        _RecordedRequest(
+            HttpMethod.GET,
+            "/jobExecution/jobs/job-1",
             {"Delegate-Domain": "", "Content-Type": "application/json", "Accept": _JOB_ACCEPT},
             {},
             None,
@@ -219,7 +239,7 @@ def test_job_execution_client_has_the_frozen_caller_owned_public_surface() -> No
         expected_name = "job_request_id" if method_name == "start_job" else "job_id"
         assert list(method_signature.parameters) == ["self", expected_name]
         assert method_signature.return_annotation == return_type.__name__
-    assert signature.parameters["requester"].annotation == Requester.__name__
+    assert signature.parameters["requester"].annotation == RequestExecutor.__name__
     assert not hasattr(JobExecutionClient, "close")
     assert not hasattr(JobExecutionClient, "__aenter__")
     assert not hasattr(mlops_async, "JobExecutionClient")

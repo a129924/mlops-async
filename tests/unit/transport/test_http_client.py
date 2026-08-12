@@ -585,6 +585,71 @@ async def test_request_wraps_transport_failures_in_http_transport_exception() ->
         await client.aclose()
 
 
+@pytest.mark.parametrize(
+    ("error_factory", "expected_kind"),
+    [
+        (
+            lambda request: httpx.TimeoutException("slow response", request=request),
+            "timeout",
+        ),
+        (
+            lambda request: httpx.TransportError("network unavailable", request=request),
+            "connection",
+        ),
+        (lambda _request: httpx.InvalidURL("not a URL"), None),
+    ],
+    ids=["timeout", "transport", "non-classified"],
+)
+@pytest.mark.asyncio
+async def test_request_classifies_actual_httpx_failure_kinds(
+    error_factory: Callable[[httpx.Request], httpx.HTTPError | httpx.InvalidURL],
+    expected_kind: str | None,
+) -> None:
+    http_client = _http_client_class()
+    transport_exception = _exception_type("HttpTransportException")
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        raise error_factory(request)
+
+    client = http_client("https://example.com", transport=TrackingTransport(handler))
+    try:
+        with pytest.raises(transport_exception) as exc_info:
+            await client.request(HttpMethod.GET, "/base/items")
+    finally:
+        await client.aclose()
+
+    assert exc_info.value.failure_kind == expected_kind
+
+
+@pytest.mark.asyncio
+async def test_http_client_attaches_response_failure_metadata_without_an_extra_send() -> None:
+    http_client = _http_client_class()
+    http_status_exception = _exception_type("HTTPStatusException")
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(
+            request,
+            status_code=503,
+            content=b"temporarily unavailable",
+            headers={"Retry-After": "7", "X-Request-ID": "req-503"},
+        )
+
+    transport = TrackingTransport(handler)
+    client = http_client("https://example.com", transport=transport)
+    try:
+        with pytest.raises(http_status_exception) as exc_info:
+            await client.request(HttpMethod.GET, "/base/items")
+    finally:
+        await client.aclose()
+
+    error = exc_info.value
+    assert len(transport.requests) == 1
+    assert error.failure_metadata.status_code == 503
+    assert error.failure_metadata.retry_after == "7"
+    assert error.context.status_code == 503
+    assert error.request_id == "req-503"
+
+
 @pytest.mark.asyncio
 async def test_request_wraps_invalid_absolute_url_without_request_in_http_transport_exception() -> (
     None

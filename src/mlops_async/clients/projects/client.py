@@ -17,7 +17,7 @@ from mlops_async.clients.projects.value_objects import (
     parse_projects_page,
 )
 from mlops_async.core.http_request import EndpointPath
-from mlops_async.core.requester import Requester
+from mlops_async.core.request_execution import RequestExecutor
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse
 from mlops_async.transport.exceptions import HttpErrorContext, InvalidJSONResponseException
 
@@ -25,7 +25,7 @@ from mlops_async.transport.exceptions import HttpErrorContext, InvalidJSONRespon
 class ProjectsClient:
     """Expose read-only Projects and Champion operations."""
 
-    def __init__(self, requester: Requester) -> None:
+    def __init__(self, requester: RequestExecutor) -> None:
         """Store the caller-owned request boundary."""
         self._requester = requester
 

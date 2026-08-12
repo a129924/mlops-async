@@ -20,6 +20,10 @@ path = "mlops_async.core"
 depends_on = ["mlops_async.exceptions"]
 
 [[modules]]
+path = "mlops_async.resilience"
+depends_on = ["mlops_async.core"]
+
+[[modules]]
 path = "mlops_async.clients"
 depends_on = ["mlops_async.core"]
 

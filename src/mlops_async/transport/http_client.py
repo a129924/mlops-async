@@ -5,7 +5,7 @@ from json import JSONDecodeError, loads as json_loads
 from math import isfinite
 import ssl
 from types import TracebackType
-from typing import TypeGuard, cast
+from typing import Literal, TypeGuard, cast
 from urllib.parse import parse_qsl, urlsplit
 
 import httpx
@@ -276,7 +276,11 @@ class HttpClient(Client):
             response = await self._client.send(http_request)
         except (httpx.HTTPError, httpx.InvalidURL) as exc:
             context = self._context_from_transport_failure(request.method, request.url, exc)
-            raise HttpTransportException(context) from exc
+            failure = HttpTransportException(
+                context,
+                failure_kind=self._failure_kind_for(exc),
+            )
+            raise failure from exc
 
         if 200 <= response.status_code < 300:
             return RawClientResponse(
@@ -287,7 +291,12 @@ class HttpClient(Client):
                 url=str(response.url),
             )
 
-        raise HTTPStatusException(self._context_from_response(response))
+        failure = HTTPStatusException(
+            self._context_from_response(response),
+            failure_kind="response",
+            retry_after=response.headers.get("Retry-After"),
+        )
+        raise failure
 
     async def request_json(
         self,
@@ -404,3 +413,13 @@ class HttpClient(Client):
         base_url = str(self._client.base_url).rstrip("/")
         safe_path = path if path.startswith("/") else f"/{path}" if path else "/"
         return f"{base_url}{safe_path}"
+
+    def _failure_kind_for(
+        self,
+        error: httpx.HTTPError | httpx.InvalidURL,
+    ) -> Literal["connection", "timeout"] | None:
+        if isinstance(error, httpx.TimeoutException):
+            return "timeout"
+        if isinstance(error, httpx.TransportError):
+            return "connection"
+        return None

@@ -81,6 +81,16 @@ class TokenManager:
 
             return await self._resolve_token(cached_token)
 
+    async def refresh_if_current(self, token: AccessToken) -> AccessToken | None:
+        """Refresh only when storage still contains the failed request's token."""
+        async with self._refresh_lock:
+            cached_token = self._storage.get_token()
+            if cached_token is None:
+                return None
+            if cached_token != token:
+                return cached_token
+            return await self._resolve_token(cached_token)
+
     async def _resolve_token(self, cached_token: AccessToken | None) -> AccessToken:
         try:
             if cached_token is None:
@@ -114,3 +124,12 @@ class AuthProvider:
         """Return authorization headers for a domain request."""
         access_token = await self._token_manager.get_access_token()
         return {"Authorization": f"Bearer {access_token.value}"}
+
+    async def get_auth_headers_and_token(self) -> tuple[Mapping[str, str], AccessToken]:
+        """Return headers and the exact token used by one internal send."""
+        access_token = await self._token_manager.get_access_token()
+        return {"Authorization": f"Bearer {access_token.value}"}, access_token
+
+    async def refresh_if_current(self, token: AccessToken) -> AccessToken | None:
+        """Coordinate a conditional refresh after a domain-request 401."""
+        return await self._token_manager.refresh_if_current(token)

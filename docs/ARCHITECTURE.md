@@ -177,6 +177,27 @@ than replace normal source files.
 - `git-post-merge-workflow`
 - `git-release-management`
 
+## Composable resilient request execution
+
+`Requester` is a raw `RequestExecutor`: it owns auth/header composition and
+sends exactly once. Resilience is caller-owned wiring through
+`PolicyRequestExecutor(raw, policies)`, with policies listed left-to-right from
+outermost to innermost. The canonical authenticated composition is
+`UnauthorizedRecoveryPolicy` outside `TransientRetryPolicy`.
+
+The stable internal contracts live in `core.request_execution`; policy types
+and the transport-backed failure classifier live in `mlops_async.resilience`.
+They are intentionally not package-root exports and no default factory installs
+them implicitly. `HttpClient` remains single-send and only attaches the
+transport-neutral metadata consumed by the injected classifier. Raw
+`TokenEndpointClient.request_json` stays outside every policy chain.
+
+Only `GET` and `HEAD` are eligible: 401 recovery may conditionally refresh and
+replay once, and transient retries cover connection, timeout, `429`, `502`,
+`503`, and `504` failures with independent initial/replay budgets. `POST` and
+all other methods receive neither retry nor replay without separate runtime
+evidence and approval.
+
 ## Custom agents
 
 This repository includes 1 custom workflow agent.

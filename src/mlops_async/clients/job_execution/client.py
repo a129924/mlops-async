@@ -13,7 +13,7 @@ from mlops_async.clients.job_execution.value_objects import (
     parse_job_state,
 )
 from mlops_async.core.http_request import EndpointPath
-from mlops_async.core.requester import Requester
+from mlops_async.core.request_execution import RequestExecutor
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse
 
 _JOB_ACCEPT = (
@@ -29,7 +29,7 @@ _STATE_HEADERS = {**_COMMON_HEADERS, "Accept": "text/plain"}
 class JobExecutionClient:
     """Expose single-request Job Execution operations with caller-owned transport."""
 
-    def __init__(self, requester: Requester) -> None:
+    def __init__(self, requester: RequestExecutor) -> None:
         """Store the caller-owned request composition boundary."""
         self._requester = requester
 
