@@ -1,284 +1,37 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping
-from email.utils import format_datetime
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta, timezone
 
-import mlops_async.core.requester as requester_mod
 import pytest
 
 from mlops_async.core.auth import AuthProvider, TokenManager
+from mlops_async.core.request_execution import (
+    AuthRecoveryAttempt,
+    RequestExecutor,
+    RequestFailureClassifier,
+    RequestInvocation,
+)
 from mlops_async.core.request_failure import RequestFailure, ResponseFailureMetadata
-from mlops_async.core.request_options import ClientRequestOptions, RequestTimeouts
+from mlops_async.core.request_options import ClientRequestOptions
 from mlops_async.core.requester import Requester
 from mlops_async.core.token_storage import AccessToken, InMemoryTokenStorage
 from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
-
-
-class _RecordedTransport:
-    def __init__(self, outcomes: list[object], failures: Mapping[BaseException, object]) -> None:
-        self._outcomes = outcomes
-        self._failures = failures
-        self.requests: list[tuple[HttpMethod, ClientRequestOptions | None]] = []
-
-    async def request(
-        self,
-        method: HttpMethod,
-        path: str,
-        *,
-        headers: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
-        json_body: object | None = None,
-        content: bytes | None = None,
-        options: ClientRequestOptions | None = None,
-    ) -> RawClientResponse:
-        del path, headers, params, json_body, content
-        self.requests.append((method, options))
-        outcome = self._outcomes.pop(0)
-        if isinstance(outcome, BaseException):
-            raise outcome
-        assert isinstance(outcome, RawClientResponse)
-        return outcome
-
-    def failure_for(self, exception: BaseException) -> object | None:
-        return self._failures.get(exception)
+from mlops_async.resilience import (
+    PolicyRequestExecutor,
+    RequestPolicy,
+    TransientRetryPolicy,
+    UnauthorizedRecoveryPolicy,
+)
+import mlops_async.resilience.policies as policies_mod
 
 
 def _response(method: HttpMethod = HttpMethod.GET) -> RawClientResponse:
     return RawClientResponse(204, ResponseHeaders(), b"", method, "https://example.test/items")
 
 
-def _failure(
-    kind: str,
-    *,
-    status_code: int | None = None,
-    retry_after: str | None = None,
-) -> object:
-    metadata = (
-        ResponseFailureMetadata(status_code=status_code, retry_after=retry_after)
-        if status_code is not None
-        else None
-    )
-    return RequestFailure(kind=kind, metadata=metadata)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("method", (HttpMethod.GET, HttpMethod.HEAD))
-async def test_eligible_get_and_head_retry_a_classified_temporary_failure(
-    method: HttpMethod,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    original_error = RuntimeError("temporary connection failure")
-    transport = _RecordedTransport(
-        [original_error, _response(method)],
-        {original_error: _failure("connection")},
-    )
-    requester = requester_mod.Requester(transport)
-    delays: list[float] = []
-
-    async def record_sleep(delay: float) -> None:
-        delays.append(delay)
-
-    monkeypatch.setattr(requester_mod.asyncio, "sleep", record_sleep)
-    options = ClientRequestOptions(timeout=RequestTimeouts(total=1.5))
-
-    response = await requester.request(method, "/items", options=options)
-
-    assert response.status_code == 204
-    assert transport.requests == [(method, options), (method, options)]
-    assert len(delays) == 1
-    assert 0.0 <= delays[0] <= 2.0
-
-
-@pytest.mark.asyncio
-async def test_post_is_the_default_noneligible_branch_and_never_retries_or_sleeps(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    original_error = RuntimeError("retryable only for safe methods")
-    transport = _RecordedTransport([original_error], {original_error: _failure("connection")})
-    requester = requester_mod.Requester(transport)
-    sleep_calls = 0
-
-    async def fail_sleep(_delay: float) -> None:
-        nonlocal sleep_calls
-        sleep_calls += 1
-
-    monkeypatch.setattr(requester_mod.asyncio, "sleep", fail_sleep)
-
-    with pytest.raises(RuntimeError) as exc_info:
-        await requester.request(HttpMethod.POST, "/items")
-
-    assert exc_info.value is original_error
-    assert len(transport.requests) == 1
-    assert sleep_calls == 0
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("status_code", (429, 502, 503, 504))
-async def test_eligible_response_failures_retry_only_for_the_locked_statuses(
-    status_code: int,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    original_error = RuntimeError(f"HTTP {status_code}")
-    transport = _RecordedTransport(
-        [original_error, _response()],
-        {original_error: _failure("response", status_code=status_code)},
-    )
-    requester = requester_mod.Requester(transport)
-    delays: list[float] = []
-
-    async def record_sleep(delay: float) -> None:
-        delays.append(delay)
-
-    monkeypatch.setattr(requester_mod.asyncio, "sleep", record_sleep)
-
-    await requester.request(HttpMethod.GET, "/items")
-
-    assert len(transport.requests) == 2
-    assert len(delays) == 1
-
-
-@pytest.mark.asyncio
-async def test_nonclassified_and_retry_budget_exhausted_failures_propagate_unchanged(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    nonclassified = RuntimeError("no carrier")
-    requester = requester_mod.Requester(_RecordedTransport([nonclassified], {}))
-
-    with pytest.raises(RuntimeError) as exc_info:
-        await requester.request(HttpMethod.GET, "/items")
-
-    assert exc_info.value is nonclassified
-
-    exhausted = RuntimeError("still unavailable")
-    transport = _RecordedTransport(
-        [exhausted, exhausted, exhausted],
-        {exhausted: _failure("timeout")},
-    )
-    requester = requester_mod.Requester(transport)
-    delays: list[float] = []
-
-    async def record_sleep(delay: float) -> None:
-        delays.append(delay)
-
-    monkeypatch.setattr(requester_mod.asyncio, "sleep", record_sleep)
-    with pytest.raises(RuntimeError) as exhausted_info:
-        await requester.request(HttpMethod.GET, "/items")
-
-    assert exhausted_info.value is exhausted
-    assert len(transport.requests) == 3
-    assert len(delays) == 2
-    assert all(0.0 <= delay <= 2.0 for delay in delays)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("retry_after", "expected"),
-    (
-        ("60", 30.0),
-        ("-4", 0.0),
-        (format_datetime(datetime.now(timezone.utc) + timedelta(days=1), usegmt=True), 30.0),
-    ),
-)
-async def test_retry_after_delta_or_http_date_is_clamped(
-    retry_after: str,
-    expected: float,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    original_error = RuntimeError("retry later")
-    transport = _RecordedTransport(
-        [original_error, _response()],
-        {original_error: _failure("response", status_code=503, retry_after=retry_after)},
-    )
-    requester = requester_mod.Requester(transport)
-    delays: list[float] = []
-
-    async def record_sleep(delay: float) -> None:
-        delays.append(delay)
-
-    monkeypatch.setattr(requester_mod.asyncio, "sleep", record_sleep)
-    await requester.request(HttpMethod.GET, "/items")
-
-    assert delays == [expected]
-
-
-@pytest.mark.asyncio
-async def test_invalid_retry_after_uses_ordinary_bounded_backoff(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    original_error = RuntimeError("retry later")
-    transport = _RecordedTransport(
-        [original_error, _response()],
-        {original_error: _failure("response", status_code=503, retry_after="not-a-date")},
-    )
-    requester = requester_mod.Requester(transport)
-    delays: list[float] = []
-
-    async def record_sleep(delay: float) -> None:
-        delays.append(delay)
-
-    monkeypatch.setattr(requester_mod.asyncio, "sleep", record_sleep)
-    await requester.request(HttpMethod.GET, "/items")
-
-    assert len(delays) == 1
-    assert 0.0 <= delays[0] <= 2.0
-
-
-class _AuthenticatedResilienceTransport:
-    def __init__(
-        self,
-        outcomes: list[object],
-        failures: Mapping[BaseException, RequestFailure],
-    ) -> None:
-        self._outcomes = outcomes
-        self._failures = failures
-        self.requests: list[Mapping[str, str] | None] = []
-
-    async def request(
-        self,
-        method: HttpMethod,
-        path: str,
-        *,
-        headers: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
-        json_body: object | None = None,
-        content: bytes | None = None,
-        options: ClientRequestOptions | None = None,
-    ) -> RawClientResponse:
-        del method, path, params, json_body, content, options
-        self.requests.append(None if headers is None else dict(headers))
-        outcome = self._outcomes.pop(0)
-        if callable(outcome):
-            outcome = outcome()
-        if isinstance(outcome, BaseException):
-            raise outcome
-        assert isinstance(outcome, RawClientResponse)
-        return outcome
-
-    def failure_for(self, exception: BaseException) -> RequestFailure | None:
-        return self._failures.get(exception)
-
-
-class _RefreshRecordingFetcher:
-    def __init__(self, refresh_outcomes: list[AccessToken | BaseException]) -> None:
-        self._refresh_outcomes = refresh_outcomes
-        self.fetch_calls = 0
-        self.refresh_inputs: list[AccessToken] = []
-
-    async def fetch_access_token(self) -> AccessToken:
-        self.fetch_calls += 1
-        raise AssertionError("requester resilience must not fetch a replacement token")
-
-    async def refresh_access_token(self, token: AccessToken) -> AccessToken:
-        self.refresh_inputs.append(token)
-        outcome = self._refresh_outcomes.pop(0)
-        if isinstance(outcome, BaseException):
-            raise outcome
-        return outcome
-
-
-def _access_token(value: str) -> AccessToken:
+def _token(value: str) -> AccessToken:
     return AccessToken(
         value=value,
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
@@ -286,153 +39,483 @@ def _access_token(value: str) -> AccessToken:
     )
 
 
-def _authenticated_requester(
-    transport: _AuthenticatedResilienceTransport,
-    storage: InMemoryTokenStorage,
-    fetcher: _RefreshRecordingFetcher,
-) -> Requester:
-    return Requester(transport, auth_provider=AuthProvider(TokenManager(storage, fetcher)))
+class _FailureMap(RequestFailureClassifier):
+    def __init__(self, failures: Mapping[BaseException, RequestFailure]) -> None:
+        self._failures = failures
+        self.seen: list[BaseException] = []
+
+    def classify(self, error: BaseException) -> RequestFailure | None:
+        self.seen.append(error)
+        return self._failures.get(error)
+
+
+class _RawExecutor(RequestExecutor):
+    def __init__(self, outcomes: list[RawClientResponse | BaseException]) -> None:
+        self._outcomes = outcomes
+        self.requests: list[RequestInvocation] = []
+
+    async def request(
+        self,
+        method: HttpMethod,
+        path: str,
+        *,
+        headers: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
+        json_body: object | None = None,
+        content: bytes | None = None,
+        options: ClientRequestOptions | None = None,
+    ) -> RawClientResponse:
+        self.requests.append(
+            RequestInvocation(method, path, headers, params, json_body, content, options)
+        )
+        outcome = self._outcomes.pop(0)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+
+class _RecordingPolicy(RequestPolicy):
+    def __init__(self, name: str, events: list[str]) -> None:
+        self._name = name
+        self._events = events
+
+    async def execute(
+        self,
+        invocation: RequestInvocation,
+        downstream: RequestExecutor,
+        *_: object,
+    ) -> RawClientResponse:
+        self._events.append(f"{self._name}:before")
+        response = await downstream.request(
+            invocation.method,
+            invocation.path,
+            headers=invocation.headers,
+            params=invocation.params,
+            json_body=invocation.json_body,
+            content=invocation.content,
+            options=invocation.options,
+        )
+        self._events.append(f"{self._name}:after")
+        return response
+
+
+def test_stable_non_root_contracts_are_not_promoted_to_package_root() -> None:
+    import mlops_async
+
+    assert RequestExecutor.__module__ == "mlops_async.core.request_execution"
+    assert RequestInvocation.__module__ == "mlops_async.core.request_execution"
+    assert AuthRecoveryAttempt.__module__ == "mlops_async.core.request_execution"
+    assert not hasattr(mlops_async, "PolicyRequestExecutor")
+    assert not hasattr(mlops_async, "RequestExecutor")
 
 
 @pytest.mark.asyncio
-async def test_initial_401_replay_has_an_independent_three_send_transient_retry_budget(
+async def test_raw_requester_has_no_implicit_policy_and_sends_exactly_once() -> None:
+    class _Transport:
+        def __init__(self) -> None:
+            self.sends = 0
+
+        async def request(self, method: HttpMethod, path: str, **_: object) -> RawClientResponse:
+            del path
+            self.sends += 1
+            raise RuntimeError("raw transport failure")
+
+    transport = _Transport()
+    requester = Requester(transport)
+
+    with pytest.raises(RuntimeError, match="raw transport failure"):
+        await requester.request(HttpMethod.GET, "/items")
+
+    assert transport.sends == 1
+
+
+@pytest.mark.asyncio
+async def test_custom_policies_are_injected_and_run_left_to_right_outermost() -> None:
+    events: list[str] = []
+    raw = _RawExecutor([_response()])
+    executor = PolicyRequestExecutor(
+        raw,
+        [_RecordingPolicy("outer", events), _RecordingPolicy("inner", events)],
+    )
+
+    response = await executor.request(HttpMethod.GET, "/items", params={"tag": "one"})
+
+    assert response.status_code == 204
+    assert events == ["outer:before", "inner:before", "inner:after", "outer:after"]
+    assert raw.requests == [
+        RequestInvocation(HttpMethod.GET, "/items", None, {"tag": "one"}, None, None, None)
+    ]
+
+
+@pytest.mark.parametrize(
+    "policies",
+    ([object()], [TransientRetryPolicy(), TransientRetryPolicy()]),
+)
+def test_pipeline_rejects_nonpolicies_and_duplicate_builtin_policies_before_io(
+    policies: list[object],
+) -> None:
+    raw = _RawExecutor([_response()])
+
+    with pytest.raises((TypeError, ValueError), match=r"policy|Policy|duplicate|Duplicate"):
+        PolicyRequestExecutor(raw, policies)
+
+    assert raw.requests == []
+
+
+def test_unauthorized_policy_requires_auth_recovery_capability_before_io() -> None:
+    raw = _RawExecutor([_response()])
+
+    with pytest.raises((TypeError, ValueError), match=r"recovery|Recovery|auth"):
+        PolicyRequestExecutor(raw, [UnauthorizedRecoveryPolicy()])
+
+    assert raw.requests == []
+
+
+@pytest.mark.asyncio
+async def test_classifier_none_leaves_original_error_unchanged_without_retry() -> None:
+    error = RuntimeError("unclassified")
+    raw = _RawExecutor([error])
+    classifier = _FailureMap({})
+    executor = PolicyRequestExecutor(raw, [TransientRetryPolicy()], classifier=classifier)
+
+    with pytest.raises(RuntimeError) as captured:
+        await executor.request(HttpMethod.GET, "/items")
+
+    assert captured.value is error
+    assert classifier.seen == [error]
+    assert len(raw.requests) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", (HttpMethod.GET, HttpMethod.HEAD))
+async def test_transient_policy_retries_only_get_and_head_with_match_case_eligibility(
+    method: HttpMethod,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    initial_token = _access_token("initial")
-    refreshed_token = _access_token("refreshed")
-    storage = InMemoryTokenStorage()
-    storage.set_token(initial_token)
-    unauthorized = RuntimeError("initial 401")
-    first_replay_failure = RuntimeError("first replay timeout")
-    second_replay_failure = RuntimeError("second replay timeout")
-    transport = _AuthenticatedResilienceTransport(
-        [unauthorized, first_replay_failure, second_replay_failure, _response()],
-        {
-            unauthorized: RequestFailure(
-                kind="response",
-                metadata=ResponseFailureMetadata(status_code=401, retry_after=None),
-            ),
-            first_replay_failure: RequestFailure(kind="timeout"),
-            second_replay_failure: RequestFailure(kind="timeout"),
-        },
-    )
-    fetcher = _RefreshRecordingFetcher([refreshed_token])
-    requester = _authenticated_requester(transport, storage, fetcher)
+    error = RuntimeError("temporary")
+    raw = _RawExecutor([error, _response(method)])
+    classifier = _FailureMap({error: RequestFailure(kind="connection")})
+    executor = PolicyRequestExecutor(raw, [TransientRetryPolicy()], classifier=classifier)
     delays: list[float] = []
 
     async def record_sleep(delay: float) -> None:
         delays.append(delay)
 
-    monkeypatch.setattr(requester_mod.asyncio, "sleep", record_sleep)
+    monkeypatch.setattr(policies_mod.asyncio, "sleep", record_sleep)
 
-    response = await requester.request(HttpMethod.GET, "/items")
+    response = await executor.request(method, "/items")
 
     assert response.status_code == 204
-    assert len(transport.requests) == 4
-    assert transport.requests[0] == {
-        "accept": "application/json",
-        "authorization": "Bearer initial",
-    }
-    assert transport.requests[1:] == [
-        {"accept": "application/json", "authorization": "Bearer refreshed"},
-        {"accept": "application/json", "authorization": "Bearer refreshed"},
-        {"accept": "application/json", "authorization": "Bearer refreshed"},
+    assert len(raw.requests) == 2
+    assert len(delays) == 1
+
+
+@pytest.mark.asyncio
+async def test_transient_policy_never_retries_post() -> None:
+    error = RuntimeError("temporary")
+    raw = _RawExecutor([error])
+    classifier = _FailureMap({error: RequestFailure(kind="connection")})
+    executor = PolicyRequestExecutor(raw, [TransientRetryPolicy()], classifier=classifier)
+
+    with pytest.raises(RuntimeError) as captured:
+        await executor.request(HttpMethod.POST, "/items")
+
+    assert captured.value is error
+    assert len(raw.requests) == 1
+
+
+class _RefreshFetcher:
+    def __init__(self, replacement: AccessToken) -> None:
+        self.replacement = replacement
+        self.refreshes: list[AccessToken] = []
+
+    async def fetch_access_token(self) -> AccessToken:
+        raise AssertionError("401 recovery must not use a password-grant fetch")
+
+    async def refresh_access_token(self, token: AccessToken) -> AccessToken:
+        self.refreshes.append(token)
+        return self.replacement
+
+
+class _CancellingRefreshFetcher:
+    def __init__(self, cancellation: asyncio.CancelledError) -> None:
+        self._cancellation = cancellation
+        self.refreshes: list[AccessToken] = []
+
+    async def fetch_access_token(self) -> AccessToken:
+        raise AssertionError("401 recovery must not use a password-grant fetch")
+
+    async def refresh_access_token(self, token: AccessToken) -> AccessToken:
+        self.refreshes.append(token)
+        raise self._cancellation
+
+
+class _AuthenticatedTransport:
+    def __init__(self, outcomes: list[RawClientResponse | BaseException]) -> None:
+        self._outcomes = outcomes
+        self.headers: list[Mapping[str, str] | None] = []
+        self.on_before_next_outcome: Callable[[], None] | None = None
+
+    async def request(
+        self,
+        method: HttpMethod,
+        path: str,
+        *,
+        headers: Mapping[str, str] | None = None,
+        **_: object,
+    ) -> RawClientResponse:
+        del path
+        self.headers.append(None if headers is None else dict(headers))
+        if self.on_before_next_outcome is not None:
+            callback = self.on_before_next_outcome
+            self.on_before_next_outcome = None
+            callback()
+        outcome = self._outcomes.pop(0)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+
+def _authenticated_executor(
+    outcomes: list[RawClientResponse | BaseException],
+    initial: AccessToken,
+    replacement: AccessToken,
+    failures: Mapping[BaseException, RequestFailure],
+) -> tuple[PolicyRequestExecutor, _AuthenticatedTransport, _RefreshFetcher, InMemoryTokenStorage]:
+    storage = InMemoryTokenStorage()
+    storage.set_token(initial)
+    fetcher = _RefreshFetcher(replacement)
+    transport = _AuthenticatedTransport(outcomes)
+    requester = Requester(
+        transport,
+        auth_provider=AuthProvider(TokenManager(storage, fetcher)),
+    )
+    executor = PolicyRequestExecutor(
+        requester,
+        [UnauthorizedRecoveryPolicy(), TransientRetryPolicy()],
+        classifier=_FailureMap(failures),
+    )
+    return executor, transport, fetcher, storage
+
+
+@pytest.mark.asyncio
+async def test_unauthenticated_401_is_passthrough_without_refresh_or_replay() -> None:
+    unauthorized = RuntimeError("401")
+    raw = _RawExecutor([unauthorized])
+    classifier = _FailureMap(
+        {
+            unauthorized: RequestFailure(
+                kind="response", metadata=ResponseFailureMetadata(status_code=401, retry_after=None)
+            )
+        }
+    )
+    executor = PolicyRequestExecutor(raw, [TransientRetryPolicy()], classifier=classifier)
+
+    with pytest.raises(RuntimeError) as captured:
+        await executor.request(HttpMethod.GET, "/items")
+
+    assert captured.value is unauthorized
+    assert len(raw.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_401_refresh_uses_attempt_local_token_and_replay_reenters_inner_retry_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    initial = _token("initial")
+    replacement = _token("replacement")
+    unauthorized = RuntimeError("401")
+    replay_timeout_one = RuntimeError("replay timeout 1")
+    replay_timeout_two = RuntimeError("replay timeout 2")
+    executor, transport, fetcher, _ = _authenticated_executor(
+        [unauthorized, replay_timeout_one, replay_timeout_two, _response()],
+        initial,
+        replacement,
+        {
+            unauthorized: RequestFailure(
+                kind="response", metadata=ResponseFailureMetadata(status_code=401, retry_after=None)
+            ),
+            replay_timeout_one: RequestFailure(kind="timeout"),
+            replay_timeout_two: RequestFailure(kind="timeout"),
+        },
+    )
+    delays: list[float] = []
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr(policies_mod.asyncio, "sleep", record_sleep)
+
+    response = await executor.request(HttpMethod.GET, "/items")
+
+    assert response.status_code == 204
+    assert fetcher.refreshes == [initial]
+    assert [headers["authorization"] for headers in transport.headers if headers is not None] == [
+        "Bearer initial",
+        "Bearer replacement",
+        "Bearer replacement",
+        "Bearer replacement",
     ]
-    assert fetcher.fetch_calls == 0
-    assert fetcher.refresh_inputs == [initial_token]
     assert len(delays) == 2
 
 
 @pytest.mark.asyncio
-async def test_changed_token_401_skips_refresh_and_replays_using_current_token() -> None:
-    initial_token = _access_token("initial")
-    current_token = _access_token("current")
-    storage = InMemoryTokenStorage()
-    storage.set_token(initial_token)
-    unauthorized = RuntimeError("initial 401")
-
-    def replace_stored_token() -> BaseException:
-        storage.set_token(current_token)
-        return unauthorized
-
-    transport = _AuthenticatedResilienceTransport(
-        [replace_stored_token, _response()],
+async def test_changed_token_after_the_observed_attempt_skips_stale_refresh_and_replays() -> None:
+    initial = _token("initial")
+    changed = _token("changed")
+    unauthorized = RuntimeError("401")
+    executor, transport, fetcher, storage = _authenticated_executor(
+        [unauthorized, _response()],
+        initial,
+        changed,
         {
             unauthorized: RequestFailure(
-                kind="response",
-                metadata=ResponseFailureMetadata(status_code=401, retry_after=None),
+                kind="response", metadata=ResponseFailureMetadata(status_code=401, retry_after=None)
             )
         },
     )
-    fetcher = _RefreshRecordingFetcher([])
-    requester = _authenticated_requester(transport, storage, fetcher)
+    transport.on_before_next_outcome = lambda: storage.set_token(changed)
 
-    response = await requester.request(HttpMethod.GET, "/items")
+    response = await executor.request(HttpMethod.GET, "/items")
 
     assert response.status_code == 204
-    assert transport.requests == [
-        {"accept": "application/json", "authorization": "Bearer initial"},
-        {"accept": "application/json", "authorization": "Bearer current"},
+    assert fetcher.refreshes == []
+    assert [headers["authorization"] for headers in transport.headers if headers is not None] == [
+        "Bearer initial",
+        "Bearer changed",
     ]
-    assert fetcher.fetch_calls == 0
-    assert fetcher.refresh_inputs == []
-    assert storage.get_token() is current_token
 
 
 @pytest.mark.asyncio
-async def test_retry_path_cancellation_propagates_without_another_send_or_refresh(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    initial_token = _access_token("initial")
-    storage = InMemoryTokenStorage()
-    storage.set_token(initial_token)
-    retryable_error = RuntimeError("transient timeout")
-    transport = _AuthenticatedResilienceTransport(
-        [retryable_error],
-        {retryable_error: RequestFailure(kind="timeout")},
-    )
-    fetcher = _RefreshRecordingFetcher([])
-    requester = _authenticated_requester(transport, storage, fetcher)
-    cancellation = asyncio.CancelledError()
-
-    async def cancel_sleep(_delay: float) -> None:
-        raise cancellation
-
-    monkeypatch.setattr(requester_mod.asyncio, "sleep", cancel_sleep)
-
-    with pytest.raises(asyncio.CancelledError) as error_info:
-        await requester.request(HttpMethod.GET, "/items")
-
-    assert error_info.value is cancellation
-    assert len(transport.requests) == 1
-    assert fetcher.fetch_calls == 0
-    assert fetcher.refresh_inputs == []
-
-
-@pytest.mark.asyncio
-async def test_401_refresh_cancellation_propagates_without_replay_or_another_refresh() -> None:
-    initial_token = _access_token("initial")
-    storage = InMemoryTokenStorage()
-    storage.set_token(initial_token)
-    unauthorized = RuntimeError("initial 401")
-    cancellation = asyncio.CancelledError()
-    transport = _AuthenticatedResilienceTransport(
+async def test_cleared_token_after_the_observed_attempt_does_not_refresh_or_replay() -> None:
+    initial = _token("initial")
+    unauthorized = RuntimeError("401")
+    executor, transport, fetcher, storage = _authenticated_executor(
         [unauthorized],
+        initial,
+        _token("unused"),
         {
             unauthorized: RequestFailure(
-                kind="response",
-                metadata=ResponseFailureMetadata(status_code=401, retry_after=None),
+                kind="response", metadata=ResponseFailureMetadata(status_code=401, retry_after=None)
             )
         },
     )
-    fetcher = _RefreshRecordingFetcher([cancellation])
-    requester = _authenticated_requester(transport, storage, fetcher)
+    transport.on_before_next_outcome = lambda: storage.set_token(None)
 
-    with pytest.raises(asyncio.CancelledError) as error_info:
-        await requester.request(HttpMethod.GET, "/items")
+    with pytest.raises(RuntimeError) as captured:
+        await executor.request(HttpMethod.GET, "/items")
 
-    assert error_info.value is cancellation
-    assert len(transport.requests) == 1
-    assert fetcher.fetch_calls == 0
-    assert fetcher.refresh_inputs == [initial_token]
-    assert storage.get_token() is initial_token
+    assert captured.value is unauthorized
+    assert fetcher.refreshes == []
+    assert [headers["authorization"] for headers in transport.headers if headers is not None] == [
+        "Bearer initial"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_401_refresh_cancellation_propagates_without_replay() -> None:
+    initial = _token("initial")
+    unauthorized = RuntimeError("401")
+    cancellation = asyncio.CancelledError()
+    storage = InMemoryTokenStorage()
+    storage.set_token(initial)
+    fetcher = _CancellingRefreshFetcher(cancellation)
+    transport = _AuthenticatedTransport([unauthorized, _response()])
+    requester = Requester(
+        transport,
+        auth_provider=AuthProvider(TokenManager(storage, fetcher)),
+    )
+    executor = PolicyRequestExecutor(
+        requester,
+        [UnauthorizedRecoveryPolicy()],
+        classifier=_FailureMap(
+            {
+                unauthorized: RequestFailure(
+                    kind="response",
+                    metadata=ResponseFailureMetadata(status_code=401, retry_after=None),
+                )
+            }
+        ),
+    )
+
+    with pytest.raises(asyncio.CancelledError) as captured:
+        await executor.request(HttpMethod.GET, "/items")
+
+    assert captured.value is cancellation
+    assert fetcher.refreshes == [initial]
+    assert len(transport.headers) == 1
+
+
+@pytest.mark.asyncio
+async def test_nested_pipeline_forwards_auth_recovery_without_skipping_inner_policy() -> None:
+    initial = _token("initial")
+    replacement = _token("replacement")
+    unauthorized = RuntimeError("401")
+    events: list[str] = []
+    storage = InMemoryTokenStorage()
+    storage.set_token(initial)
+    fetcher = _RefreshFetcher(replacement)
+    transport = _AuthenticatedTransport([unauthorized, _response()])
+    requester = Requester(
+        transport,
+        auth_provider=AuthProvider(TokenManager(storage, fetcher)),
+    )
+    inner = PolicyRequestExecutor(requester, [_RecordingPolicy("inner", events)])
+    outer = PolicyRequestExecutor(
+        inner,
+        [UnauthorizedRecoveryPolicy()],
+        classifier=_FailureMap(
+            {
+                unauthorized: RequestFailure(
+                    kind="response",
+                    metadata=ResponseFailureMetadata(status_code=401, retry_after=None),
+                )
+            }
+        ),
+    )
+
+    response = await outer.request(HttpMethod.GET, "/items")
+
+    assert response.status_code == 204
+    assert fetcher.refreshes == [initial]
+    assert events == ["inner:before", "inner:before", "inner:after"]
+    assert [headers["authorization"] for headers in transport.headers if headers is not None] == [
+        "Bearer initial",
+        "Bearer replacement",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_cancellation_from_retry_wait_or_refresh_is_never_swallowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    retry_error = RuntimeError("retry")
+    raw = _RawExecutor([retry_error])
+    retry_executor = PolicyRequestExecutor(
+        raw,
+        [TransientRetryPolicy()],
+        classifier=_FailureMap({retry_error: RequestFailure(kind="timeout")}),
+    )
+
+    async def cancel_sleep(_: float) -> None:
+        raise asyncio.CancelledError()
+
+    monkeypatch.setattr(policies_mod.asyncio, "sleep", cancel_sleep)
+    with pytest.raises(asyncio.CancelledError):
+        await retry_executor.request(HttpMethod.GET, "/items")
+    assert len(raw.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_token_manager_coordinates_conditional_refresh_for_policy_recovery() -> None:
+    initial = _token("initial")
+    replacement = _token("replacement")
+    storage = InMemoryTokenStorage()
+    storage.set_token(initial)
+    fetcher = _RefreshFetcher(replacement)
+    manager = TokenManager(storage, fetcher)
+
+    results = await asyncio.gather(*(manager.refresh_if_current(initial) for _ in range(5)))
+
+    assert fetcher.refreshes == [initial]
+    assert results == [replacement] * 5

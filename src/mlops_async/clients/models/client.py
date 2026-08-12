@@ -15,7 +15,7 @@ from mlops_async.clients.models.value_objects import (
     parse_models_page,
 )
 from mlops_async.core.http_request import EndpointPath
-from mlops_async.core.requester import Requester
+from mlops_async.core.request_execution import RequestExecutor
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse
 from mlops_async.transport.exceptions import HttpErrorContext, InvalidJSONResponseException
 
@@ -23,7 +23,7 @@ from mlops_async.transport.exceptions import HttpErrorContext, InvalidJSONRespon
 class ModelsClient:
     """Expose one-request Models list and detail operations."""
 
-    def __init__(self, requester: Requester) -> None:
+    def __init__(self, requester: RequestExecutor) -> None:
         """Store the caller-owned request composition boundary."""
         self._requester = requester
 

@@ -11,6 +11,7 @@ import mlops_async.core.client as core_client
 import mlops_async.transport.http_client as transport_http_client
 from mlops_async.core.client import Client
 from mlops_async.core.http_request import HttpRequest
+from mlops_async.core.request_execution import RequestExecutor, RequestFailureClassifier
 from mlops_async.core.types import JSONValue, RawClientResponse
 
 
@@ -93,10 +94,19 @@ def test_client_primitive_adapter_and_canonical_execution_have_matching_request_
     assert get_type_hints(Client.request)["return"] is RawClientResponse
 
 
-def test_client_exposes_only_the_internal_failure_classification_boundary() -> None:
-    failure_for_signature = inspect.signature(Client.failure_for)
-    failure_for_hints = get_type_hints(Client.failure_for)
+def test_request_execution_contract_owns_injected_failure_classification_not_client() -> None:
+    request_signature = inspect.signature(RequestExecutor.request)
 
-    assert tuple(failure_for_signature.parameters) == ("self", "exception")
-    assert "RequestFailure" in str(failure_for_hints["return"])
+    assert tuple(request_signature.parameters) == (
+        "self",
+        "method",
+        "path",
+        "headers",
+        "params",
+        "json_body",
+        "content",
+        "options",
+    )
+    assert hasattr(RequestFailureClassifier, "classify")
+    assert not hasattr(Client, "failure_for")
     assert "httpx" not in inspect.getsource(core_client)

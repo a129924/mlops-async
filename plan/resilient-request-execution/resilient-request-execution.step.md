@@ -1,40 +1,38 @@
 ---
 topic: resilient-request-execution
-phase: plan-authoring
+phase: plan-review
 created: 2026-08-11
 ---
 
-# Resilient Request Execution Step Tracking
+# Resilient Request Execution — DI Rework Step Tracking
 
-> **Executor**: Mark each step `[X]` when complete.
-> All Implementation Steps must be `[X]` before submitting for `python-implementation-review`.
-> Current workflow state is `planned`; Main Agent routing is required before `creator-in-progress`.
+> **Executor**: Mark a step `[X]` only after the corresponding DI rework is complete.
+> Every prior fixed-decorator completion mark is invalidated by the human-approved architecture replacement.
+> All steps must be `[X]` before `python-implementation-review`.
 
 ## Workflow Stages
 
-- [ ] plan-authoring
-- [ ] plan-review
-- [ ] tdd-test-authoring
-- [ ] implementation
-- [ ] implementation-review
-- [ ] code-review
+- [X] plan-authoring
+- [X] plan-review
+- [X] tdd-test-authoring
+- [X] implementation
+- [X] implementation-review
+- [X] code-review
 
 ## Implementation Steps
 
-- [X] 1. In `src/mlops_async/core/request_failure.py` and `src/mlops_async/core/client.py`, add the immutable non-exported failure carrier and fully typed `Client.failure_for(exception) -> RequestFailure | None` classification without importing transport or `httpx` from core.
-- [X] 2. In `src/mlops_async/transport/exceptions.py` and `src/mlops_async/transport/http_client.py`, attach failure metadata while retaining `HttpClient` single-send behavior and original exception identity, message, context, and properties.
-- [X] 3. In `src/mlops_async/core/auth.py`, implement the locked `TokenManager.refresh_if_current` coordination for same-token refresh, changed-token skip/current replay, cleared-storage no-fetch, and refresh/cancellation storage preservation.
-- [X] 4. In `src/mlops_async/core/requester.py`, compose private `_RequesterResilienceDecorator` around the canonical primitive request path with literal `match`/`case` GET/HEAD eligibility, default noneligible handling, eligible failure classification, independent initial/replay three-send budgets, jitter, `Retry-After`, and per-send timeout.
-- [X] 5. In `src/mlops_async/core/requester.py` and the raw `TokenEndpointClient.request_json` composition route, implement initial-only conditional `401` refresh plus one replay with no secondary refresh, while preserving the raw-token decorator bypass.
-- [X] 6. In `tests/unit/core/test_request_failure.py`, `tests/unit/core/test_request_resilience.py`, `tests/unit/core/test_client_contract.py`, `tests/unit/core/test_requester_auth_boundary.py`, `tests/unit/core/test_token_manager.py`, `tests/unit/transport/test_exceptions.py`, and `tests/unit/transport/test_http_client.py`, add focused tests for carrier boundaries, GET/HEAD/default method branches, recovery/budgets/delay, concurrent 401, cancellation, bypass, and exception compatibility.
-- [X] 7. In `docs/ARCHITECTURE.md` and `docs/standards/http-client-auth-boundary.md`, document the private resilience boundary, bounded retry/replay, raw-token bypass, and the prohibition on POST retry/replay without endpoint runtime evidence and explicit approval.
+- [X] 1. Add `core.request_execution` stable non-root contracts: `RequestExecutor`, immutable `RequestInvocation`, immutable `AuthRecoveryAttempt`, `AuthRecoveryExecutor`, and injected `RequestFailureClassifier`.
+- [X] 2. Refactor `Requester` to raw-only auth/header composition and per-attempt recovery capability; remove the fixed decorator/context, shared token state, and `Client.failure_for` coupling.
+- [X] 3. Add `src/mlops_async/resilience/__init__.py`, `classifier.py`, `executor.py`, and `policies.py` in their locked ownership split: classifier in `classifier.py`, decorator in `executor.py`, and policy types in `policies.py`; repair the current all-in-`policies.py` drift rather than changing the plan.
+- [X] 4. Implement `UnauthorizedRecoveryPolicy` and `TransientRetryPolicy` with the locked GET/HEAD match/case, retry, refresh/replay, budget, Retry-After, and cancellation contracts.
+- [X] 5. Preserve transport metadata/single-send semantics and change Projects, Models, and Job Execution dependency annotations to `RequestExecutor` without runtime request-contract changes.
+- [X] 6. Replace focused tests with pipeline, custom policy, classifier, retry, recovery, token, cancellation, bypass, and endpoint request-shape coverage.
+- [X] 7. Modify `tach.toml` with exactly `[[modules]] path="mlops_async.resilience" depends_on=["mlops_async.core"]`; prove the one-way projection using Tach with no global relax/suppression, reverse dependency, or transport exception.
+- [X] 8. Update architecture and auth-boundary documentation for manual DI composition, non-root stable API, raw token bypass, and mutation exclusions.
 
-> Reviewer rework (python-implementation-review): final evidence now covers the completed tests and documentation boundaries for Steps 6 and 7. The independent implementation-review workflow stage remains pending.
+## Required Validation Evidence
 
-## Completed Validation Evidence
-
-- Feature static checks: Ruff format check, Ruff check, Pyright, and Tach PASS.
-- Feature targeted tests: 112 passed.
-- Exact feature WSL run: 591 passed, 10 skipped, 1 failed, with 93.72% coverage; the sole failure was the WSL Git linked-worktree `.git` guard subprocess.
-- ext4 byte-identical overlay: 592 passed, 10 skipped functionally; Git import guard 7 passed and the feature manifest was unchanged before/after. Coverage was 0 because the copied environment used a symlinked virtual environment.
-- Exact feature native `git diff --check`: PASS.
+- Focused WSL validation: 270 passed; Ruff format check, Ruff check, Pyright, and Tach passed.
+- Tach evidence confirms the exact `mlops_async.resilience -> mlops_async.core` declaration and no broader configuration relaxation.
+- Full WSL pytest: 596 passed, 10 skipped, 92.70% coverage. The sole nonzero condition is the user-accepted known linked-worktree Git guard exit 128; it remains disclosed as an environment exception, not a full-suite pass.
+- Source, tests, and docs for all eight DI rework steps are complete. Independent plan/implementation/code review and Draft PR publication/human review routing remain pending.

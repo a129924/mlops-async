@@ -2,33 +2,41 @@
 
 ## Goal
 
-在 authenticated `Requester` 邊界實作私有、可驗證且有界的 request resilience：符合資格的 `GET`/`HEAD` 可處理指定暫時失敗、初始 401 的一次條件式 refresh，以及一次 replay；公開 API 與既有例外契約維持不變。
+Replace PR #68's fixed private `Requester` decorator with a composable dependency-injection boundary. `Requester` is always raw; consumers explicitly decorate it with ordered policies when they require resilience.
 
 ## Non-Goal
 
-- 不變更任何公開 constructor、export、client family API、facade 或 DI。
-- 不將 resilience 套用到非 `GET`/`HEAD`、raw token endpoint route、背景工作或 live E2E。
-- 不在本 topic 加入 release metadata、版本變更或發布行為。
+- Do not make policy composition implicit, global, or package-root exported.
+- Do not retry/replay unsafe methods, change endpoint public APIs, wrap token requests, or promote/release the new stable submodule APIs in this topic.
 
-## In-Scope
+## Locked Contracts
 
-### Internal failure model
+### Stable submodule contracts
 
-- 新增未 export 的 `src/mlops_async/core/request_failure.py`。
-- 定義 immutable `ResponseFailureMetadata(status_code, retry_after)`。
-- 定義 `RequestFailure(kind, connection|timeout|response)`；其 `kind` 僅表達 `connection`、`timeout` 或 `response`。
-- core 不得 import transport 或 `httpx`；failure carrier 必須能由 core 消費而不反向耦合 transport。
+- `mlops_async.core.request_execution` exports `RequestExecutor`, `RequestInvocation`, `AuthRecoveryExecutor`, `AuthRecoveryAttempt`, and `RequestFailureClassifier`; none are re-exported from `mlops_async` package root.
+- `RequestExecutor.request` keeps the current request call shape: `method`, `path`, optional `headers`, `params`, `json_body`, `content`, and `options`, returning `RawClientResponse` asynchronously.
+- `RequestInvocation` is frozen and contains the complete request data used by the policy chain. Policies must forward the same immutable invocation; they may not use shared mutable request or token state.
+- `AuthRecoveryAttempt` is frozen and includes the response/failure outcome for one send plus the exact observed `AccessToken | None`. `AuthRecoveryExecutor` provides attempt-aware send and conditional-refresh/replay support. It does not expose a mutable “last token”.
+- `RequestFailureClassifier.classify(error) -> RequestFailure | None` is injected into policies. `Client.failure_for` is removed; core does not import transport or `httpx`.
 
-### Transport to core classification boundary
+### Resilience package and composition
 
-- `Client` 新增內部 `failure_for(exception) -> RequestFailure | None`，只作已知 transport failure 到 core carrier 的分類；未知例外仍遵循既有傳播契約。
-- `HttpClient` 保持 single-send 語意。它不得自行重試、refresh 或 replay。
-- `HttpClient` 對既有例外保留同一 exception identity、message、context 與 properties，並加上 failure metadata 供 `Client.failure_for` 使用。
+- `mlops_async.resilience` exports `RequestPolicy`, `PolicyRequestExecutor`, `UnauthorizedRecoveryPolicy`, `TransientRetryPolicy`, and `TransportRequestFailureClassifier` from that submodule only.
+- `PolicyRequestExecutor(raw, policies, classifier=TransportRequestFailureClassifier())` is the outer decorator. The input sequence is left-to-right from outermost to innermost. The canonical assembly is `PolicyRequestExecutor(requester, [UnauthorizedRecoveryPolicy(...), TransientRetryPolicy(...)])`.
+- A policy receives a `RequestInvocation` and a typed downstream executor. Built-ins preserve `AuthRecoveryExecutor` capability where the wrapped raw executor supports it, so an Unauthorized replay enters its complete inner chain, including a fresh transient retry budget.
+- Construction rejects a value that is not a `RequestPolicy`, a built-in policy that lacks its required recovery capability, and repeated built-in policy types. Custom policies may be supplied once or multiple times when they satisfy `RequestPolicy`.
+- Placement is fixed: `resilience/classifier.py` owns `TransportRequestFailureClassifier`, `resilience/executor.py` owns `PolicyRequestExecutor`, `resilience/policies.py` owns `RequestPolicy`, `UnauthorizedRecoveryPolicy`, and `TransientRetryPolicy`, and `resilience/__init__.py` owns stable submodule exports. Existing classifier/executor logic in `policies.py` alone is implementation drift and must be split; this specification does not follow the drift.
+- `tach.toml` adds exactly `[[modules]] path="mlops_async.resilience" depends_on=["mlops_async.core"]`. This is a narrow one-way architecture projection, not a repository-wide relax/suppression; no reverse or transport dependency is authorized.
 
-### Requester resilience state machine
+### Raw requester and classification boundary
 
-- 在 `Requester` 加入私有 `_RequesterResilienceDecorator`，只包住既有的 primitive/canonical request 執行點。
-- method eligibility 必須使用 Python `match`/`case`，且精確採用：
+- `Requester` implements `RequestExecutor` and `AuthRecoveryExecutor`. Its responsibilities are auth/header composition, request dispatch, immutable attempt observation, and `TokenManager.refresh_if_current`; it installs no policy and does no retry/replay itself.
+- `HttpClient` remains single-send. Transport exceptions retain identity, message, context, and observable properties while exposing the existing failure metadata consumed by `TransportRequestFailureClassifier`.
+- `TokenEndpointClient.request_json` remains raw and cannot enter a `PolicyRequestExecutor` through production composition.
+
+### Policy behavior
+
+- Both built-ins determine safe-method eligibility with exactly:
 
   ```python
   match method:
@@ -38,64 +46,15 @@
           ...
   ```
 
-  不得使用 membership check 或 string comparison。
-- eligible temporary failure 僅為 connection、timeout 與 HTTP `429`、`502`、`503`、`504`。
-- 初始 attempt 與 replay 各自最多 3 次 send（含第一次 send）。
-- sleep 使用 base `0.25`、exponential backoff、cap `2` 的 jitter。`Retry-After` 支援 delta-seconds 與 HTTP-date；結果 clamp 為 `0..30`，invalid value 回退至一般 jitter/backoff。
-- 每一次 send 都沿用 per-send timeout；重試不得把多次 send 合併為一個較大的總 timeout。
+  Membership and string comparisons are forbidden for this decision.
+- `TransientRetryPolicy` retries only classified connection, timeout, response `429`, `502`, `503`, or `504`; nonclassified errors pass through. Each invocation path has at most three sends including its initial send. Delay is jittered exponential from `0.25`, capped at `2`; valid delta-seconds or HTTP-date `Retry-After` is clamped to `0..30`, otherwise ordinary delay applies. Every send retains its existing per-send timeout.
+- `UnauthorizedRecoveryPolicy` handles only a classified 401 on an authenticated GET/HEAD initial attempt. It uses the exact observed token with `refresh_if_current`, performs at most one refresh and one replay, never refreshes during replay, and passes unauthenticated 401 unchanged. A changed token skips refresh and replays current state; cleared storage does no fetch/refresh. `CancelledError` is immediately propagated and refresh failure does not overwrite existing storage.
+- Initial request and replay each enter `TransientRetryPolicy` with independent three-send budgets. POST/PUT/PATCH/DELETE never retry or replay.
 
-### 401 refresh and replay
+## File and Test Contract
 
-- `401` 最終失敗保持 generic，不創造新的公開例外。
-- 只有 initial request 可作一次 `TokenManager.refresh_if_current`；replay 或其 retry 後的 401 絕不再 refresh。
-- 若 storage token 已被其他協作者改變，跳過本次 refresh 並以 current token replay。
-- 若 storage 已清除，禁止 fetch/refresh；保留既有失敗路徑。
-- refresh failure 或 `asyncio.CancelledError` 必須保持 storage 狀態；cancel 不可轉譯或吞掉。
-- replay 僅一次、有自己的三-send budget，且無第二次 refresh。
-- raw `TokenEndpointClient.request_json` 明確 bypass 此 decorator。
+The exact Written/Modify/ReadOnly/Deleted paths in `requirements.md` are binding. Projects, Models, and Job Execution constructors retain their existing call shape but type their requester dependency as `RequestExecutor`. Tests must prove raw/decorated substitutability, policy ordering, 401 and retry scenarios, pipeline rejection, classifier behavior, token raw-route bypass, and unchanged endpoint request shapes.
 
-## Out-Of-Scope
+## Validation and Risk Boundary
 
-- 非 `GET`/`HEAD` retry/replay，包括 `POST`。
-- token endpoint retry、公開 API/facade/DI、背景工作、live E2E、release 工作與穩定函式庫 metadata。
-
-## ReadOnly
-
-- 公開 family constructors、exports、raw `TokenEndpointClient.request_json` route。
-- `README.md`、`VERSION`、`pyproject.toml`、`uv.lock`、`.github/agents/*`。
-
-## Written
-
-- `src/mlops_async/core/request_failure.py`
-- `tests/unit/core/test_request_failure.py`
-- `tests/unit/core/test_request_resilience.py`
-
-## Modify
-
-- `src/mlops_async/core/client.py`
-- `src/mlops_async/core/auth.py`
-- `src/mlops_async/core/requester.py`
-- `src/mlops_async/transport/exceptions.py`
-- `src/mlops_async/transport/http_client.py`
-- `tests/unit/core/test_client_contract.py`
-- `tests/unit/core/test_requester_auth_boundary.py`
-- `tests/unit/core/test_token_manager.py`
-- `tests/unit/transport/test_exceptions.py`
-- `tests/unit/transport/test_http_client.py`
-- `docs/ARCHITECTURE.md`
-- `docs/standards/http-client-auth-boundary.md`
-
-## Deleted
-
-- None.
-
-## TestCase
-
-- `test_request_failure.py`: immutable carrier、`kind`、response metadata 與 core 不反向 import transport/httpx 的 boundary。
-- `test_request_resilience.py`: `GET`、`HEAD`、`POST` match/case branches；eligible classification；每一 initial/replay 3-send budget；jitter base/exponential/cap；`Retry-After` delta/date/clamp/invalid fallback；per-send timeout。
-- `test_requester_auth_boundary.py` 與 `test_token_manager.py`: concurrent 401 的 existing-lock refresh、changed token skip/current replay、cleared storage no fetch、一次 replay、無第二次 refresh、refresh failure 與 cancellation storage preservation、raw token bypass。
-- transport tests: metadata attachment，以及原 exception identity/message/context/properties preservation。
-
-## Evidence and Risk Boundary
-
-本 spec 為明確的人類核准聊天 contract 的執行面轉錄；它不是 live Viya evidence，也不把 request-contract shape 當作 runtime 行為證明。除非另有 endpoint runtime proof 與人類核准，禁止對 `POST` 或其他非 `GET`/`HEAD` 新增 retry/replay。
+Run focused WSL tests, Ruff format check, Ruff check, Pyright, Tach, and full pytest. Tach must prove the exact `mlops_async.resilience -> mlops_async.core` projection and no broader relaxations. PR #68 remains Draft through rework, independent plan review, implementation review, and code review; human review is the next automatic stop after the updated Draft PR. Do not represent the known linked-worktree Git guard exception as a green full suite.

@@ -177,24 +177,26 @@ than replace normal source files.
 - `git-post-merge-workflow`
 - `git-release-management`
 
-## Private resilient request execution
+## Composable resilient request execution
 
-The authenticated `Requester` path has a private resilience decorator around
-both primitive and canonical JSON-domain sends. It only treats `GET` and
-`HEAD` as eligible. Eligible connection, timeout, and `429`, `502`, `503`, or
-`504` response failures receive at most three sends per initial or replay path.
-An initial `401` may coordinate one conditional token refresh and one replay;
-the replay never refreshes again. This policy uses direct awaits only and keeps
-the transport's per-send timeout unchanged.
+`Requester` is a raw `RequestExecutor`: it owns auth/header composition and
+sends exactly once. Resilience is caller-owned wiring through
+`PolicyRequestExecutor(raw, policies)`, with policies listed left-to-right from
+outermost to innermost. The canonical authenticated composition is
+`UnauthorizedRecoveryPolicy` outside `TransientRetryPolicy`.
 
-`HttpClient` remains a single-send transport. It annotates its existing
-exceptions with private, transport-neutral failure metadata; `core` classifies
-that metadata without importing `httpx` or the transport package. Raw
-`TokenEndpointClient.request_json` stays on the direct transport path and does
-not enter the requester resilience decorator.
+The stable internal contracts live in `core.request_execution`; policy types
+and the transport-backed failure classifier live in `mlops_async.resilience`.
+They are intentionally not package-root exports and no default factory installs
+them implicitly. `HttpClient` remains single-send and only attaches the
+transport-neutral metadata consumed by the injected classifier. Raw
+`TokenEndpointClient.request_json` stays outside every policy chain.
 
-`POST` and every other non-eligible method have no retry or replay policy.
-Adding such behavior requires endpoint runtime evidence and explicit approval.
+Only `GET` and `HEAD` are eligible: 401 recovery may conditionally refresh and
+replay once, and transient retries cover connection, timeout, `429`, `502`,
+`503`, and `504` failures with independent initial/replay budgets. `POST` and
+all other methods receive neither retry nor replay without separate runtime
+evidence and approval.
 
 ## Custom agents
 

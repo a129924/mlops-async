@@ -16,8 +16,9 @@ from mlops_async.clients.projects import (
     ProjectsPage,
     ProjectsResponseError,
 )
-from mlops_async.core.requester import Requester
+from mlops_async.core.request_execution import RequestExecutor
 from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
+from mlops_async.resilience import PolicyRequestExecutor
 from mlops_async.transport.exceptions import HttpErrorContext, HttpTransportException
 
 
@@ -88,6 +89,26 @@ async def test_list_projects_builds_one_default_page_request_and_parses_semantic
     assert page.count == 3
     assert page.items[0].id == "p-1"
     assert requester.requests == [
+        _RecordedRequest(
+            HttpMethod.GET,
+            "/modelRepository/projects",
+            {},
+            {"start": "0", "limit": "20"},
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_projects_client_accepts_a_decorated_request_executor_without_shape_drift() -> None:
+    raw = _FakeRequester(
+        [_page(count=1, start=0, limit=20, items=[{"id": "p-1", "name": "Credit"}])]
+    )
+    client = ProjectsClient(PolicyRequestExecutor(raw, []))
+
+    page = await client.list_projects()
+
+    assert page.items[0].id == "p-1"
+    assert raw.requests == [
         _RecordedRequest(
             HttpMethod.GET,
             "/modelRepository/projects",
@@ -445,6 +466,7 @@ def test_projects_client_has_only_the_frozen_family_local_public_surface() -> No
     assert not hasattr(mlops_async, "ProjectsClient")
     assert not hasattr(ProjectsClient, "close")
     assert (
-        inspect.signature(ProjectsClient).parameters["requester"].annotation == Requester.__name__
+        inspect.signature(ProjectsClient).parameters["requester"].annotation
+        == RequestExecutor.__name__
     )
     assert not hasattr(ProjectsClient, "get_champion_contents")

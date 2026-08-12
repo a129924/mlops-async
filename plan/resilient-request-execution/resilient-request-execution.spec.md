@@ -1,46 +1,30 @@
-# Resilient Request Execution Specification
+# Resilient Request Execution — DI Rework Specification
 
-## Acceptance Criteria
+## Public Contract
 
-1. The canonical authenticated request path uses an internal, non-exported immutable failure carrier and `Client.failure_for(exception) -> RequestFailure | None`; core does not import transport or `httpx`.
-2. `HttpClient` remains single-send and preserves the original failure exception identity, message, context, and properties while making allowed failure metadata available to core classification.
-3. Python `match`/`case` makes only `HttpMethod.GET` and `HttpMethod.HEAD` eligible; all other methods, including `POST`, use the default noneligible branch.
-4. Eligible connection, timeout, `429`, `502`, `503`, and `504` failures retry with an initial and a replay budget of at most three sends each, jittered exponential delay from `0.25` capped at `2`, and `Retry-After` delta/date parsing clamped to `0..30`.
-5. An initial `401` may perform one same-lock `refresh_if_current`; changed token state replays without refresh, cleared storage performs no fetch/refresh, refresh failure or cancellation preserves storage, and replay never performs a second refresh.
-6. Every send retains its per-send timeout, cancellation propagates immediately, and raw `TokenEndpointClient.request_json` bypasses the decorator.
-7. No public API, export, constructor, facade, mutation retry, release surface, or raw-token endpoint contract changes.
+- `mlops_async.core.request_execution` exports the stable non-root `RequestExecutor`, frozen `RequestInvocation`, `AuthRecoveryExecutor`, frozen `AuthRecoveryAttempt`, and `RequestFailureClassifier` contracts.
+- `mlops_async.resilience` exports the stable non-root `RequestPolicy`, `PolicyRequestExecutor`, `UnauthorizedRecoveryPolicy`, `TransientRetryPolicy`, and `TransportRequestFailureClassifier` surface.
+- `resilience/classifier.py` owns the classifier, `resilience/executor.py` owns the decorator, and `resilience/policies.py` owns policy types; current all-in-`policies.py` implementation is drift to repair, not a placement decision.
+- No symbol is re-exported by `mlops_async.__init__`. Existing endpoint constructors retain their runtime call shape and replace only their annotation with `RequestExecutor`.
 
-## Behavioral Scenarios
+## Required Behavior
 
-### Scenario 1: Eligible temporary failure recovers
-- **Given**: A canonical `GET` or `HEAD` request receives a classified connection, timeout, `429`, `502`, `503`, or `504` failure.
-- **When**: The request is retried within its active initial or replay path budget.
-- **Then**: It makes no more than three sends in that path, uses the locked delay policy, retains a per-send timeout, and returns the recovered response if a send succeeds.
+1. Raw `Requester` composes auth/default/request headers and delegates exactly one transport send; it installs no resilience policy.
+2. `PolicyRequestExecutor` decorates a raw executor using supplied policies left-to-right outermost-to-innermost. `UnauthorizedRecoveryPolicy` outer + `TransientRetryPolicy` inner is canonical; a replay enters the entire inner chain.
+3. Policy construction rejects non-policies, duplicate built-in policy types, and an unauthorized policy around an executor without auth-recovery capability. Custom policies remain injectable and ordered.
+4. Eligibility is literal `match/case`: only GET/HEAD receive retry/recovery. Transient retry is restricted to classified connection/timeout/429/502/503/504 with three sends per initial or replay path, locked jitter/backoff/Retry-After, and no cancellation swallowing.
+5. Classified authenticated 401 receives at most one `refresh_if_current` and one replay. Exact observed token is attempt-local; changed token replays current state without refresh, cleared state does neither fetch nor refresh, and replay never refreshes again.
+6. Default classifier reads preserved transport failure metadata. `Client.failure_for` does not exist. Token endpoint requests remain raw.
+7. `tach.toml` declares exactly `[[modules]] path="mlops_async.resilience" depends_on=["mlops_async.core"]`; it is a one-way architecture projection, not a global relax/suppression or a reverse/transport dependency.
 
-### Scenario 2: Default method branch does not retry
-- **Given**: A canonical `POST` request fails with a failure that would otherwise be retryable.
-- **When**: `_RequesterResilienceDecorator` evaluates its method.
-- **Then**: The `case _` branch leaves the failure unchanged and makes no retry, refresh, or replay.
+## Test Plan
 
-### Scenario 3: Initial 401 refreshes once and replays
-- **Given**: An initial eligible request receives `401` and storage still holds the request's current token.
-- **When**: The decorator invokes `TokenManager.refresh_if_current` under the existing lock.
-- **Then**: At most one same-token refresh occurs, the request replays once using the refreshed current state, and its replay path has an independent three-send budget with no second refresh.
+- Core/resilience: raw/no-policy, single custom policy, ordered custom/built-in pipeline, duplicate/non-policy/missing-capability rejection, no root exports, and classifier `None` pass-through.
+- Transient: GET/HEAD recovery, POST default branch/no replay, retry statuses/errors, initial/replay independent budgets, jitter fallback, valid/invalid/clamped Retry-After, timeout preservation, and cancellation.
+- Unauthorized: initial one-refresh/one-replay, changed/cleared token behavior, concurrent callers, refresh error/cancellation preservation, unauthenticated 401 pass-through, and replay through transient chain.
+- Integration contracts: Projects, Models, and Job Execution accept raw and decorated dependencies and emit unchanged requests; token endpoint bypasses policies; transport remains single-send and identity-preserving.
+- Architecture: `tach check` accepts the exact resilience-to-core projection and detects no broader exception.
 
-### Scenario 4: Concurrent or changed token state avoids duplicate refresh
-- **Given**: Another coroutine has already changed storage token state, or storage is cleared, before a caller handles initial `401`.
-- **When**: The caller reaches the conditional refresh decision.
-- **Then**: Changed state replays current token without a new refresh, while cleared state performs neither fetch nor refresh.
+## Validation
 
-### Scenario 5: Raw token request remains direct
-- **Given**: `TokenEndpointClient.request_json` sends a raw token endpoint request.
-- **When**: The token endpoint request fails or succeeds.
-- **Then**: It bypasses `_RequesterResilienceDecorator` and retains the existing raw transport behavior.
-
-## Error / Edge Cases
-
-- Invalid `Retry-After` values use the ordinary jittered exponential delay; valid delta and HTTP-date values are clamped to `0..30`.
-- Nonclassified failures, noneligible methods, and retry budget exhaustion propagate the original exception without wrapping or extra send.
-- `asyncio.CancelledError` propagates immediately from sends or refresh; it is not retried and token storage is unchanged.
-- Refresh failure preserves prior storage and propagates the failure; it does not cause fetch, a second refresh, or a replay that invents a token.
-- Exception metadata attachment must not replace or mutate away the original exception's identity, message, context, or observable properties.
+Run the topic-focused pytest selection plus WSL Ruff format check, Ruff check, Pyright, Tach, and full pytest. Keep PR #68 Draft through independent plan, implementation, and code review. A linked-worktree Git guard failure must be reported as an environment exception, never a passing full-suite result.

@@ -10,8 +10,9 @@ import pytest
 import mlops_async
 from mlops_async.clients.models import ModelContent, ModelsClient
 from mlops_async.core.http_request import EndpointPath
-from mlops_async.core.requester import Requester
+from mlops_async.core.request_execution import RequestExecutor
 from mlops_async.core.types import HttpMethod, RawClientResponse, ResponseHeaders
+from mlops_async.resilience import PolicyRequestExecutor
 from mlops_async.clients.models.value_objects import (
     ModelDetail,
     ModelsPage,
@@ -264,6 +265,30 @@ async def test_get_model_content_sends_requested_range_headers_and_maps_partial_
 
 
 @pytest.mark.asyncio
+async def test_models_client_accepts_a_decorated_request_executor_without_shape_drift() -> None:
+    raw = _FakeRequester(
+        [
+            _response(
+                b'{"count": 1, "start": 0, "limit": 20, "items": [{"id": "m-1", "name": "Credit"}]}'
+            )
+        ]
+    )
+    client = ModelsClient(PolicyRequestExecutor(raw, []))
+
+    page = await client.list_models()
+
+    assert page.items[0].id == "m-1"
+    assert raw.requests == [
+        _RecordedRequest(
+            HttpMethod.GET,
+            "/modelRepository/models",
+            {},
+            {"start": "0", "limit": "20"},
+        )
+    ]
+
+
+@pytest.mark.asyncio
 async def test_get_model_content_maps_missing_metadata_headers_to_none() -> None:
     requester = _FakeRequester([_response(b"content")])
     client = ModelsClient(requester)  # type: ignore[arg-type]
@@ -502,7 +527,7 @@ def test_models_client_has_the_frozen_public_surface_with_content_download() -> 
     assert not hasattr(mlops_async, "ModelsClient")
 
 
-def test_models_client_constructor_accepts_the_caller_owned_requester() -> None:
+def test_models_client_constructor_accepts_the_caller_owned_request_executor() -> None:
     signature = inspect.signature(ModelsClient)
 
-    assert signature.parameters["requester"].annotation == Requester.__name__
+    assert signature.parameters["requester"].annotation == RequestExecutor.__name__
