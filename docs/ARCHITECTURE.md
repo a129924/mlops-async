@@ -28,6 +28,20 @@ They are design targets, not implemented files yet.
 
 ## Client architecture and auth boundary
 
+### Package-root facade (current)
+
+`MlopsAsyncClient` 是目前的 package-root facade。它恰好擁有一個
+`HttpClient`、`PasswordTokenEndpointClient`、`InMemoryTokenStorage`、
+`TokenManager`、`AuthProvider` 與 raw `Requester`。facade 建立穩定的
+`.auth`、`.models`、`.projects`、`.cas_tables` 與 `.job_execution` clients；
+所有 domain clients 共用同一個 raw requester，而 `.auth` 共用 password-token
+協作者。constructor 與 context entry 只負責組合物件。token acquisition 在
+authenticated operation 發生前維持 lazy，且 `aclose()` / context exit 只會關閉
+facade 擁有的 HTTP client 一次。
+
+facade 不新增 retry、timeout、cancellation、transport injection 或 token-storage
+policy。
+
 對 auth/request boundary topic，先讀
 [`docs/standards/http-client-auth-boundary.md`](standards/http-client-auth-boundary.md)。
 本節只保留 architecture overview；詳細 dependency diagram、component
@@ -36,36 +50,21 @@ responsibility、collision policy、lazy auth lifecycle 與 conflict-stop rule
 
 ### Public surface baseline
 
-目前唯一已實作的 public client surface 是 `AuthClient`。下列其餘 family 名稱是未來
-設計目標，不構成 current facade：
+`MlopsAsyncClient` 是已實作且從 package root 匯出的 public facade。其穩定 namespace
+contract 為 `.auth`、`.models`、`.projects`、`.cas_tables` 與 `.job_execution`；各 domain
+namespace 共用 raw `Requester`，`.auth` 則共用 password-token collaborator。這些 namespace
+不是額外的 package-root export。
 
-- `AuthClient`
-- `ProjectsClient`
-- `ModelsClient`
-- `JobsClient`
-- `TablesClient`
-
-`AuthClient` 是目前唯一已實作的 concrete endpoint-family client，canonical location
-為 `src/mlops_async/clients/auth_client.py`。唯一支援的匯入方式為：
-
-```python
-from mlops_async.clients.auth_client import AuthClient
-```
-
-package-root `AuthClient` import 不受支援。`EndpointFamilyClient` 僅是架構分類，並非
-base class、Protocol 或模組。`AuthClient` 接收 `TokenEndpointClientProtocol`，且
-`get_access_token()` 只直接 await 一次 `fetch_access_token()`；它不負責 refresh、grant
-selection、cache、exception translation、context、close 或 transport lifecycle。
-
-`MLOpsAsyncClient` 僅為 future-only composition contract：尚未實作、未從 package root
-匯出、沒有 `.auth` wiring，也不擁有或關閉 transport。未來若實作，才會以已設定的
-`TokenEndpointClientProtocol` 建立 `.auth`。
+`EndpointFamilyClient` 僅是架構分類，並非 base class、Protocol 或模組。`AuthClient` 接收
+`TokenEndpointClientProtocol`，且 `get_access_token()` 只直接 await 一次
+`fetch_access_token()`；它不負責 refresh、grant selection、cache、exception translation、
+context、close 或 transport lifecycle。
 
 ### Public-to-internal dependency direction
 
 對外的 family 入口是平行存在，但 runtime 依賴方向固定如下：
 
-`Projects/Models/Jobs/Tables -> Requester -> HttpClient`
+`Models/Projects/CAS Tables/Job Execution -> Requester -> HttpClient`
 
 authenticated request 的內部 auth chain 固定如下：
 
@@ -78,20 +77,17 @@ authenticated request 的內部 auth chain 固定如下：
 ### Fixed boundary rules
 
 - OtherFamilyEndpoint 不直接依賴 `AuthClient`。
-- `ProjectsClient`、`ModelsClient`、`JobsClient`、`TablesClient` 只持有 `Requester`。
+- `ProjectsClient`、`ModelsClient`、`CasTablesClient`、`JobExecutionClient` 只持有 `Requester`。
 - `Requester` 不自行處理 token acquisition、refresh、或 auth config 細節。
 - `core/headers.py` 集中管理 JSON-domain request family 與 token-endpoint request family 的 shared request-header policy，避免多個 collaborator 重複複製預設 header 規則。
 - `AuthProvider` 只把 token 轉成 `Authorization` headers。
 - `TokenManager` 只負責 token lifecycle decision。
 - `TokenEndpointClient` 才是真正掌握 `/SASLogon/oauth/token` contract 的 internal collaborator。
 
-### Historical / future lifecycle baseline
+### Facade lifecycle
 
-下列 `PackageLevelClient` lifecycle 內容是歷史設計與 future-only 參考，不是 current
-implementation；目前沒有 package-level facade、package-root export 或 `.auth` wiring。
-
-`PackageLevelClient.__init__` 是同步 constructor，因此只做 wiring，不預先取得真實
-token。它注入的是 auth-configured `Requester`，不是 token-resolved `Requester`。
+`MlopsAsyncClient.__init__` 是同步 constructor，因此只做 wiring，不預先取得真實 token。
+它建立 auth-configured `Requester`，不是 token-resolved `Requester`。
 
 authenticated token resolve 應在第一次需要 auth 的 request 時 lazy 發生：
 
@@ -123,8 +119,8 @@ internal client contract 仍維持拆分：
 - `core/token_storage.py`：token state storage boundary
 - `transport/http_client.py`：concrete transport-only `HttpClient`，可重用 shared JSON request-header helper，但不擁有 auth policy
 
-若未來落地 `TokenEndpointClient` 或 `PackageLevelClient` public facade，該變更也必須維持
-上述 dependency direction，而不是把 internal runtime auth chain 反向收斂成
+後續調整 `MlopsAsyncClient` 或 token endpoint collaborator 時，必須維持上述 dependency
+direction，而不是把 internal runtime auth chain 反向收斂成
 `TokenManager -> AuthClient`。
 
 ## Skill map

@@ -3,7 +3,7 @@
 > [!IMPORTANT]
 > **Agent first-read**
 >
-> 若 topic 牽涉 `PackageLevelClient`、`AuthClient`、`Requester`、`AuthProvider`、
+> 若 topic 牽涉 `MlopsAsyncClient`、`AuthClient`、`Requester`、`AuthProvider`、
 > `TokenManager`、`TokenStorage`、`TokenEndpointClient`、`HttpClient`，或 auth/request
 > boundary 的 public/internal dependency direction，先讀本文件，再做設計、文件更新、
 > review、或 implementation 規劃。
@@ -28,7 +28,9 @@ surface、internal runtime chain、lazy token lifecycle、與 token endpoint col
   direction，不能重新定義 boundary。
 - 目前 guardrail 允許方向固定為：
   - `mlops_async.core` 只能依賴 `mlops_async`
-  - `mlops_async.transport` 只能依賴 `mlops_async` 與 `mlops_async.core`
+  - `mlops_async.transport` **MUST NOT** 依賴 package root (`mlops_async`)；它允許的依賴
+    必須精確為 `mlops_async.core` 與 `mlops_async.exceptions`。此規則必須與 `tach.toml`
+    一致，以避免形成 package-root reverse edge 與 dependency cycle。
 - 若本文件、`docs/ARCHITECTURE.md`、current code、`docs/migration-map.md`、或
   `tach.toml` guardrail 互相衝突，不得自行平均解讀；必須停止並交人工決策。
 - 後續若新增或調整 guardrail topic，只能把這裡既有的 allowed directions 文件化或機械化；
@@ -36,31 +38,34 @@ surface、internal runtime chain、lazy token lifecycle、與 token endpoint col
 
 ## Public surface 基線
 
-`AuthClient` 是目前唯一已實作的 public client surface。下列其餘 family 名稱僅是未來
-設計目標，不構成 current facade：
+`MlopsAsyncClient` 是目前已實作且從 package root 匯出的 public facade。它的穩定
+namespace contract 為 `.auth`、`.models`、`.projects`、`.cas_tables` 與
+`.job_execution`。domain namespace 共用 raw `Requester`；`.auth` 共用 password-token
+collaborator，且不改變各 family 的 endpoint contract。
 
-
-對應 family clients：
-
-- `AuthClient`
-- `ProjectsClient`
-- `ModelsClient`
-- `JobsClient`
-- `TablesClient`
-
-`AuthClient` 是目前唯一已實作的 concrete endpoint-family client。唯一支援的匯入方式為
-`from mlops_async.clients.auth_client import AuthClient`；package-root import 不受支援。
-`EndpointFamilyClient` 只是架構分類，不是 base class、Protocol 或模組。
-
-`AuthClient` 接收注入的 `TokenEndpointClientProtocol`，只直接 await 一次
-`fetch_access_token()`；它不負責 refresh、grant selection、cache、exception translation、
-context、close 或 transport lifecycle。OtherFamilyEndpoint 不直接依賴 `AuthClient`。
-
-`MLOpsAsyncClient` 只屬 future composition contract：尚未實作、未被 package root 匯出、
-沒有 `.auth` wiring，也不擁有或關閉 transport。未來若實作，才會以已設定的
-`TokenEndpointClientProtocol` 建立 `.auth`。
+`EndpointFamilyClient` 只是架構分類，不是 base class、Protocol 或模組。`AuthClient`
+接收注入的 `TokenEndpointClientProtocol`，只直接 await 一次 `fetch_access_token()`；
+它不負責 refresh、grant selection、cache、exception translation、context、close 或
+transport lifecycle。OtherFamilyEndpoint 不直接依賴 `AuthClient`。
 
 ## 依賴圖
+
+### `MlopsAsyncClient` facade（現行）
+
+`MlopsAsyncClient` 在 package root 匯出，且只接受 keyword-only 的 password-grant
+設定。它擁有一個 `HttpClient`、一個 `PasswordTokenEndpointClient`、一個具體的
+`InMemoryTokenStorage`、`TokenManager`、`AuthProvider` 與一個 raw `Requester`。
+`.models`、`.projects`、`.cas_tables`、`.job_execution` 共用該 requester；`.auth`
+共用 password token endpoint collaborator。constructor、`__aenter__` 與 property
+access 不得進行 I/O，第一個 authenticated operation 才懶載入 token。
+
+facade 僅關閉自己擁有的 `HttpClient`；`aclose()` 與 context exit 均為 idempotent。
+並行 `aclose()` 呼叫共用同一個 in-progress close task；取消單一 waiter 不得取消該 shared
+task。只有底層 `HttpClient` 成功關閉後 facade 才永久標示為 closed；底層 close 的 failure 或
+cancellation 必須清除 in-progress state，讓後續 `aclose()` 重試。`__aexit__` 不得 suppress
+caller exception 或 close failure；兩者同時發生時，保留 Python 的標準 exception context。
+它不增加 retry、timeout、cancellation、transport injection、API key 或 users
+namespace。
 
 ### Current AuthClient dependency layout
 
@@ -74,7 +79,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    ProjectsClient["Projects / Models / Jobs / Tables client"] --> Requester["Requester"]
+    FamilyNamespaces["MlopsAsyncClient .models / .projects / .cas_tables / .job_execution\nModelsClient / ProjectsClient / CasTablesClient / JobExecutionClient"] --> Requester["Requester"]
     Requester --> HttpClient["HttpClient"]
 ```
 
@@ -147,14 +152,14 @@ flowchart LR
 - `AuthException` 與 `asyncio.CancelledError` 直接傳播；其他 generic exception 轉譯為
   `TokenFetchException`，並保留 exception chaining。
 
-### Historical / future facade lifecycle
+### Facade lifecycle
 
-本節的 `PackageLevelClient` lifecycle 是歷史設計與 future-only 參考，並非 current
-implementation。現況沒有 package-level facade、package-root export 或 `.auth` wiring。
+`MlopsAsyncClient` 是現行 package-root facade，擁有 shared transport/auth runtime，
+並只關閉自己擁有的 `HttpClient`。
 
 #### `__init__`
 
-- `PackageLevelClient.__init__` 是同步。
+- `MlopsAsyncClient.__init__` 是同步。
 - `__init__` 只做 wiring。
 - `__init__` 不能假設已取得真實 token。
 - 注入的是 auth-configured `Requester`，不是 token-resolved `Requester`。
@@ -174,6 +179,11 @@ implementation。現況沒有 package-level facade、package-root export 或 `.a
 #### `__aexit__` / `aclose`
 
 - 只負責 transport/resource cleanup。
+- 並行 `aclose()` 共用一個 close task；任一 waiter 的 cancellation 不會取消 shared task。
+- 僅在底層 `HttpClient.aclose()` 成功後標示 permanently closed；若底層 failure 或 cancellation，
+  清除 close state，讓後續呼叫重試。
+- `__aexit__` 不 suppress caller exception 或 close failure；兩者同時發生時保留 Python 標準
+  exception context。
 - 不應假設 explicit auth operation 與 runtime auth state 一定自動互通；若未來要共享 state，
   必須另行文件化其所有權與同步語意。
 
@@ -181,7 +191,7 @@ implementation。現況沒有 package-level facade、package-root export 或 `.a
 
 ### OtherFamilyEndpoint
 
-- `ProjectsClient`、`ModelsClient`、`JobsClient`、`TablesClient` 不持有 `AuthClient`。
+- `ModelsClient`、`ProjectsClient`、`CasTablesClient`、`JobExecutionClient` 不持有 `AuthClient`。
 - 這些 family client 只持有 `Requester`。
 - 它們不自行處理 token acquisition、refresh、或 auth header 組裝。
 
@@ -224,9 +234,9 @@ implementation。現況沒有 package-level facade、package-root export 或 `.a
 - `AuthProvider -> /SASLogon/oauth/token`
 - `ProjectsClient -> AuthClient`
 - `ModelsClient -> AuthClient`
-- `JobsClient -> AuthClient`
-- `TablesClient -> AuthClient`
-- `PackageLevelClient.__init__` 預先取得真實 token
+- `CasTablesClient -> AuthClient`
+- `JobExecutionClient -> AuthClient`
+- `MlopsAsyncClient.__init__` 預先取得真實 token
 - family endpoint 自己組 `Authorization: Bearer ...`
 
 ## Current-code note
@@ -242,7 +252,7 @@ implementation。現況沒有 package-level facade、package-root export 或 `.a
 - public `AuthClient` 是否被誤當成 internal runtime core
 - OtherFamilyEndpoint 是否開始直接依賴 `AuthClient`
 - `AuthProvider` 是否被擴張成 token client
-- `PackageLevelClient.__init__` 是否被描述成先拿到 token
+- `MlopsAsyncClient.__init__` 是否被描述成先拿到 token
 - `TokenEndpointClient` 是否被替換成不清楚的 session/global side-effect model
 
 ## 可組合的 resilience policy

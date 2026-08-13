@@ -4,10 +4,33 @@ Async Python library scaffold for SAS Viya REST API operations.
 
 ## Status
 
-This repository provides bounded concrete endpoint-family clients. `AuthClient`,
-`ModelsClient`, `JobExecutionClient`, and `ProjectsClient` are independently
-imported; a broader aggregate facade and unimplemented endpoint behaviors remain
-future work.
+此儲存庫提供範圍受限的具體 endpoint-family clients，以及 package root 的
+`MlopsAsyncClient` facade。尚未支援的 endpoint 行為仍屬後續工作。
+
+## MlopsAsyncClient facade
+
+`MlopsAsyncClient` 擁有一個 `HttpClient`、一個 password-grant token endpoint
+協作者、一個 `InMemoryTokenStorage`，以及一個完成 auth 設定的 raw
+`Requester`。其 `.auth`、`.models`、`.projects`、`.cas_tables` 與
+`.job_execution` 屬性是共用同一 runtime 的穩定 client instances。建構與進入
+context 不會執行 HTTP 或 token I/O；首次 authenticated operation 才會 lazy 地解析
+token。
+
+```python
+from mlops_async import MlopsAsyncClient
+
+async with MlopsAsyncClient(
+    base_url="https://viya.example.test",
+    client_id="client-id",
+    client_secret="client-secret",
+    username="user",
+    password="password",
+) as client:
+    projects = await client.projects.list_projects()
+```
+
+此 facade 採用 password grant，並擁有其 HTTP 資源；請以 `aclose()` 或 `async with`
+關閉。它不提供 transport 注入、retry 設定、API key/users namespace 或 release 行為。
 
 The concrete endpoint-family client `AuthClient` has only one supported import:
 `from mlops_async.clients.auth_client import AuthClient`; importing it from the
@@ -32,24 +55,24 @@ failure，會 raise module-public `AuthClientRefreshTokenError`（後者保留�
 cause）；此 error 不從 package root 匯出。`AuthClient` 不含 grant selection、cache、
 transport lifecycle 或 close 行為。
 
-`EndpointFamilyClient` 僅是架構分類，不是 base class、Protocol 或模組。未來可能的
-`MLOpsAsyncClient` facade 仍未實作、未從 package root 匯出，也沒有 `.auth` wiring；
-若日後實作，它將接收已設定的 `TokenEndpointClientProtocol`、建立 `.auth`，但不擁有或
-關閉 transport。
+`EndpointFamilyClient` 僅是架構分類，不是 base class、Protocol 或模組。現行的
+`MlopsAsyncClient` 已從 package root 匯出；它以 password-grant 設定建立 `.auth`、
+`.models`、`.projects`、`.cas_tables` 與 `.job_execution`，並擁有 shared transport/auth
+runtime 的 lifecycle。
 
 **v0.18.0 release** closes PR #65 by adding the Projects endpoint-family import
 `mlops_async.clients.projects`. The injected `ProjectsClient` provides
 `list_projects()`, `get_project()`, exact-name `get_project_by_name()` through
 validated sequential pagination, and `get_champion()` metadata. It preserves
-requester error and cancellation semantics; an aggregate facade and Champion
-content download remain out of scope.
+requester error and cancellation semantics. At that release, an aggregate
+facade and Champion content download were out of scope.
 
 **v0.18.0 release** 完成 PR #65，新增 Projects endpoint family import
 `mlops_async.clients.projects`。注入式 `ProjectsClient` 提供
 `list_projects()`、`get_project()`、透過已驗證 sequential pagination 的 exact-name
 `get_project_by_name()`，以及 `get_champion()` metadata。它保留 Requester 的 error
-與 cancellation semantics；aggregate facade 與 Champion content download 仍不在此
-release scope。
+與 cancellation semantics；在當時的 release scope 中，aggregate facade 與 Champion
+content download 尚未納入。
 
 **v0.16.0 release** closes PR #61 by adding the Models endpoint-family import
 `mlops_async.clients.models`. The injected `ModelsClient` provides bounded,
