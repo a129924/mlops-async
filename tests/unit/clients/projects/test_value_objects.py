@@ -113,6 +113,45 @@ def test_project_parsers_map_complete_raw_audit_metadata_for_list_and_detail() -
         assert project.modified_timestamp == "not-normalized"
 
 
+@pytest.mark.parametrize(
+    "parser",
+    (parse_projects_page, parse_project_detail),
+    ids=("list_item", "detail"),
+)
+@pytest.mark.parametrize(
+    "audit_key, attribute_name",
+    (
+        ("createdBy", "created_by"),
+        ("modifiedBy", "modified_by"),
+        ("creationTimeStamp", "creation_timestamp"),
+        ("modifiedTimeStamp", "modified_timestamp"),
+    ),
+)
+def test_project_parsers_preserve_empty_string_audit_metadata(
+    parser: _Parser,
+    audit_key: str,
+    attribute_name: str,
+) -> None:
+    project_payload: JSONValue = {
+        "id": "project-1",
+        "name": "Credit risk",
+        audit_key: "",
+    }
+    if parser is parse_projects_page:
+        project = parse_projects_page(
+            {
+                "count": 1,
+                "start": 0,
+                "limit": 20,
+                "items": [project_payload],
+            }
+        ).items[0]
+    else:
+        project = parse_project_detail(project_payload)
+
+    assert getattr(project, attribute_name) == ""
+
+
 def test_project_parsers_materialize_missing_audit_metadata_as_none() -> None:
     page = parse_projects_page(
         {
