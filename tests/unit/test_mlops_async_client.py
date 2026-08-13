@@ -179,6 +179,96 @@ async def test_aclose_closes_the_owned_http_client_once() -> None:
 
 
 @pytest.mark.asyncio
+async def test_concurrent_aclose_calls_share_one_successful_close() -> None:
+    client = _create_client()
+    close_started = asyncio.Event()
+    allow_close = asyncio.Event()
+
+    async def blocking_close() -> None:
+        close_started.set()
+        await allow_close.wait()
+
+    close = AsyncMock(side_effect=blocking_close)
+    client._http_client.aclose = close
+
+    first_close = asyncio.create_task(client.aclose())
+    await close_started.wait()
+    second_close = asyncio.create_task(client.aclose())
+    await asyncio.sleep(0)
+    allow_close.set()
+
+    await asyncio.gather(first_close, second_close)
+    await client.aclose()
+
+    close.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_cancelling_one_aclose_waiter_does_not_cancel_the_shared_close() -> None:
+    client = _create_client()
+    close_started = asyncio.Event()
+    allow_close = asyncio.Event()
+
+    async def blocking_close() -> None:
+        close_started.set()
+        await allow_close.wait()
+
+    close = AsyncMock(side_effect=blocking_close)
+    client._http_client.aclose = close
+
+    completing_waiter = asyncio.create_task(client.aclose())
+    await close_started.wait()
+    cancelled_waiter = asyncio.create_task(client.aclose())
+    await asyncio.sleep(0)
+    cancelled_waiter.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await cancelled_waiter
+
+    assert client._close_task is not None
+    assert not client._close_task.cancelled()
+
+    allow_close.set()
+    await completing_waiter
+
+    close.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_aclose_failure_clears_state_for_a_later_retry() -> None:
+    client = _create_client()
+    expected_error = RuntimeError("close failed")
+    close = AsyncMock(side_effect=(expected_error, None))
+    client._http_client.aclose = close
+
+    with pytest.raises(RuntimeError) as error_info:
+        await client.aclose()
+
+    assert error_info.value is expected_error
+    assert client._close_task is None
+
+    await client.aclose()
+
+    assert close.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_aclose_cancellation_clears_state_for_a_later_retry() -> None:
+    client = _create_client()
+    close = AsyncMock(side_effect=(asyncio.CancelledError(), None))
+    client._http_client.aclose = close
+
+    with pytest.raises(asyncio.CancelledError):
+        await client.aclose()
+
+    assert client._close_task is None
+
+    await client.aclose()
+
+    assert close.await_count == 2
+
+
+@pytest.mark.asyncio
 async def test_namespace_properties_remain_readable_and_stable_after_aclose() -> None:
     client = _create_client()
     namespaces = (
@@ -255,4 +345,52 @@ async def test_async_context_manager_returns_self_and_closes_owned_http_client_o
     async with _create_client() as client:
         assert isinstance(client, MlopsAsyncClient)
 
+    close.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_async_context_manager_preserves_a_caller_exception() -> None:
+    client = _create_client()
+    close = AsyncMock()
+    client._http_client.aclose = close
+    expected_error = RuntimeError("caller failure")
+
+    with pytest.raises(RuntimeError) as error_info:
+        async with client:
+            raise expected_error
+
+    assert error_info.value is expected_error
+    close.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_async_context_manager_propagates_a_close_failure() -> None:
+    client = _create_client()
+    expected_error = RuntimeError("close failed")
+    close = AsyncMock(side_effect=expected_error)
+    client._http_client.aclose = close
+
+    with pytest.raises(RuntimeError) as error_info:
+        async with client:
+            pass
+
+    assert error_info.value is expected_error
+    assert client._close_task is None
+    close.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_async_context_manager_chains_a_caller_exception_after_close_failure() -> None:
+    client = _create_client()
+    caller_error = ValueError("caller failure")
+    close_error = RuntimeError("close failed")
+    close = AsyncMock(side_effect=close_error)
+    client._http_client.aclose = close
+
+    with pytest.raises(RuntimeError) as error_info:
+        async with client:
+            raise caller_error
+
+    assert error_info.value is close_error
+    assert close_error.__context__ is caller_error
     close.assert_awaited_once_with()

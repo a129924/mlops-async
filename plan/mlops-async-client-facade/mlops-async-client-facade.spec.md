@@ -1,66 +1,107 @@
 ---
 topic: mlops-async-client-facade
 phase: plan-authoring
-status: approved
+status: creator-in-progress
 created: 2026-08-12
 d1_verdict: non-trivial
+pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 ---
 
-# MlopsAsyncClient Specification
+# MlopsAsyncClient 規格
 
-## Authoritative completion status (2026-08-13)
+## 目前修正狀態
 
-All acceptance validation and independent reviews are complete and approved.
-The verified feature snapshot was rebuilt in an isolated Linux-native ext4
-detached checkout from base `e311e9e34c62979bb2ea5915e11c5d5fcbec07b2`; six
-tracked diffs and eight topic-untracked files hash-matched before validation.
-`uv sync --frozen`, full non-E2E pytest (`694 passed, 9 skipped, 1 deselected`,
-94.38% coverage), Ruff, Pyright, Tach, and `git diff --check` passed. Results
-remain available in
-`/tmp/mlops-async-facade-validation-results-20260813-91d3b5e4.txt`
-(SHA-256 `2b4d1be6dcf35fe78e44b5a6041a499c7ea2c8c452eab451368f57b35f8f0e83`);
-the disposable checkout and bare cache were deleted.
+PR #70 head `ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d` 是唯一已發布
+baseline。五條 action threads 目前使 lifecycle/docs correction 處於
+`creator-in-progress`；本輪 validation、reviews、commit/push 和 thread resolution
+皆 pending，不能引用 baseline 作為完成證據。
 
-Earlier pending wording is historical only. `publish` remains pending, so no
-publication or release action is represented by this status.
+## PR #70 thread traceability
 
-## Implementation-review rework record (2026-08-12)
+| Thread ID | 已實作或待交接的修正範圍 | Handoff trace link |
+| --- | --- | --- |
+| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 acceptance handoff |
+| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 acceptance handoff |
+| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | 六份 topic artifacts 的 correction evidence |
+| `PRRT_kwDOSTt_386YpagN` | workflow evidence | 六份 topic artifacts 的 workflow/evidence handoff |
+| `PRRT_kwDOSTt_386YpagY` | transport doc | `docs/standards/http-client-auth-boundary.md` 的文件 handoff |
 
-Independent main-workflow and Python-companion plan-review verdicts remain `approved`; `plan-review` is complete. The later independent implementation review is `needs-rework`, so current status is `creator-in-progress` via `needs-rework -> creator-in-progress`. Tach correction, full validation, implementation-review recheck, code review, and publish remain pending.
+上述五條 threads 全部仍未 resolved；本表僅補正可追溯性，不改變 acceptance criteria 或 correction validation/review/publish 的 pending 狀態。
 
 ## Acceptance Criteria
 
-1. Package root exports `MlopsAsyncClient` with five required keyword-only password-grant parameters.
-2. Facade creates one shared runtime and exposes readonly, identity-stable `auth`, `models`, `projects`, `cas_tables`, `job_execution` clients.
-3. Runtime uses concrete `InMemoryTokenStorage()`; constructor/context entry has no I/O and first auth is lazy.
-4. Facade alone closes its `HttpClient`; close/context exit are idempotent; existing errors and cancellation propagate unchanged.
-5. `tach.toml` is **Modify**, not Written, and its existing `mlops_async` list is exactly `mlops_async.clients`, `mlops_async.core`, `mlops_async.transport`, `mlops_async.clients.cas_tables`, `mlops_async.clients.job_execution`, `mlops_async.clients.models`, `mlops_async.clients.projects`.
-6. Its existing `mlops_async.transport` list remains exactly `mlops_async.core`, `mlops_async.exceptions`; no other Tach block, global flag, exclude, interface, config or production code changes.
-7. Exact config diff/shape inspection validates criteria 5–6 and `tach check` passes without cycle.
-8. Existing facade/root export/tests/docs and their scoped TDD/focused/full-validation evidence are retained as user-authorized provisional/historical work; final validation, independent implementation review, independent code review and publish remain pending.
-9. The root seven targets use the locked order `clients`, `core`, `transport`, `cas_tables`, `job_execution`, `models`, `projects`; facade tests cover post-close readable identity-stable properties, existing closed-transport failure from a domain requester call, and first authenticated domain-request lazy password-token flow through TokenManager/AuthProvider.
+1. Package root 的 `MlopsAsyncClient`、五個 required keyword-only password-grant
+   parameters、五個 readonly identity-stable namespace properties 和 lazy auth
+   contract 保持不變。
+2. Facade 仍是 shared `HttpClient` 唯一 close owner；family clients 不能 close transport。
+3. 第一個 `aclose()` 建立唯一 private shared close task，且 simultaneous/repeated
+   callers 均 await 這一 task，底層 `HttpClient.aclose()` 不重複執行。
+4. shared close task success 才設 permanent closed；successful repeated close 是
+   idempotent no-op。
+5. 若底層 close raise 或被取消，facade 不設 closed、清除已結束的 failed task，並讓
+   後續 `aclose()` retry；error/cancellation 原樣傳播。
+6. caller cancellation 不可取消 shared task，其他 caller 仍可取得 close result。
+7. `docs/standards/http-client-auth-boundary.md` 記錄 criteria 2–6，並同步 root exact
+   Tach order `clients`, `core`, `transport`, `cas_tables`, `job_execution`, `models`,
+   `projects` 和 transport exact `core`, `exceptions` boundary。
+8. `tach.toml` 的上述 frozen lists 和所有 other config content 不得因 correction 改動；
+   shape inspection、`tach check` 必須確認。
+9. source/tests/docs rework 後才可執行 full validation、independent implementation
+   review、independent code review、correction commit/push；push readback 後才可 resolve
+    `PRRT_kwDOSTt_386YpZ_Q`、`PRRT_kwDOSTt_386Ypaf_`、
+    `PRRT_kwDOSTt_386Ypaf3`、`PRRT_kwDOSTt_386YpagN`、`PRRT_kwDOSTt_386YpagY`。
+10. 本輪不做 VERSION bump、tag、release、merge 或未指定的 thread resolution。
+
+## Frozen Tach shape
+
+```toml
+# existing [[modules]] path = "mlops_async"
+depends_on = [
+    "mlops_async.clients",
+    "mlops_async.core",
+    "mlops_async.transport",
+    "mlops_async.clients.cas_tables",
+    "mlops_async.clients.job_execution",
+    "mlops_async.clients.models",
+    "mlops_async.clients.projects",
+]
+
+# existing [[modules]] path = "mlops_async.transport"
+depends_on = ["mlops_async.core", "mlops_async.exceptions"]
+```
 
 ## Behavioral Scenarios
 
-### Construction and namespaces
+### 成功與 concurrent close
 
-Given valid password-grant configuration, construction performs no I/O and all fixed namespaces share planned collaborators.
+Given 已建構的 facade，當兩個 callers 在 owned `HttpClient.aclose()` 完成前呼叫
+`aclose()`，then 兩者都 await 同一 shared task，且底層 close 只呼叫一次。當它成功後，
+後續 `aclose()` 不會再建立新的底層 close。
 
-### First authenticated operation
+### 失敗與 cancellation retry
 
-Given a constructed facade, the first domain request uses the existing requester/auth/token/password-endpoint chain for lazy token acquisition.
+Given 底層 close raise 或被取消，當第一個 `aclose()` await 結束時，then facade 並未
+permanently closed，且不保留已結束而失敗的 in-progress task。當後續 caller 呼叫
+`aclose()` 時，then 它建立 retry 並可以成功。
 
-### Lifecycle
+### Cancelled waiter isolation
 
-Given explicit close or `async with`, repeated close only affects the owned transport and succeeds idempotently.
+Given 一個 shared close task 與兩個 callers，當其中一個 caller 在 await 時被取消，then
+其 cancellation 只傳播給該 caller；shared close task 繼續，另一 caller 可以觀察到
+success 或 failure。
 
-### Exact Tach repair
+### 文件與 Tach boundary
 
-Given the root composition edge, applying the exact root seven-target list while retaining the transport exact two-target list removes the allowed graph violation without config scope drift.
+Given correction diff，當檢查文件與 config 時，then boundary document 說明 facade-owned
+close 和 frozen root/transport dependency shape，而 `tach.toml` 本身沒有變更。
 
 ## Error / Edge Cases
 
-- Existing blank/non-string credential, invalid URL, auth, transport, response and `asyncio.CancelledError` behaviors are not rewrapped.
-- Property reassignment is unavailable; repeated close is safe.
-- A missing, reordered, duplicate, or extra root target; a changed transport target; or any other Tach diff fails the exact shape acceptance test and blocks publication.
-- This spec is `creator-in-progress`: implementation-review `needs-rework` is being resolved without reopening the completed plan-review gate. Full non-E2E WSL validation remains pending because only the linked-worktree `.git` Windows-pointer policy guard ends nonzero.
+- 不得在 successful underlying close 前標記 closed。
+- 不得將已結束的 failed/cancelled task 留為 permanent in-progress marker。
+- 不得將既有 auth、transport、response、domain closed-transport errors 或
+  `asyncio.CancelledError` 替換為 facade-specific errors。
+- root order、transport targets 或其他 Tach config 的任一 drift 都阻擋 correction
+  publication。
+- current status 是 `creator-in-progress`；原 plan-review approval 與 PR baseline 是
+  historical facts，不是本輪 validation/review/publish completion。

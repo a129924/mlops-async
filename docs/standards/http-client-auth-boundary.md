@@ -28,7 +28,9 @@ surface、internal runtime chain、lazy token lifecycle、與 token endpoint col
   direction，不能重新定義 boundary。
 - 目前 guardrail 允許方向固定為：
   - `mlops_async.core` 只能依賴 `mlops_async`
-  - `mlops_async.transport` 只能依賴 `mlops_async` 與 `mlops_async.core`
+  - `mlops_async.transport` **MUST NOT** 依賴 package root (`mlops_async`)；它允許的依賴
+    必須精確為 `mlops_async.core` 與 `mlops_async.exceptions`。此規則必須與 `tach.toml`
+    一致，以避免形成 package-root reverse edge 與 dependency cycle。
 - 若本文件、`docs/ARCHITECTURE.md`、current code、`docs/migration-map.md`、或
   `tach.toml` guardrail 互相衝突，不得自行平均解讀；必須停止並交人工決策。
 - 後續若新增或調整 guardrail topic，只能把這裡既有的 allowed directions 文件化或機械化；
@@ -58,6 +60,10 @@ transport lifecycle。OtherFamilyEndpoint 不直接依賴 `AuthClient`。
 access 不得進行 I/O，第一個 authenticated operation 才懶載入 token。
 
 facade 僅關閉自己擁有的 `HttpClient`；`aclose()` 與 context exit 均為 idempotent。
+並行 `aclose()` 呼叫共用同一個 in-progress close task；取消單一 waiter 不得取消該 shared
+task。只有底層 `HttpClient` 成功關閉後 facade 才永久標示為 closed；底層 close 的 failure 或
+cancellation 必須清除 in-progress state，讓後續 `aclose()` 重試。`__aexit__` 不得 suppress
+caller exception 或 close failure；兩者同時發生時，保留 Python 的標準 exception context。
 它不增加 retry、timeout、cancellation、transport injection、API key 或 users
 namespace。
 
@@ -173,6 +179,11 @@ flowchart LR
 #### `__aexit__` / `aclose`
 
 - 只負責 transport/resource cleanup。
+- 並行 `aclose()` 共用一個 close task；任一 waiter 的 cancellation 不會取消 shared task。
+- 僅在底層 `HttpClient.aclose()` 成功後標示 permanently closed；若底層 failure 或 cancellation，
+  清除 close state，讓後續呼叫重試。
+- `__aexit__` 不 suppress caller exception 或 close failure；兩者同時發生時保留 Python 標準
+  exception context。
 - 不應假設 explicit auth operation 與 runtime auth state 一定自動互通；若未來要共享 state，
   必須另行文件化其所有權與同步語意。
 

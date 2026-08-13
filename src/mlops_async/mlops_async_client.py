@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from types import TracebackType
 
 from mlops_async.clients.auth_client import AuthClient
@@ -67,6 +68,7 @@ class MlopsAsyncClient:
         self._cas_tables = CasTablesClient(self._requester)
         self._job_execution = JobExecutionClient(self._requester)
         self._closed = False
+        self._close_task: asyncio.Task[None] | None = None
 
     @property
     def auth(self) -> AuthClient:
@@ -94,11 +96,25 @@ class MlopsAsyncClient:
         return self._job_execution
 
     async def aclose(self) -> None:
-        """Close the facade-owned HTTP client exactly once."""
+        """Close the facade-owned HTTP client once after a successful close."""
         if self._closed:
             return
-        self._closed = True
-        await self._http_client.aclose()
+
+        if self._close_task is None:
+            self._close_task = asyncio.create_task(self._close_owned_http_client())
+
+        await asyncio.shield(self._close_task)
+
+    async def _close_owned_http_client(self) -> None:
+        """Close the owned HTTP client and retain retryability on failure."""
+        try:
+            await self._http_client.aclose()
+        except BaseException:
+            self._close_task = None
+            raise
+        else:
+            self._closed = True
+            self._close_task = None
 
     async def __aenter__(self) -> MlopsAsyncClient:
         """Return this already-wired facade without performing I/O."""

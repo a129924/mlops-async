@@ -1,68 +1,87 @@
 ---
 topic: mlops-async-client-facade
-status: approved
+status: creator-in-progress
 created: 2026-08-12
 source_of_truth: locked human contract
+pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 ---
 
-# MlopsAsyncClient facade requirements
+# MlopsAsyncClient facade 需求
 
-## Authoritative completion update (2026-08-13)
+## PR #70 修正狀態（2026-08-13）
 
-This update supersedes earlier provisional records that described full validation,
-implementation review, or code review as pending. The locked scope and all
-acceptance requirements remain unchanged. An isolated Linux-native ext4
-validation rebuilt the current uncommitted topic snapshot from base
-`e311e9e34c62979bb2ea5915e11c5d5fcbec07b2`: six tracked diffs and eight
-topic-untracked files were hash-matched before validation. `uv sync --frozen`,
-full non-E2E pytest (`694 passed, 9 skipped, 1 deselected`, 94.38% coverage),
-Ruff, Pyright, Tach, and `git diff --check` passed. The disposable detached
-checkout and bare cache were deleted after results were retained at
-`/tmp/mlops-async-facade-validation-results-20260813-91d3b5e4.txt`
-(`SHA-256 2b4d1be6dcf35fe78e44b5a6041a499c7ea2c8c452eab451368f57b35f8f0e83`).
+已發布的唯一基線是 PR #70 head
+`ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d`。此 baseline 已含先前已授權的
+facade、Tach lists、tests 與文件；它不是本輪修正已完成的證據。
 
-Independent implementation review and independent code review are approved.
-`publish` remains pending; no commit, push, pull request, merge, version bump,
-tag, or release is implied by this evidence.
+五條 actionable PR review threads 已使本 topic 依
+`needs-rework -> creator-in-progress` 進入修正。現在只能宣稱規劃工作進行中：
+本輪 source/tests/docs 修正與 focused/static evidence 已完成；完整 non-E2E validation
+仍因 WSL environment exception pending，implementation review、code review、correction
+commit/push 與 thread resolution 也仍 pending。不得把原始 PR baseline 或任何歷史
+assertion 當成本輪完成 gate。
 
-## Goal
+## PR #70 thread traceability
 
-新增 package-root `MlopsAsyncClient`，以 password-grant credentials 建立一個 shared async HTTP/auth runtime，提供既有 endpoint family 的 namespaced、identity-stable 存取與 idempotent async lifecycle。
+| Thread ID | 已實作或待交接的修正範圍 | Handoff trace link |
+| --- | --- | --- |
+| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 lifecycle handoff |
+| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 lifecycle handoff |
+| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | 六份 topic artifacts 的 correction evidence |
+| `PRRT_kwDOSTt_386YpagN` | workflow evidence | 六份 topic artifacts 的 workflow/evidence handoff |
+| `PRRT_kwDOSTt_386YpagY` | transport doc | `docs/standards/http-client-auth-boundary.md` 的文件 handoff |
 
-## In-Scope
+上述五條 threads 全部仍未 resolved；本表僅補正可追溯性，不改變技術契約、範圍或任何 pending gate。
 
-- keyword-only `MlopsAsyncClient(*, base_url, client_id, client_secret, username, password)`、package-root export 與 `.auth`、`.models`、`.projects`、`.cas_tables`、`.job_execution`。
-- facade-owned `HttpClient`、`PasswordTokenEndpointClient`、concrete `InMemoryTokenStorage()`、`TokenManager`、`AuthProvider` 及一個 raw `Requester`；lazy token acquisition、idempotent lifecycle 與既有 error/cancellation propagation。
-- 已存在且使用者授權保留的 facade implementation、root export、tests、README 與 architecture/boundary docs；其 scoped TDD/focused evidence 仍是 provisional/historical evidence。
-- 僅修改 `tach.toml` 的既有 `mlops_async` 與 `mlops_async.transport` blocks 的 `depends_on` lists。
-- 此次 six topic artifacts 的 material Tach rework 與 re-review routing。
+## 目標
 
-## Out-Of-Scope
+維持 additive package-root `MlopsAsyncClient`：它以 password-grant credentials
+建立 shared async HTTP/auth runtime，提供既有 endpoint family 的 namespaced、
+identity-stable 存取及正確的 async lifecycle。
 
-- `.users`、API-key/other grants、transport injection、retry/timeout/cancellation API、facade-specific exceptions、token-storage policy。
-- 任一既有 endpoint 行為、RequestExecutor migration、CAS Tables constructor，或 `src/mlops_async/core/**`、`src/mlops_async/transport/**`、`src/mlops_async/clients/**` 的 production source。
-- `VERSION`、`pyproject.toml`、`uv.lock`、`.github/agents/**`、tag、release、release notes、live Viya E2E。
-- 除既有 `mlops_async` root seven-target list 與既有 `mlops_async.transport` exact two-target list 外的全部 `tach.toml` content、所有其他 Tach blocks、global flags、excludes 與 interfaces。
+## 範圍內
+
+- keyword-only `MlopsAsyncClient(*, base_url, client_id, client_secret, username,
+  password)`、package-root export 與 `.auth`、`.models`、`.projects`、
+  `.cas_tables`、`.job_execution` 的既有 public contract。
+- facade-owned `HttpClient`、`PasswordTokenEndpointClient`、concrete
+  `InMemoryTokenStorage()`、`TokenManager`、`AuthProvider` 及一個 raw
+  `Requester`；lazy token acquisition 與既有 error/cancellation propagation。
+- PR 修正只可變動 `src/mlops_async/mlops_async_client.py`、
+  `tests/unit/test_mlops_async_client.py`、
+  `docs/standards/http-client-auth-boundary.md` 及六份 topic artifacts；實作前
+  先依本契約補齊 lifecycle tests。
+- 保留已提交的 Tach shape：root exact seven-target list 與 transport exact
+  two-target list；本輪不得再修改 `tach.toml`。
+
+## 範圍外
+
+- `.users`、API-key/other grants、transport injection、retry/timeout/cancellation
+  API、facade-specific exceptions、token-storage policy。
+- 任一既有 endpoint 行為、RequestExecutor migration、CAS Tables constructor，或
+  `src/mlops_async/core/**`、`src/mlops_async/transport/**`、
+  `src/mlops_async/clients/**` 的 production source。
+- `VERSION`、`pyproject.toml`、`uv.lock`、`.github/agents/**`、tag、release、
+  release notes、live Viya E2E。
+- 所有其他 `tach.toml` content、Tach blocks、global flags、excludes 與 interfaces。
 
 ## ReadOnly
 
-- `src/mlops_async/core/**`、`src/mlops_async/transport/**`、`src/mlops_async/clients/**`。
+- `src/mlops_async/core/**`、`src/mlops_async/transport/**`、
+  `src/mlops_async/clients/**`。
 - `VERSION`、`pyproject.toml`、`uv.lock`、`.github/agents/**`。
-- `tach.toml` 中除了既有 root seven-target list 與既有 transport exact two-target list 以外的所有內容。
+- 全部 `tach.toml` content；尤其 root seven-target list 與 transport exact
+  two-target list 均不可變更。
 
 ## Written
 
-- `src/mlops_async/mlops_async_client.py`
-- `tests/unit/test_mlops_async_client.py`
+- 無。本輪只有 Modify，且不得新增 public API。
 
 ## Modify
 
-- `src/mlops_async/__init__.py`
-- `tests/unit/clients/test_auth_client.py`
-- `README.md`
-- `docs/ARCHITECTURE.md`
+- `src/mlops_async/mlops_async_client.py`
+- `tests/unit/test_mlops_async_client.py`
 - `docs/standards/http-client-auth-boundary.md`
-- `tach.toml`：僅兩個既有 `depends_on` lists；此檔是 Modify，不是 Written。
 - `analysis/mlops-async-client-facade/requirements.md`
 - `analysis/mlops-async-client-facade/technical-spec.md`
 - `plan/mlops-async-client-facade/mlops-async-client-facade.plan.md`
@@ -74,17 +93,31 @@ tag, or release is implied by this evidence.
 
 - 無。
 
-## Measurable Requirements
+## 可驗證需求
 
-1. `from mlops_async import MlopsAsyncClient` 可用，constructor 只接受五個 required keyword-only strings。
-2. Constructor、`__aenter__` 與 property access 不進行 I/O；首次 authenticated operation 才使用既有 lazy token flow。
-3. Facade 是唯一 close owner；family clients 不取得 lifecycle ownership；`aclose()` 與 context exit idempotent。
-4. 最終 `tach check` 無 cycle，且 config diff/shape inspection 驗證僅允許的 two-list delta。
-5. 既有 scoped TDD/focused evidence 與 pending final full validation、independent implementation review、independent code review、publish 必須清楚區分。
+1. `from mlops_async import MlopsAsyncClient`、五個 required keyword-only strings
+   與 readonly identity-stable namespace properties 的既有 public contract 不變。
+2. Constructor、`__aenter__`、property access 不做 I/O；首個 authenticated domain
+   request 才經既有 `TokenManager`/`AuthProvider` password-token flow lazy 取得 token。
+3. Facade 仍是 `HttpClient` 唯一 close owner；family clients 不取得 lifecycle ownership。
+4. `aclose()` 以 private in-progress shared task 協調 close：同時或重複呼叫只能
+   使用同一 close operation；只有底層 close 成功後才永久標為 closed。
+5. 底層 close raise 或 cancellation 時，facade 不得永久 closed，必須清除已結束的
+   in-progress state，讓後續 `aclose()` 可重試；取消單一 waiter 不得取消 shared close
+   operation。既有 domain/auth/transport failures 與 `asyncio.CancelledError` 不包裝。
+6. tests 必須覆蓋成功後 idempotence、concurrent/repeated close 單一底層 call、
+   close failure retry、underlying-close cancellation retry，以及 cancelled waiter 不使
+   其他 waiter 的 shared close 失敗。
+7. `docs/standards/http-client-auth-boundary.md` 必須在實作同一 commit 中同步說明：
+   facade 是 shared `HttpClient` 唯一 owner、close 成功才 closed、失敗/cancellation
+   可重試，以及 root composition boundary 使用下列 frozen Tach shape。
+8. 本輪依序需通過 scoped/full validation、independent implementation review、
+   independent code review、correction commit/push，才可由 Main Agent 在 readback 後
+   resolve 三條明列 threads。
 
-## Tach correction acceptance
+## Frozen Tach shape
 
-`tach.toml` 只可達成下列 shape：
+`tach.toml` 在 PR baseline 已具有、且本輪必須保留的 shape：
 
 ```toml
 # existing [[modules]] path = "mlops_async"
@@ -102,14 +135,14 @@ depends_on = [
 depends_on = ["mlops_async.core", "mlops_async.exceptions"]
 ```
 
-Acceptance test 必須以 config diff/shape inspection 驗證 root 恰為上述 seven targets、transport 恰為上述 two targets，且沒有其他 Tach block、global flag、exclude 或 interface 差異；之後 `tach check` 必須無 cycle。
+shape inspection 必須確認此 root exact seven targets 與 transport exact two targets
+未被本輪修正改動；不得有其他 Tach drift。
 
-## Rework and Re-review Routing
+## 工作流與歷史證據
 
-### Implementation-review rework routing (2026-08-12)
-
-Main workflow 與 restored Python companion 的 plan-review 先前均獲 `approved`，且 `plan-review` 維持完成的歷史事實；這不表示 implementation review 已通過。獨立 implementation reviewer 已作出 `needs-rework` verdict，workflow 現在依 canonical transition 位於 `needs-rework -> creator-in-progress`。
-
-保留的 facade/root export/tests/docs、scoped TDD/focused evidence，以及 provisional Tach work 都是現況／歷史證據，不可誤標為本輪完成。Implementer 必須只在既有 scope 內完成下列 rework：root `mlops_async` list 依鎖定順序為 `clients`、`core`、`transport`、`cas_tables`、`job_execution`、`models`、`projects`；補齊既定 facade tests，驗證 close 後 properties 仍可讀且 identity 不變、close 後 domain requester I/O 原樣產生既有 closed-transport failure、以及首次 authenticated domain request 經 TokenManager/AuthProvider lazy 觸發 password token flow。完成後才可再次送 independent implementation review。
-
-full non-E2E WSL command 因 linked-worktree `.git` Windows pointer policy guard 而 nonzero，故 full validation 仍是 pending 的 environment exception；不得以已完成 assertions 或 coverage 宣稱 full validation 完成。Tach correction（含 exact order）、independent implementation review、code review 與 publish 均 pending。
+原本 main workflow 和 Python companion 的 plan-review `approved` 是歷史事實，
+但不等於本輪 implementation review 已通過。`ed29e837…` 是已推送並已開 PR 的
+歷史 baseline；它與 pending correction evidence 不得同時被標為 current completion。
+目前唯一 current status 是 `creator-in-progress`。修正完成後，必須重新取得
+independent implementation review，再取得 code review；publish 指的是本輪 correction
+commit/push，不是 version/tag/release，也不授權 merge。

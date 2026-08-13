@@ -1,184 +1,160 @@
 ---
 topic: mlops-async-client-facade
 phase: plan-authoring
-status: approved
+status: creator-in-progress
 created: 2026-08-12
 d1_verdict: non-trivial
-branch: feat/andrew/mlops-async-client-facade
-worktree: D:\code\python\mlops-async.worktrees\agent-20260812-mlops-async-client-facade
+pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 ---
 
-# MlopsAsyncClient Python implementation plan
-
-## Authoritative completion update (2026-08-13)
-
-The earlier rework record is retained as history but is no longer current.
-Independent Python implementation review and independent Python code review
-are approved. The authoritative final-validation route was an isolated
-Linux-native ext4 detached checkout rebuilt from base
-`e311e9e34c62979bb2ea5915e11c5d5fcbec07b2`, with six tracked diffs and eight
-topic-untracked files hash-matched to the feature snapshot. `uv sync --frozen`,
-full non-E2E pytest (`694 passed, 9 skipped, 1 deselected`, 94.38% coverage),
-Ruff, Pyright, Tach, and `git diff --check` passed. Its retained transcript is
-`/tmp/mlops-async-facade-validation-results-20260813-91d3b5e4.txt`
-(SHA-256 `2b4d1be6dcf35fe78e44b5a6041a499c7ea2c8c452eab451368f57b35f8f0e83`);
-the disposable checkout and bare cache were deleted.
-
-Current status is `approved`; only `publish` remains pending. This plan update
-does not perform or authorize a commit, push, pull request, merge, version
-bump, tag, or release.
-
-## Implementation-review rework record (2026-08-12)
-
-The restored Python companion 的 independent plan approval 保持有效，`plan-review` 已完成；後續 implementation review 為 `needs-rework`，所以 companion workflow 現為 `needs-rework -> creator-in-progress`。不重開 Python plan review，除非發現 scope conflict。
-
-> 本 companion plan 服從 `mlops-async-client-facade.plan.md` 的 strict analysis routing、scope、artifact ownership、workflow transition 與 stable-library metadata。rework 僅為鎖定的 Tach root order 與既定 facade tests；不改變任何 technical decision。
+# MlopsAsyncClient Python 實作計畫
 
 ## Goal
 
-保留既有 user-authorized provisional `MlopsAsyncClient` facade，僅以已授權的 exact Tach composition-root boundary 消除 cycle，並在 final validation 與獨立 review 後進入 publish gate。
+修正 facade owned `HttpClient` 的 close lifecycle，讓 concurrent/repeated close
+single-flight、only-success-is-closed，且底層 close failure/cancellation 可重試；
+同步 unit tests 與 HTTP/auth boundary doc。
 
 ## Non-goals
 
-- 不新增 `.users`、API-key/other grants、transport injection、retry/timeout/cancellation API、facade-specific exception 或 token-storage policy。
-- 不改變 existing family endpoint behavior、RequestExecutor migration、CAS Tables constructor，亦不改寫 `src/mlops_async/core/**`、`src/mlops_async/transport/**`、`src/mlops_async/clients/**`。
-- 不修改 root seven-target / transport two-target lists 以外的 Tach block、target、global flag、exclude、interface 或 config content。
-- 不執行 VERSION bump、tag、release、release notes 或 live Viya E2E。
+- 不改 public constructor、properties、endpoint APIs 或 exception classes。
+- 不改 `core`、`transport`、`clients`、`__init__.py`、AuthClient tests、README 或
+  `docs/ARCHITECTURE.md`。
+- 不修改 root seven-target / transport two-target lists 或任何其他 `tach.toml` content。
+- 不做 version、release、tag、merge 或未指定 PR thread resolution。
 
 ## Current Context
 
-`analysis/mlops-async-client-facade/requirements.md` 與 `technical-spec.md` 是 strict baseline。feature worktree 已有 facade、root export、tests、README 與 boundary docs，並有 scoped TDD/focused 及先前 full-validation evidence；它們是保留的 provisional/historical evidence，不是這次 Tach rework、new plan review 或後續 final gates 的完成證據。
+PR #70 head `ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d` 是已發布 baseline。
+它不能證明目前 correction 已驗證；五條 action threads 將本 companion 置於
+`needs-rework -> creator-in-progress`。原本 plan-review approval 是歷史完成 gate，
+但本輪 implementation/code reviews、validation、correction push 全為 pending。
 
-Tach root facade composition 需直接依賴 family child boundaries；使用者已精確授權 root seven-target list，並要求 `mlops_async.transport` 維持僅依賴 `mlops_async.core` 與 `mlops_async.exceptions`。
+目前 facade 已是 `HttpClient` 唯一 owner，且 Tach root exact seven targets 與 transport
+exact two targets 已在 baseline；本輪只凍結並驗證那些 lists，不能調整它們。
+
+## PR #70 thread traceability
+
+| Thread ID | 已實作或待交接的修正範圍 | Handoff trace link |
+| --- | --- | --- |
+| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 Python implementer handoff |
+| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 Python implementer handoff |
+| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | 六份 topic artifacts 的 correction evidence |
+| `PRRT_kwDOSTt_386YpagN` | workflow evidence | 六份 topic artifacts 的 workflow/evidence handoff |
+| `PRRT_kwDOSTt_386YpagY` | transport doc | `docs/standards/http-client-auth-boundary.md` 的文件 handoff |
+
+上述五條 threads 全部仍未 resolved；本表僅補正可追溯性，不改變 Python contract 或 correction validation/review/publish 的 pending 狀態。
 
 ## Requirements
 
-1. `from mlops_async import MlopsAsyncClient` 保持可用；constructor 只接受五個 required keyword-only strings。
-2. Facade 保持 shared `HttpClient`、password token endpoint、concrete `InMemoryTokenStorage()`、`TokenManager`、`AuthProvider` 與 raw `Requester`；五個 properties readonly、identity-stable。
-3. Constructor、`__aenter__`、property access 不作 I/O；first authenticated operation 觸發既有 lazy token flow；Facade 是唯一 close owner，`aclose()`/context exit idempotent，errors/cancellation 原樣傳播。
-4. `tach.toml` 的既有 root `mlops_async` list 恰為七 targets：`mlops_async.clients`、`mlops_async.core`、`mlops_async.transport`、`mlops_async.clients.cas_tables`、`mlops_async.clients.job_execution`、`mlops_async.clients.models`、`mlops_async.clients.projects`；既有 transport list 恰為 `mlops_async.core`、`mlops_async.exceptions`。
-5. 精確 config diff/shape inspection、`tach check`、final full non-E2E pytest、Ruff、Pyright、`git diff --check`、independent implementation review、independent code review 都必須在這次 re-review approval 後完成。
+1. `MlopsAsyncClient` 的 public contract、lazy auth 和 identity-stable properties 不變。
+2. 第一次 close 建立唯一 private shared close task；所有 concurrent/repeated calls
+   await 同一 task，底層 `HttpClient.aclose()` 最多執行一次。
+3. shared task 成功才設 closed；成功後 later calls no-op。
+4. 底層 close raise 或 cancellation 時，facade 保持可 close、清除 completed failed task，
+   讓 later call retry；不吞掉 error/cancellation。
+5. cancelled caller 不得取消 shared task 或使其他 caller 無法得到成功結果。
+6. unit tests 與 `docs/standards/http-client-auth-boundary.md` 準確表達 requirements 2–5。
+7. Tach shape 必須保留 root `clients`, `core`, `transport`, `cas_tables`,
+   `job_execution`, `models`, `projects` 順序，transport 必須只有 `core`,
+   `exceptions`。
 
 ## Decisions
 
-- Async-planning status: triggered — facade 組合 shared async `HttpClient`，公開 `aclose()`/async context manager 並擁有 HTTP/auth runtime lifecycle；依 `analysis/mlops-async-client-facade/technical-spec.md` 的 Runtime Composition、Lifecycle and Error Contract、Async Baseline。
-- Module/package placement: facade 位於 `src/mlops_async/mlops_async_client.py` 並由 `src/mlops_async/__init__.py` root re-export；Tach correction 僅在 `tach.toml` 的 two existing lists。
-- New public API: 是；additive `MlopsAsyncClient`、five namespace properties、`aclose()`、async context manager，signature 依下方 Public Contract。
-- Interface changes: 否；不改 family constructors、endpoint interfaces 或 core/transport/client source，僅 root export 為 additive public surface。
-- Breaking changes allowed: 否；direct family imports/constructors 保持相容。
-- New dependencies: 否；重用既有 HTTP/auth/client components。
-- Error handling strategy: Facade 不包裝 blank/non-string credential、invalid URL、auth、transport、response 或 `asyncio.CancelledError` failures，沿用下層行為。
-- Typing strategy: public constructor/properties/lifecycle methods 保持 strict typed；不新增 `Any`、Protocol 或 facade-specific exception。
+- Async-planning status: triggered — `aclose()`/async context manager 現在改變
+  shared async lifecycle、concurrency、failure 與 cancellation behavior；依
+  `analysis/mlops-async-client-facade/technical-spec.md` 的 Lifecycle and Error Contract。
+- Module/package placement: private lifecycle code 只在
+  `src/mlops_async/mlops_async_client.py`；tests 只在
+  `tests/unit/test_mlops_async_client.py`；doc 只在
+  `docs/standards/http-client-auth-boundary.md`。
+- New public API: 否；private fields/task 與既有 `aclose()` behavior correction。
+- Interface changes: 否；family constructors、Requester、HttpClient interface 和
+  Tach configuration 不變。
+- Breaking changes allowed: 否。
+- New dependencies: 否；使用 standard-library `asyncio` 與現有 runtime。
+- Error handling strategy: 不包裝底層 error 或 `asyncio.CancelledError`；failed/cancelled
+  close 只重設 private lifecycle state。
+- Typing strategy: private state 使用 strict `asyncio.Task[None] | None`（或現有
+  strict-compatible equivalent），不新增 `Any` 或 public Protocol。
 
 ### Async boundary decision
 
-Facade 是 composition root；endpoint I/O 仍由 family clients 執行。async boundary 是 endpoint calls、`aclose()` 與 async context exit，不自行 delegate endpoint methods。
+endpoint I/O 邊界不變；此修正只在 facade 的 close coordination 建立 single-flight task。
 
 ### Resource lifecycle decision
 
-Facade 唯一擁有 shared `HttpClient`；`aclose()`/`__aexit__` 只關閉它。composed components/family clients 不增加 close path。constructor/context entry/property access 僅 validation/wiring。
+Facade 保持唯一 `HttpClient` owner。private task 是唯一 close-in-progress marker；
+success 才 closed，failure/cancellation 可重試，properties 不因 close 消失。
 
 ### Concurrency model
 
-不新增 background task、fan-out、queue、prefetch 或 facade-level parallel token flow；沿用 `TokenManager` 與 request/auth runtime 的既有行為。
+第一個 caller 建 task，後續 callers await 同一 task。使用 shield 防止單一 waiter
+cancellation 取消 operation；不引入 queue、fan-out、background service 或 parallel I/O。
 
 ### Failure model
 
-OAuth、network、response parsing、closed-transport 和 cancellation failures 原樣傳播。close 後 properties 仍存在；後續 I/O 沿用下層 closed-transport error。
+底層 close raise/cancellation 原樣傳播；若 task 已結束且不成功，清除 in-progress state。
+未成功前不得宣稱 closed；後續 caller 可建新 task retry。
 
 ### Cancellation / timeout policy
 
-Facade 不攔截 `asyncio.CancelledError`，不新增 timeout/retry API 或 policy；沿用 transport/request runtime。
+不新增 timeout/retry public policy。caller cancellation 只取消該 waiter；shared task
+持續。底層 task 自身 cancellation 導致可重試而非 permanent closed。
 
 ### Validation plan
 
-先完成精確 Tach config diff/shape acceptance：root exact seven targets、transport exact two targets、無其他 Tach drift，再執行 `tach check`。後續才執行 focused regression、full non-E2E pytest、Ruff、Pyright、`git diff --check`，並由獨立 implementation/code reviewers 審查。既有 provisional evidence 僅保留為歷史背景。
+先跑 focused facade tests，再跑 full non-E2E pytest、Ruff、Pyright、Tach、diff check；
+每個結果都屬本輪 correction evidence，不能沿用 baseline 口述結論。最後依序
+implementation review、code review、commit/push/readback/thread resolution。
 
 ### Handoff notes for the implementer
 
-在新 plan-review approval 前不得改 `tach.toml`。核准後，`tach.toml` 是唯一為 Tach correction 而變動的 production/config path，且只能改兩個既有 lists；root seven-target target names、transport exact two-target list 均不可自行替換、排序以外的擴張或縮減。不得觸及任何 other Tach block、flag、exclude、interface 或 production source。
+不要以 bool 在底層 close 開始前標示 closed；不要每個 caller 各自 close；不要在
+`CancelledError` path 遺留 completed failed task。只改三個 authorized implementation
+files，並保留 properties/Requester/auth composition。完成後不要自行 commit/push/reply/
+resolve threads。
 
 ## Public Contract / API Changes
 
-```python
-class MlopsAsyncClient:
-    def __init__(
-        self,
-        *,
-        base_url: str,
-        client_id: str,
-        client_secret: str,
-        username: str,
-        password: str,
-    ) -> None: ...
-
-    @property
-    def auth(self) -> AuthClient: ...
-    @property
-    def models(self) -> ModelsClient: ...
-    @property
-    def projects(self) -> ProjectsClient: ...
-    @property
-    def cas_tables(self) -> CasTablesClient: ...
-    @property
-    def job_execution(self) -> JobExecutionClient: ...
-
-    async def aclose(self) -> None: ...
-    async def __aenter__(self) -> MlopsAsyncClient: ...
-    async def __aexit__(self, exc_type, exc, traceback) -> None: ...
-```
-
-Properties 無 setter，回傳 constructor 建立的同一 instance。此為 additive public contract；existing direct family imports/constructors 不變。
+無。`MlopsAsyncClient.aclose() -> None` 與 async context manager signature 不變；
+本輪只修正其 concurrency/failure semantics。
 
 ## Affected Files / Modules
 
-Likely affected files:
-
-- `tach.toml`：僅既有 root `mlops_async` 與 `mlops_async.transport` `depends_on` lists，且僅在 re-review approval 後。
-- `plan/mlops-async-client-facade/mlops-async-client-facade.python.plan.md`：本 companion rework artifact。
-
-Retained provisional implementation evidence:
-
-- `src/mlops_async/mlops_async_client.py`
-- `src/mlops_async/__init__.py`
-- `tests/unit/test_mlops_async_client.py`
-- `tests/unit/clients/test_auth_client.py`
-- `README.md`
-- `docs/ARCHITECTURE.md`
-- `docs/standards/http-client-auth-boundary.md`
-
-Read-only modules:
-
-- `src/mlops_async/core/**`
-- `src/mlops_async/transport/**`
-- `src/mlops_async/clients/**`
-- `VERSION`
-- `pyproject.toml`
-- `uv.lock`
-- `.github/agents/**`
-- `tach.toml` 除 two accepted lists 外的全部內容。
+- `src/mlops_async/mlops_async_client.py`：private close lifecycle state/task。
+- `tests/unit/test_mlops_async_client.py`：single-flight/failure/cancellation regression。
+- `docs/standards/http-client-auth-boundary.md`：facade ownership、close semantics、
+  frozen Tach boundary doc sync。
+- six topic artifacts：workflow/evidence handoff。
 
 ## Implementation Steps
 
-1. 保留已完成的 independent Python plan-review approval；不重新送 plan review，除非發現 scope conflict。
-2. Modify only `tach.toml` existing `mlops_async` `depends_on` to `["mlops_async.clients", "mlops_async.core", "mlops_async.transport", "mlops_async.clients.cas_tables", "mlops_async.clients.job_execution", "mlops_async.clients.models", "mlops_async.clients.projects"]`, and leave existing `mlops_async.transport` `depends_on` exactly `["mlops_async.core", "mlops_async.exceptions"]`; change nothing else for this correction.
-3. In `tests/unit/test_mlops_async_client.py`, add the already-planned tests for post-close readable identity-stable properties, downstream existing closed-transport propagation, and first authenticated domain request lazy password-token flow through TokenManager/AuthProvider.
-4. Inspect the `tach.toml` diff/shape to assert the exact two lists and no other Tach drift; run `tach check` and required WSL validations, recording the linked-worktree `.git` pointer guard as a pending full-validation environment exception.
-5. Submit completed work to independent Python implementation review, then Python code review; both must verify retained provisional work did not expand scope.
-5. After all gates, hand off to Main Agent for `publish-in-progress`, topic commit, push, draft PR and human review; do not perform release work.
+1. 在 `src/mlops_async/mlops_async_client.py` 加入或整理 strict-typed private closed 與
+   in-progress task state；第一個 `aclose()` caller 僅建立一個底層 close task。
+2. 在同檔讓 every caller shield-await 同一 task；success 後設定 closed，raise 或
+   underlying cancellation 後清除 completed task 並保持可 retry；`__aexit__` 保持委派。
+3. 在 `tests/unit/test_mlops_async_client.py` 寫 tests：single successful close + later
+   idempotence、two concurrent callers one underlying close、raise then successful retry、
+   underlying cancellation then retry、cancelled waiter 不取消 shared operation。
+4. 在 `docs/standards/http-client-auth-boundary.md` 描述同一 ownership/lifecycle
+   contract 和 frozen root/transport Tach dependency direction；不改 config。
+5. 以 diff inspection 確認僅 authorized paths 且 Tach lists 不變，執行 validations，
+   再交 independent implementation/code reviewers。
 
 ## Test Plan
 
-- Happy path: `tests/unit/test_mlops_async_client.py` covers root import, five namespaces, shared requester/storage wiring and `async with`; final full suite guards existing families.
-- Invalid input: existing facade tests cover required credential string validation and invalid URL behavior without changing exception contracts.
-- Edge case: repeated `aclose()`/context exit, readonly identity, property availability after close, and downstream closed-transport I/O behavior.
-- Regression: existing facade/AuthClient tests preserve family non-ownership and CAS Tables concrete raw `Requester` compatibility.
-- Backward compatibility: existing direct family imports/constructors and endpoint behavior remain unchanged; full non-E2E suite enforces regression coverage.
-- Tach acceptance: config diff/shape inspection asserts root exactly seven named targets, transport exactly two named targets, no other Tach diff; `tach check` must pass without cycle.
+- Happy path: first close success，later `aclose()` no-op；properties 仍 identity-stable。
+- Invalid input: 既有 credential/URL validation tests 保持不變。
+- Edge case: simultaneous `aclose()` callers share one operation；cancelled waiter isolation。
+- Regression: failed 或 cancelled underlying close 後下一 call succeeds；domain closed-transport
+  behavior 和 lazy password-token flow 保持既有 tests。
+- Backward compatibility: direct family constructors/imports 及 existing facade public
+  contract 不變；full suite 監控。
 
 ## Validation Commands
 
-透過 WSL 且在 feature worktree 使用 frozen environment；不可使用 Windows project-local `.venv`：
+透過 WSL，且不得執行 Windows project-local `.venv`：
 
 ```powershell
 wsl.exe -d Ubuntu -- bash -lc 'cd /mnt/d/code/python/mlops-async.worktrees/agent-20260812-mlops-async-client-facade && uv run --frozen --no-sync pytest --no-cov tests/unit/test_mlops_async_client.py tests/unit/clients/test_auth_client.py'
@@ -189,18 +165,19 @@ wsl.exe -d Ubuntu -- bash -lc 'cd /mnt/d/code/python/mlops-async.worktrees/agent
 wsl.exe -d Ubuntu -- bash -lc 'cd /mnt/d/code/python/mlops-async.worktrees/agent-20260812-mlops-async-client-facade && git diff --check'
 ```
 
-在執行 `tach check` 前，先以 `git diff -- tach.toml` 或等效 shape inspection 驗證 exact two-list delta；不以之前的 full-validation 結果替代此次 evidence。
-
 ## Risks
 
-- Root facade 必須直接依賴四個 family child boundaries；遺漏/多出/錯名 target 會使 Tach fail 或違反 user authorization。
-- 對已存在 provisional work 的任何不相關變更會造成 scope drift，且可把歷史 validation 誤當成新的 final gate。
-- Password-grant values 不可出現在 README 實例、測試輸出或 logs。
+- 將 closed 提前設為 true 會使 close failure/cancellation 永久遺失 retry 路徑。
+- 未 shield shared task 會讓單一 cancelled waiter 取消所有 callers 的 close。
+- docs 若未同步既有 Tach composition boundary，會與已提交 config 和 lifecycle ownership
+  契約漂移。
 
 ## Rollback Plan
 
-若 Tach correction 或 final validation 失敗，僅 revert `tach.toml` 的 two accepted list edits，保留 user-authorized provisional facade/root export/tests/docs 和 six artifacts；workflow 回到 `needs-rework -> creator-in-progress`，不得以修改 ReadOnly 路徑迴避 boundary。此 topic 的所有 permitted files 都可透過 Git path-limited revert 回復。
+若 correction 不通過，僅 revert 此 plan 列出的 source/test/doc 與六 artifacts 的
+correction diff，回到 `ed29e837…` baseline；不動 ReadOnly paths、Tach lists、branch 或
+remote state。
 
 ## Open Questions
 
-無。使用者已明確指定 root seven targets、transport exact list、Tach config boundary與後續 review route。
+無。行為、files、tests、frozen Tach lists 與 reviewer routing 均已鎖定。
