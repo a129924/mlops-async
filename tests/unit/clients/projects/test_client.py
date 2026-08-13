@@ -12,6 +12,7 @@ from mlops_async.clients.projects import (
     ChampionFile,
     ChampionModel,
     ProjectDetail,
+    ProjectSummary,
     ProjectsClient,
     ProjectsPage,
     ProjectsResponseError,
@@ -96,6 +97,86 @@ async def test_list_projects_builds_one_default_page_request_and_parses_semantic
             {"start": "0", "limit": "20"},
         )
     ]
+
+
+@pytest.mark.asyncio
+async def test_list_and_get_project_expose_raw_audit_metadata_to_callers() -> None:
+    audit_metadata = {
+        "createdBy": "creator",
+        "modifiedBy": "editor",
+        "creationTimeStamp": "2026-08-13T00:00:00Z",
+        "modifiedTimeStamp": "not-normalized",
+    }
+    requester = _FakeRequester(
+        [
+            _page(
+                count=1,
+                start=0,
+                limit=20,
+                items=[{"id": "project-1", "name": "Credit risk", **audit_metadata}],
+            ),
+            _response({"id": "project-1", "name": "Credit risk", **audit_metadata}),
+        ]
+    )
+    client = ProjectsClient(requester)  # type: ignore[arg-type]  # Fake omits unused request options.
+
+    page = await client.list_projects()
+    detail = await client.get_project("project-1")
+
+    assert page.items == (
+        ProjectSummary(
+            id="project-1",
+            name="Credit risk",
+            created_by="creator",
+            modified_by="editor",
+            creation_timestamp="2026-08-13T00:00:00Z",
+            modified_timestamp="not-normalized",
+        ),
+    )
+    assert detail == ProjectDetail(
+        id="project-1",
+        name="Credit risk",
+        created_by="creator",
+        modified_by="editor",
+        creation_timestamp="2026-08-13T00:00:00Z",
+        modified_timestamp="not-normalized",
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("malformed_value", (None, 0, True, [], {}))
+async def test_list_and_get_project_propagate_malformed_audit_metadata(
+    malformed_value: object,
+) -> None:
+    requester = _FakeRequester(
+        [
+            _page(
+                count=1,
+                start=0,
+                limit=20,
+                items=[
+                    {
+                        "id": "project-1",
+                        "name": "Credit risk",
+                        "createdBy": malformed_value,
+                    }
+                ],
+            ),
+            _response(
+                {
+                    "id": "project-1",
+                    "name": "Credit risk",
+                    "modifiedTimeStamp": malformed_value,
+                }
+            ),
+        ]
+    )
+    client = ProjectsClient(requester)  # type: ignore[arg-type]  # Fake omits unused request options.
+
+    with pytest.raises(ProjectsResponseError):
+        await client.list_projects()
+    with pytest.raises(ProjectsResponseError):
+        await client.get_project("project-1")
 
 
 @pytest.mark.asyncio

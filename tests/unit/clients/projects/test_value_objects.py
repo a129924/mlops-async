@@ -39,8 +39,22 @@ def test_projects_value_objects_are_frozen_slotted_semantic_types() -> None:
     for value in (summary, detail, file, champion, page):
         assert is_dataclass(value)
         assert not hasattr(value, "__dict__")
-    assert {field.name for field in fields(summary)} == {"id", "name"}
-    assert {field.name for field in fields(detail)} == {"id", "name"}
+    assert {field.name for field in fields(summary)} == {
+        "id",
+        "name",
+        "created_by",
+        "modified_by",
+        "creation_timestamp",
+        "modified_timestamp",
+    }
+    assert {field.name for field in fields(detail)} == {
+        "id",
+        "name",
+        "created_by",
+        "modified_by",
+        "creation_timestamp",
+        "modified_timestamp",
+    }
     assert {field.name for field in fields(file)} == {"id", "name"}
     assert {field.name for field in fields(champion)} == {
         "id",
@@ -54,6 +68,205 @@ def test_projects_value_objects_are_frozen_slotted_semantic_types() -> None:
 
     with pytest.raises(FrozenInstanceError):
         summary.name = "changed"  # type: ignore[misc]
+
+
+def test_project_value_objects_expose_optional_audit_metadata_with_none_defaults() -> None:
+    summary = ProjectSummary(id="project-1", name="Credit risk")
+    detail = ProjectDetail(id="project-1", name="Credit risk")
+
+    for value in (summary, detail):
+        assert [field.name for field in fields(value)] == [
+            "id",
+            "name",
+            "created_by",
+            "modified_by",
+            "creation_timestamp",
+            "modified_timestamp",
+        ]
+        assert value.created_by is None
+        assert value.modified_by is None
+        assert value.creation_timestamp is None
+        assert value.modified_timestamp is None
+
+
+def test_project_parsers_map_complete_raw_audit_metadata_for_list_and_detail() -> None:
+    audit_metadata = {
+        "createdBy": "creator",
+        "modifiedBy": "editor",
+        "creationTimeStamp": "2026-08-13T00:00:00Z",
+        "modifiedTimeStamp": "not-normalized",
+    }
+    page = parse_projects_page(
+        {
+            "count": 1,
+            "start": 0,
+            "limit": 20,
+            "items": [{"id": "project-1", "name": "Credit risk", **audit_metadata}],
+        }
+    )
+    detail = parse_project_detail({"id": "project-1", "name": "Credit risk", **audit_metadata})
+
+    for project in (page.items[0], detail):
+        assert project.created_by == "creator"
+        assert project.modified_by == "editor"
+        assert project.creation_timestamp == "2026-08-13T00:00:00Z"
+        assert project.modified_timestamp == "not-normalized"
+
+
+@pytest.mark.parametrize(
+    "parser",
+    (parse_projects_page, parse_project_detail),
+    ids=("list_item", "detail"),
+)
+@pytest.mark.parametrize(
+    "audit_key, attribute_name",
+    (
+        ("createdBy", "created_by"),
+        ("modifiedBy", "modified_by"),
+        ("creationTimeStamp", "creation_timestamp"),
+        ("modifiedTimeStamp", "modified_timestamp"),
+    ),
+)
+def test_project_parsers_preserve_empty_string_audit_metadata(
+    parser: _Parser,
+    audit_key: str,
+    attribute_name: str,
+) -> None:
+    project_payload: JSONValue = {
+        "id": "project-1",
+        "name": "Credit risk",
+        audit_key: "",
+    }
+    if parser is parse_projects_page:
+        project = parse_projects_page(
+            {
+                "count": 1,
+                "start": 0,
+                "limit": 20,
+                "items": [project_payload],
+            }
+        ).items[0]
+    else:
+        project = parse_project_detail(project_payload)
+
+    assert getattr(project, attribute_name) == ""
+
+
+def test_project_parsers_materialize_missing_audit_metadata_as_none() -> None:
+    page = parse_projects_page(
+        {
+            "count": 1,
+            "start": 0,
+            "limit": 20,
+            "items": [{"id": "project-1", "name": "Credit risk"}],
+        }
+    )
+    detail = parse_project_detail({"id": "project-1", "name": "Credit risk"})
+
+    for project in (page.items[0], detail):
+        assert project.created_by is None
+        assert project.modified_by is None
+        assert project.creation_timestamp is None
+        assert project.modified_timestamp is None
+
+
+@pytest.mark.parametrize(
+    "parser",
+    (parse_projects_page, parse_project_detail),
+    ids=("list_item", "detail"),
+)
+@pytest.mark.parametrize(
+    "missing_audit_keys",
+    (
+        ("createdBy",),
+        ("modifiedBy",),
+        ("creationTimeStamp",),
+        ("modifiedTimeStamp",),
+        ("createdBy", "modifiedBy"),
+        ("createdBy", "creationTimeStamp"),
+        ("createdBy", "modifiedTimeStamp"),
+        ("modifiedBy", "creationTimeStamp"),
+        ("modifiedBy", "modifiedTimeStamp"),
+        ("creationTimeStamp", "modifiedTimeStamp"),
+        ("createdBy", "modifiedBy", "creationTimeStamp"),
+        ("createdBy", "modifiedBy", "modifiedTimeStamp"),
+        ("createdBy", "creationTimeStamp", "modifiedTimeStamp"),
+        ("modifiedBy", "creationTimeStamp", "modifiedTimeStamp"),
+    ),
+)
+def test_project_parsers_independently_materialize_mixed_audit_metadata(
+    parser: _Parser,
+    missing_audit_keys: tuple[str, ...],
+) -> None:
+    audit_metadata = {
+        "createdBy": "creator",
+        "modifiedBy": "editor",
+        "creationTimeStamp": "2026-08-13T00:00:00Z",
+        "modifiedTimeStamp": "not-normalized",
+    }
+    present_audit_metadata = {
+        key: value for key, value in audit_metadata.items() if key not in missing_audit_keys
+    }
+    project_payload: JSONValue = {
+        "id": "project-1",
+        "name": "Credit risk",
+        **present_audit_metadata,
+    }
+    if parser is parse_projects_page:
+        project = parse_projects_page(
+            {
+                "count": 1,
+                "start": 0,
+                "limit": 20,
+                "items": [project_payload],
+            }
+        ).items[0]
+    else:
+        project = parse_project_detail(project_payload)
+
+    assert project.created_by == present_audit_metadata.get("createdBy")
+    assert project.modified_by == present_audit_metadata.get("modifiedBy")
+    assert project.creation_timestamp == present_audit_metadata.get("creationTimeStamp")
+    assert project.modified_timestamp == present_audit_metadata.get("modifiedTimeStamp")
+
+
+@pytest.mark.parametrize(
+    "parser",
+    (parse_projects_page, parse_project_detail),
+    ids=("list_item", "detail"),
+)
+@pytest.mark.parametrize(
+    "audit_key",
+    ("createdBy", "modifiedBy", "creationTimeStamp", "modifiedTimeStamp"),
+)
+@pytest.mark.parametrize("malformed_value", (None, 0, True, [], {}))
+def test_project_parsers_reject_present_non_string_audit_metadata(
+    parser: _Parser,
+    audit_key: str,
+    malformed_value: JSONValue,
+) -> None:
+    if parser is parse_projects_page:
+        payload: JSONValue = {
+            "count": 1,
+            "start": 0,
+            "limit": 20,
+            "items": [
+                {
+                    "id": "project-1",
+                    "name": "Credit risk",
+                    audit_key: malformed_value,
+                }
+            ],
+        }
+    else:
+        payload = {
+            "id": "project-1",
+            "name": "Credit risk",
+            audit_key: malformed_value,
+        }
+
+    with pytest.raises(ProjectsResponseError):
+        parser(payload)
 
 
 @pytest.mark.parametrize(
