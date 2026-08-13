@@ -1,6 +1,6 @@
 ---
 topic: mlops-async-client-facade
-status: creator-in-progress
+status: approved
 created: 2026-08-12
 source_of_truth: locked human contract
 pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
@@ -20,9 +20,11 @@ facade、Tach lists、tests 與文件；它不是本輪修正已完成的證據�
 README/architecture 繁中敘述已 materially 完成。isolated ext4 correction snapshot validation 已完成：以
 base `9b51f95` 加上精確十個 correction files 重建，manifest SHA-256
 `219b3593cb3213f035c728232d377eb2db55966b94ee967ba8532a3e755ce809` 相符；`uv sync --frozen`、
-full non-E2E、Ruff format/check、Pyright、Tach 與 diff check 均通過。full-validation 已完成；
-independent reviews、correction commit/push/readback 與新 thread resolution 仍 pending。不得把原始
-baseline 或任何歷史 assertion 當成本輪完成 gate。
+full non-E2E、Ruff format/check、Pyright、Tach 與 diff check 均通過。isolated ext4 full-validation
+是歷史 evidence；本輪 correction plan 已取得獨立 Plan-Reviewer approval，direct transport
+implementation review 亦已批准。current full-validation、independent code review、correction
+commit/push/readback 與新 thread resolution 仍 pending。不得把原始 baseline 或任何歷史 assertion
+當成本輪完成 gate。
 
 ## PR #70 thread traceability
 
@@ -33,6 +35,10 @@ baseline 或任何歷史 assertion 當成本輪完成 gate。
 | `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | resolved history at `9b51f95`; no future resolve |
 | `PRRT_kwDOSTt_386YpagN` | workflow evidence | resolved history at `9b51f95`; no future resolve |
 | `PRRT_kwDOSTt_386YpagY` | transport doc | resolved history at `9b51f95`; no future resolve |
+
+| `PRRT_kwDOSTt_386YypkF` | concrete cleanup sequential retry | resolved history at `ea5732e`; no future resolve |
+| `PRRT_kwDOSTt_386YypkJ` | README/architecture 繁中敘述 | resolved history at `ea5732e`; no future resolve |
+| `PRRT_kwDOSTt_386Y0BD0` | direct `HttpClient.aclose()` concurrent cleanup single-flight | **current unresolved; pending correction** |
 
 上述五條 thread 是已解決歷史，並非本輪待處理項目。本輪 pending correction 僅為
 `PRRT_kwDOSTt_386YypkF`：concrete `HttpClient.aclose()` 在 failure/cancellation 後必須
@@ -142,6 +148,37 @@ identity-stable 存取及正確的 async lifecycle。
    resolve `PRRT_kwDOSTt_386YypkF` 與 `PRRT_kwDOSTt_386YypkJ`；先前 thread 不因本輪
    correction 重新分類或 resolve。
 
+## Current transport concurrency correction（2026-08-13）
+
+本節是對前述歷史 pending 敘述的 current-truth supersession：`PRRT_kwDOSTt_386YypkF`
+與 `PRRT_kwDOSTt_386YypkJ` 已隨 `ea5732e` 的 remote-head readback 解決，絕不可再次
+resolve。本輪唯一 current unresolved thread 是 `PRRT_kwDOSTt_386Y0BD0`，所以 topic 維持
+`approved`。本輪 correction plan 已由獨立 Plan-Reviewer 批准，且 direct transport
+implementation review 已批准；本 agent 不得 self-review。current full-validation、independent
+code review、correction commit/push/readback 與 `PRRT_kwDOSTt_386Y0BD0` resolution 仍 pending。
+
+此 correction 僅授權 concrete transport 的 direct `HttpClient.aclose()` concurrency：
+
+1. 第一個 direct caller 建立唯一 private cleanup attempt；在 attempt 尚未結束時加入的每一個
+   direct caller 都 await 同一 attempt，因此成功時全數成功、raise 時全數收到該 failure、
+   cleanup task 被取消時全數收到 `asyncio.CancelledError`；不得建立第二個 cleanup call。
+2. waiter 自身取消不得取消 shared cleanup attempt。這不改變前項：若 cleanup attempt 本身被
+   取消，所有仍等待該 attempt 的 direct callers 都必須觀察 cancellation。
+3. attempt failure 或 cancellation 後，private in-progress marker 與 concrete success state
+   必須回到 retryable 狀態；後續**序列** direct caller 必須建立新的真實 managed cleanup attempt。
+   不得把 temporary `httpx` close state 所回傳的 no-op 當成成功。
+4. 只有 shared managed cleanup 真正成功後才記錄 concrete closed；其後的序列 direct call 才
+   可以是 idempotent no-op。
+5. 必須以 deterministic event/barrier fakes 測試兩個 direct concurrent callers 的 success、
+   failure、cleanup cancellation 與 sequential retry：每個 concurrent scenario 的底層 managed
+   `aclose()` call count 恰為一；failure/cancellation 後的 retry 成功使 cumulative count 為二。
+
+不得擴張 facade ownership、`MlopsAsyncClient` single-flight、Tach shape、public API、README、
+architecture 文件或其他 source/test 路徑；它們僅是 historical evidence 或 ReadOnly boundary。
+實作、targeted/full validation、independent implementation review、independent code review、
+`commit --no-verify`、push、GraphQL remote-head readback、只 resolve
+`PRRT_kwDOSTt_386Y0BD0`、最後 GraphQL readback，必須依此順序進行。
+
 ## Frozen Tach shape
 
 `tach.toml` 在 PR baseline 已具有、且本輪必須保留的 shape：
@@ -170,6 +207,6 @@ shape inspection 必須確認此 root exact seven targets 與 transport exact tw
 原本 main workflow 和 Python companion 的 plan-review `approved` 是歷史事實，
 但不等於本輪 implementation review 已通過。`ed29e837…` 是已推送並已開 PR 的
 歷史 baseline；它與 pending correction evidence 不得同時被標為 current completion。
-目前唯一 current status 是 `creator-in-progress`。修正完成後，必須重新取得
-independent implementation review，再取得 code review；publish 指的是本輪 correction
-commit/push，不是 version/tag/release，也不授權 merge。
+目前 current plan status 是 `approved`。本輪 independent Plan-Reviewer 與 implementation
+review 已批准；current full-validation 與 independent code review 仍 pending。publish 指的是本輪
+correction commit/push，不是 version/tag/release，也不授權 merge。

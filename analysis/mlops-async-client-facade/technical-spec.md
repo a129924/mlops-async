@@ -1,6 +1,6 @@
 ---
 topic: mlops-async-client-facade
-status: creator-in-progress
+status: approved
 created: 2026-08-12
 requirements_source: analysis/mlops-async-client-facade/requirements.md
 pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
@@ -12,9 +12,11 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 
 PR #70 head `ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d` 是已發布 baseline。
 五條先前 action threads 已在 correction commit `9b51f95` 解決，僅為 historical record；
-兩條新 action threads 使 lifecycle/docs rework 目前為 `creator-in-progress`。本規格不將
-baseline validation、review 或 publication 作為本輪修正的完成證據。isolated ext4 snapshot 的
-full-validation 已完成；independent reviews、commit/push/readback 與新 thread resolution 仍 pending。
+兩條新 action threads 曾使 lifecycle/docs rework 進入 `needs-rework -> creator-in-progress`。
+本輪 correction plan 已由獨立 Plan-Reviewer 批准，且 direct transport implementation review 已批准；
+本規格不將 baseline validation、review 或 publication 作為本輪修正的完成證據。isolated ext4 snapshot
+的 full-validation 是歷史 evidence；current full-validation、independent code review、commit/push/readback
+與新 thread resolution 仍 pending。
 
 ## PR #70 thread traceability
 
@@ -25,6 +27,9 @@ full-validation 已完成；independent reviews、commit/push/readback 與新 th
 | `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | resolved history at `9b51f95`; no future resolve |
 | `PRRT_kwDOSTt_386YpagN` | workflow evidence | resolved history at `9b51f95`; no future resolve |
 | `PRRT_kwDOSTt_386YpagY` | transport doc | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386YypkF` | concrete cleanup sequential retry | resolved history at `ea5732e`; no future resolve |
+| `PRRT_kwDOSTt_386YypkJ` | README/architecture 繁中敘述 | resolved history at `ea5732e`; no future resolve |
+| `PRRT_kwDOSTt_386Y0BD0` | direct `HttpClient.aclose()` concurrent cleanup single-flight | **current unresolved; pending correction** |
 
 上述五條 thread 為已解決歷史，沒有 future resolve。本輪只為
 `PRRT_kwDOSTt_386YypkF` 與 `PRRT_kwDOSTt_386YypkJ` 進入 pending correction：前者要求
@@ -113,6 +118,37 @@ method、argument 或 exception。
 - 此 retry 僅為 cleanup lifecycle 的再次嘗試；不得新增 dependency、network request retry
   behavior、timeout、background task 或 public API。
 
+## Direct HttpClient concurrency correction（current delta）
+
+本節 supersede 前述把 `PRRT_kwDOSTt_386YypkF`/`PRRT_kwDOSTt_386YypkJ` 當成 pending 的
+歷史敘述：兩者已由 `ea5732e` readback resolved，唯一 current unresolved thread 為
+`PRRT_kwDOSTt_386Y0BD0`。本 delta 不改變 facade 的 owner、其 public contract 或 Tach boundary。
+
+在 `src/mlops_async/transport/http_client.py`，`HttpClient.aclose()` 的 private lifecycle state
+必須將「進行中的 managed cleanup attempt」與「已成功 closed」分開表達：
+
+- 若尚未 successfully closed 且沒有 in-progress attempt，第一個 direct caller 建立一個 managed
+  cleanup task；同時到達的 direct callers 必須加入並 await 同一 task，不能因 `httpx` temporary
+  close state 建立第二個 call 或提早回傳成功。
+- task success 後才設定 concrete closed；所有 awaiters 正常返回，後續序列 call 可 no-op。
+- task raise 時，所有 joiners re-raise 同一 failure；task 自身以 `CancelledError` 結束時，所有
+  joiners 觀察 cancellation。兩種情況都必須清除 in-progress marker、保持未 closed，使後續序列
+  call 建立新的真實 attempt。
+- caller waiter cancellation 必須以 shield（或等價語意）隔離，不得取消 shared task；此 isolation
+  不得吞掉或改寫 cleanup task 本身的 failure/cancellation。
+
+`tests/unit/transport/test_http_client.py` 必須使用可由 event/barrier 控制的 managed cleanup fake，
+而非 timing sleep：success/failure/cancellation 各有兩個 direct concurrent callers 且底層 count
+為一；failure/cancellation scenario 在釋放後再做一個序列 retry，成功且 cumulative count 為二。
+這些 tests 是 current correction 的新 acceptance evidence；既有 facade tests 僅回歸，不重新
+取得 facade ownership。
+
+本 delta 的 review/publish contract 為：source/test 與需要的六份 topic artifacts 已交由獨立
+Plan-Reviewer 批准，direct transport implementation review 也已批准；current full-validation 與
+independent code review 仍須完成。兩個 remaining gates 批准後才 `commit --no-verify`、push、
+GraphQL remote-head readback，並且只 resolve
+`PRRT_kwDOSTt_386Y0BD0`，再做 GraphQL readback。此 plan 更新本身不執行任何上述動作。
+
 ## Tach Composition-root Boundary
 
 以下是 PR baseline 的 frozen shape；本輪只檢查、不得改它：
@@ -188,9 +224,8 @@ target、global flag、exclude 或 interface。
 
 ## Rework Routing
 
-main workflow 與 Python companion plan-review 的 `approved` 是已完成的歷史 gate。
-PR action threads 不重開 plan-review；本次 lifecycle/docs correction 現在是
-`needs-rework -> creator-in-progress`。Implementer 完成後依序送 independent
-implementation review、code review、correction commit/push；Main Agent 只可在 push
-readback 後 resolve `PRRT_kwDOSTt_386YypkF` 與 `PRRT_kwDOSTt_386YypkJ`。先前 thread
-維持既有狀態。VERSION、tag、release、merge 均不在此 routing 中。
+本輪 correction plan 已完成 `needs-rework -> creator-in-progress -> review-ready -> approved`，
+並已取得 independent Plan-Reviewer approval；direct transport implementation review 亦已批准。
+current full-validation、independent code review、correction commit/push/readback 仍 pending；Main Agent
+只可在 push readback 後 resolve `PRRT_kwDOSTt_386Y0BD0`。先前 thread 維持既有狀態。VERSION、tag、
+release、merge 均不在此 routing 中。

@@ -1,7 +1,7 @@
 ---
 topic: mlops-async-client-facade
 phase: plan-authoring
-status: creator-in-progress
+status: approved
 created: 2026-08-12
 d1_verdict: non-trivial
 pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
@@ -13,8 +13,10 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 
 PR #70 head `ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d` 是唯一已發布
 baseline。五條先前 action threads 已在 correction commit `9b51f95` 解決；兩條新 action
-threads 目前使 lifecycle/docs correction 處於 `creator-in-progress`。本輪 full-validation 已完成；
-reviews、commit/push/readback 和新 thread resolution 仍 pending，不能引用 baseline 作為完成證據。
+threads 曾使 lifecycle/docs correction 處於 `creator-in-progress`。本輪 correction plan 已由獨立
+Plan-Reviewer 批准，direct transport implementation review 亦已批准；isolated ext4 full-validation
+是歷史 evidence，current full-validation、code review、commit/push/readback 和新 thread resolution
+仍 pending，不能引用 baseline 作為完成證據。
 
 ## PR #70 thread traceability
 
@@ -38,9 +40,29 @@ coverage `56.80%` 的唯一失敗為 fail-under；Ruff、Pyright、Tach、diff c
 isolated ext4 correction snapshot 得到 `704 passed, 9 skipped, 1 deselected`、coverage `94.43%`；
 base `9b51f95` 加十個 correction files 的 manifest SHA-256
 `219b3593cb3213f035c728232d377eb2db55966b94ee967ba8532a3e755ce809` 相符。`uv sync --frozen`、Ruff
-format/check、Pyright、Tach 與 diff check 全部通過，故 full-validation 已完成。
+format/check、Pyright、Tach 與 diff check 全部通過，故 isolated ext4 full-validation 已完成；
+它僅為歷史 evidence，current full-validation 仍 pending。
 
 ## Acceptance Criteria
+
+### Current direct transport concurrency correction
+
+此節 supersede 舊的 pending-thread 描述：`PRRT_kwDOSTt_386YypkF` 與
+`PRRT_kwDOSTt_386YypkJ` 是 `ea5732e` 的 resolved history；僅
+`PRRT_kwDOSTt_386Y0BD0` 為 current unresolved。
+
+12. direct `HttpClient.aclose()` 第一個 caller 建立唯一 shared managed-cleanup attempt；所有在其
+    結束前加入的 direct callers 必須 await 同一 attempt，且底層 managed close count 為 `1`。
+13. shared attempt success 時所有 joiners 正常完成；shared attempt raise 時所有 joiners re-raise
+    failure；shared attempt cancellation 時所有 joiners 收到 `asyncio.CancelledError`。waiter 自身
+    cancellation 不得取消 shared attempt。
+14. shared attempt failure/cancellation 後不得設定 closed，且必須清除 in-progress state；下一個
+    序列 direct caller 必須啟動真正的第二次 managed cleanup，不能把 temporary `httpx` no-op 當成功。
+15. success/failure/cancellation 以 deterministic event/barrier fakes 測試；failure/cancellation 的
+    序列 retry 成功後 cumulative managed-close count 為 `2`。不得改變 facade ownership、public API、
+    Tach 或 README/architecture。
+16. current full-validation 與 independent code review 完成後，才可 `commit --no-verify`、push、
+    GraphQL remote-head readback、只 resolve `PRRT_kwDOSTt_386Y0BD0`、再 GraphQL readback。
 
 1. Package root 的 `MlopsAsyncClient`、五個 required keyword-only password-grant
    parameters、五個 readonly identity-stable namespace properties 和 lazy auth
@@ -63,10 +85,10 @@ format/check、Pyright、Tach 與 diff check 全部通過，故 full-validation 
    shape inspection、`tach check` 必須確認。
 10. README 與 `docs/ARCHITECTURE.md` 的新增 facade 現況敘述必須為繁體中文；canonical
     headings、fixed labels、必要技術術語可保留原文。
-11. source/tests/docs rework 與 full-validation 已完成；evidence 如上。independent implementation review、
-    independent code review、correction commit/push/readback 後，才可 resolve
-    `PRRT_kwDOSTt_386YypkF`、`PRRT_kwDOSTt_386YypkJ`；先前五條 thread 為 `9b51f95` 的
-    resolved history，不得再次 resolve 或重新分類。
+11. source/tests/docs rework 的 isolated ext4 full-validation 是歷史 evidence；本輪 correction plan 與
+    direct transport implementation review 已取得獨立 approval。current full-validation、independent
+    code review、correction commit/push/readback 後，才可 resolve `PRRT_kwDOSTt_386Y0BD0`；先前
+    threads 為 resolved history，不得再次 resolve 或重新分類。
 12. 本輪不做 VERSION bump、tag、release、merge 或未指定的 thread resolution。
 
 ## Frozen Tach shape
@@ -127,5 +149,6 @@ README 與 `docs/ARCHITECTURE.md` 的新增 facade 現況敘述必須為繁體�
   `asyncio.CancelledError` 替換為 facade-specific errors。
 - root order、transport targets 或其他 Tach config 的任一 drift 都阻擋 correction
   publication。
-- current status 是 `creator-in-progress`；原 plan-review approval 與 PR baseline 是
-  historical facts，不是本輪 validation/review/publish completion。
+- current status 是 `approved`；本輪 correction plan 與 direct transport implementation review
+  已分別取得獨立 approval。isolated ext4 full-validation 是歷史 evidence，不是 current
+  full-validation、code review 或 publish completion。

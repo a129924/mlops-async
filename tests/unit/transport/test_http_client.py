@@ -772,6 +772,187 @@ async def test_aclose_retries_underlying_cleanup_after_cancellation(
 
 
 @pytest.mark.asyncio
+async def test_aclose_concurrent_callers_share_successful_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    cleanup_started = asyncio.Event()
+    allow_cleanup = asyncio.Event()
+    start_callers = asyncio.Event()
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        cleanup_started.set()
+        await allow_cleanup.wait()
+
+    async def close_after_start() -> None:
+        await start_callers.wait()
+        await client.aclose()
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    first = asyncio.create_task(close_after_start())
+    second = asyncio.create_task(close_after_start())
+    start_callers.set()
+    await cleanup_started.wait()
+
+    assert close_attempts == 1
+    assert first.done() is False
+    assert second.done() is False
+
+    allow_cleanup.set()
+    await asyncio.gather(first, second)
+
+    assert close_attempts == 1
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_concurrent_callers_share_cleanup_failure_and_allow_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    cleanup_started = asyncio.Event()
+    allow_cleanup = asyncio.Event()
+    start_callers = asyncio.Event()
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        if close_attempts == 1:
+            cleanup_started.set()
+            await allow_cleanup.wait()
+            raise RuntimeError("close failed")
+
+    async def close_after_start() -> None:
+        await start_callers.wait()
+        await client.aclose()
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    first = asyncio.create_task(close_after_start())
+    second = asyncio.create_task(close_after_start())
+    start_callers.set()
+    await cleanup_started.wait()
+
+    assert close_attempts == 1
+    assert first.done() is False
+    assert second.done() is False
+
+    allow_cleanup.set()
+    results = await asyncio.gather(first, second, return_exceptions=True)
+
+    assert all(isinstance(result, RuntimeError) for result in results)
+    assert [str(result) for result in results] == ["close failed", "close failed"]
+    assert client._client.is_closed is False
+
+    await client.aclose()
+
+    assert close_attempts == 2
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_concurrent_callers_share_cleanup_cancellation_and_allow_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    cleanup_started = asyncio.Event()
+    allow_cleanup = asyncio.Event()
+    start_callers = asyncio.Event()
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        if close_attempts == 1:
+            cleanup_started.set()
+            await allow_cleanup.wait()
+            raise asyncio.CancelledError("close cancelled")
+
+    async def close_after_start() -> None:
+        await start_callers.wait()
+        await client.aclose()
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    first = asyncio.create_task(close_after_start())
+    second = asyncio.create_task(close_after_start())
+    start_callers.set()
+    await cleanup_started.wait()
+
+    assert close_attempts == 1
+    assert first.done() is False
+    assert second.done() is False
+
+    allow_cleanup.set()
+    results = await asyncio.gather(first, second, return_exceptions=True)
+
+    assert all(isinstance(result, asyncio.CancelledError) for result in results)
+    assert client._client.is_closed is False
+
+    await client.aclose()
+
+    assert close_attempts == 2
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_cancelled_waiter_does_not_cancel_shared_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    cleanup_started = asyncio.Event()
+    allow_cleanup = asyncio.Event()
+    second_waiter_reached_shared_cleanup = asyncio.Event()
+    close_attempts = 0
+    shield_calls = 0
+
+    original_shield = asyncio.shield
+
+    def observe_shield(awaitable: asyncio.Task[None]) -> asyncio.Future[None]:
+        nonlocal shield_calls
+        shield_calls += 1
+        if shield_calls == 2:
+            second_waiter_reached_shared_cleanup.set()
+        return original_shield(awaitable)
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        cleanup_started.set()
+        await allow_cleanup.wait()
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+    monkeypatch.setattr(transport_http_client.asyncio, "shield", observe_shield)
+
+    first_waiter = asyncio.create_task(client.aclose())
+    await cleanup_started.wait()
+    second_waiter = asyncio.create_task(client.aclose())
+    await second_waiter_reached_shared_cleanup.wait()
+
+    assert close_attempts == 1
+    assert first_waiter.done() is False
+    assert second_waiter.done() is False
+
+    second_waiter.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await second_waiter
+
+    assert close_attempts == 1
+    assert first_waiter.done() is False
+
+    allow_cleanup.set()
+    await first_waiter
+
+    assert close_attempts == 1
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
 async def test_aclose_is_idempotent_after_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

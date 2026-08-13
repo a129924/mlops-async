@@ -1,7 +1,7 @@
 ---
 topic: mlops-async-client-facade
 phase: plan-authoring
-status: creator-in-progress
+status: approved
 created: 2026-08-12
 d1_verdict: non-trivial
 pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
@@ -26,9 +26,10 @@ single-flight、only-success-is-closed，且底層 close failure/cancellation �
 
 PR #70 head `ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d` 是已發布 baseline。
 它不能證明目前 correction 已驗證；五條先前 action threads 已在 `9b51f95` 解決，兩條新
-action threads 將本 companion 置於 `needs-rework -> creator-in-progress`。原本 plan-review
-approval 是歷史完成 gate；isolated ext4 full-validation 已完成，implementation/code reviews、
-correction push/readback 與兩條新 thread resolution 仍 pending。
+action threads 曾將本 companion 置於 `needs-rework -> creator-in-progress`。本輪 correction plan
+已由獨立 Plan-Reviewer 批准，direct transport implementation review 亦已批准；isolated ext4
+full-validation 是歷史 evidence，current full-validation、code review、correction push/readback 與
+`PRRT_kwDOSTt_386Y0BD0` resolution 仍 pending。
 
 目前 facade 已是 `HttpClient` 唯一 owner，且 Tach root exact seven targets 與 transport
 exact two targets 已在 baseline；本輪只凍結並驗證那些 lists，不能調整它們。
@@ -55,7 +56,8 @@ coverage `56.80%` 的唯一失敗為 fail-under。Ruff、Pyright、Tach、diff c
 correction snapshot full non-E2E 為 `704 passed, 9 skipped, 1 deselected`、coverage `94.43%`；
 base `9b51f95` 加十個 correction files 的 manifest SHA-256
 `219b3593cb3213f035c728232d377eb2db55966b94ee967ba8532a3e755ce809` 相符。`uv sync --frozen`、
-Ruff format/check、Pyright、Tach 與 diff check 通過；step 9 full-validation 已完成。
+Ruff format/check、Pyright、Tach 與 diff check 通過；step 9 的 isolated ext4 full-validation
+已完成，但僅為歷史 evidence，current full-validation 仍 pending。
 
 ## Requirements
 
@@ -136,6 +138,28 @@ files，並保留 properties/Requester/auth composition。完成後不要自行 
 resolve threads。
 
 ## Public Contract / API Changes
+
+## Current direct-transport correction delta
+
+`PRRT_kwDOSTt_386Y0BD0` 是唯一 current unresolved thread；`PRRT_kwDOSTt_386YypkF` 和
+`PRRT_kwDOSTt_386YypkJ` 已在 `ea5732e` remote-head readback resolved，僅保留歷史 evidence。
+本 delta 只授權 direct `HttpClient.aclose()` 的 private coordination，不修改 facade ownership、
+`MlopsAsyncClient` public surface、Tach 或文件。
+
+實作者必須讓第一個 direct caller 建立一個 shared managed-cleanup attempt，讓所有同時 direct
+callers await 同一 attempt 並共同收到 success、原始 failure 或 `CancelledError`。waiter 自身的
+cancellation 不得取消 shared attempt。attempt failure/cancellation 必須清除 in-progress marker，
+而 non-success 不得設定 closed；下一個序列 caller 因此再次發起真實 managed cleanup，而不是接受
+temporary `httpx` close state 的 no-op success。成功後才允許後續序列 no-op。
+
+`tests/unit/transport/test_http_client.py` 要以 event/barrier fake 寫三組 deterministic tests：兩個
+concurrent direct callers 的 success、failure、cleanup cancellation 都只產生一個底層 call；failure
+與 cancellation 後各再做一次成功的序列 retry，累計 call count 為二。現有 facade tests 可回歸，
+但不得以本 delta 取得或改寫 facade lifecycle ownership。
+
+本輪已完成 independent Plan-Reviewer 與 implementation-review approval；remaining 順序是 current
+full-validation → independent code review → `commit --no-verify` → push → GraphQL remote-head readback → 只 resolve
+`PRRT_kwDOSTt_386Y0BD0` → GraphQL readback。此作者工作現在只更新 plan，不能 self-review。
 
 無。`MlopsAsyncClient.aclose() -> None` 與 async context manager signature 不變；
 本輪只修正其 concurrency/failure semantics。

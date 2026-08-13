@@ -1,7 +1,7 @@
 ---
 topic: mlops-async-client-facade
 phase: plan-authoring
-status: creator-in-progress
+status: approved
 created: 2026-08-12
 d1_verdict: non-trivial
 branch: feat/andrew/mlops-async-client-facade
@@ -32,6 +32,9 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 | `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | resolved history at `9b51f95`; no future resolve |
 | `PRRT_kwDOSTt_386YpagN` | workflow evidence | resolved history at `9b51f95`; no future resolve |
 | `PRRT_kwDOSTt_386YpagY` | transport doc | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386YypkF` | concrete cleanup sequential retry | resolved history at `ea5732e`; no future resolve |
+| `PRRT_kwDOSTt_386YypkJ` | README/architecture 繁中敘述 | resolved history at `ea5732e`; no future resolve |
+| `PRRT_kwDOSTt_386Y0BD0` | direct `HttpClient.aclose()` concurrent cleanup single-flight | **current unresolved; pending correction** |
 
 上述五條 thread 是在 `9b51f95` 已解決的歷史，沒有 future resolve。本輪新增且僅新增下列
 pending correction：
@@ -88,6 +91,23 @@ pending correction：
 
 ## Boundaries / Exclusions
 
+### Current bounded correction delta
+
+前述 facade/docs correction 是 historical evidence；本輪唯一未完成的 implementation scope 是
+`src/mlops_async/transport/http_client.py` 與
+`tests/unit/transport/test_http_client.py` 的 direct `HttpClient.aclose()` concurrency。
+`PRRT_kwDOSTt_386YypkF` 與 `PRRT_kwDOSTt_386YypkJ` 已於 `ea5732e` readback resolved，
+不得重開或再 resolve；唯一 current unresolved thread 為 `PRRT_kwDOSTt_386Y0BD0`。
+
+concrete client 必須有一個 private shared managed-cleanup attempt：同時 direct callers join 同一
+attempt，並共同觀察 success、failure 或 cleanup cancellation。成功才 closed；failure/cancellation
+清除 in-progress marker 而保留 retryability，所以後續序列 caller 必須實際重試。不得因 temporary
+`httpx` close state 導致第二個 caller no-op success。waiter cancellation 必須隔離 shared attempt。
+
+tests 必須用 deterministic event/barrier fake 證明 success、failure、cleanup cancellation 三種兩
+caller情境皆只有一次底層 cleanup；後兩種再以序列 retry 成功且總 call count 為二。此 delta 不
+授權修改 facade ownership、`MlopsAsyncClient`、public API、Tach、README 或 architecture 文件。
+
 ### Written
 
 - 無。
@@ -122,19 +142,19 @@ pending correction：
 
 ## Status / Allowed Transitions
 
-**Current:** `creator-in-progress`。PR #70 published baseline 是
-`ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d`；original plan-review approval 是
-完成的歷史 gate。兩條新增 action threads 使本輪 correction 採
-`needs-rework -> creator-in-progress`。
+**Current:** `approved`。PR #70 published baseline 是
+`ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d`；本輪 correction plan 已完成
+`needs-rework -> creator-in-progress -> review-ready -> approved`，並已取得獨立 Plan-Reviewer approval。
 
 本輪 transport retry implementation/tests 與 README/architecture 繁中敘述已完成。
 focused facade/transport tests `80 passed`（`--no-cov`）；default assertions `80 passed`，
 coverage `56.80%` 的唯一失敗為 fail-under；Ruff、Pyright、Tach、diff check 通過。isolated ext4
 snapshot full non-E2E 為 `704 passed, 9 skipped, 1 deselected`、coverage `94.43%`；base `9b51f95`
 加十個 correction files 的 manifest SHA-256
-`219b3593cb3213f035c728232d377eb2db55966b94ee967ba8532a3e755ce809` 相符，故 step 9
-full-validation 已完成。implementation review、code review、correction commit/push/readback 與兩條新 thread resolution
-仍 pending；不得與歷史 baseline 或已解決舊 thread 混寫為 current completion。
+`219b3593cb3213f035c728232d377eb2db55966b94ee967ba8532a3e755ce809` 相符，故 isolated ext4
+full-validation 是歷史 evidence。direct transport implementation review 已批准；current full-validation、
+independent code review、correction commit/push/readback 與 `PRRT_kwDOSTt_386Y0BD0` resolution 仍 pending；
+不得與歷史 baseline 或已解決舊 thread 混寫為 current completion。
 
 Allowed transitions: `planned -> creator-in-progress -> review-ready ->
 reviewer-in-progress -> approved|needs-rework`; `needs-rework ->
@@ -189,11 +209,20 @@ creator-in-progress`; `approved -> creator-in-progress|publish-in-progress`;
    canonical headings、fixed labels 與必要技術術語可保留原文。
 7. 檢查本輪 diff，確認 frozen Tach lists 完全未改、沒有 ReadOnly drift；已取得 focused/static
    evidence 與 isolated ext4 full non-E2E validation，完整 command 已通過。
-8. full-validation 已通過後，將完成的 correction 送 independent implementation review，通過後送
-   independent code review。兩者 approved 後交 Main Agent commit、push、GraphQL/readback，最後只
-   resolve `PRRT_kwDOSTt_386YypkF`、`PRRT_kwDOSTt_386YypkJ`；不得改變或重新 resolve 先前 threads。
+8. 本輪 correction plan 與 direct transport implementation review 已分別取得 independent approval。
+   current full-validation 與 independent code review 仍 pending；兩個 remaining gates approved 後交
+   Main Agent `commit --no-verify`、push、GraphQL/readback，最後只 resolve
+   `PRRT_kwDOSTt_386Y0BD0`；不得改變或重新 resolve 先前 threads。
 
 ## Validation / Acceptance Checks
+
+- 對 current delta，兩個 direct `HttpClient.aclose()` callers 的 success、failure 與 cleanup
+  cancellation 各以 deterministic barrier 驗證同一 managed cleanup task 與 count `1`；failure/
+  cancellation 後的序列 retry 成功且 cumulative count `2`，而 temporary `httpx` no-op 不得
+  被計為成功。
+- current delta 的 remaining publish 順序固定為 current full-validation → independent code review →
+  `commit --no-verify` → push → GraphQL remote-head readback →
+  只 resolve `PRRT_kwDOSTt_386Y0BD0` → GraphQL readback。
 
 - focused facade/transport tests `80 passed`（`--no-cov`）；default assertions `80 passed`，
   coverage `56.80%` 的唯一失敗為 repository-wide fail-under；Ruff、Pyright、Tach、diff check 通過。
@@ -218,19 +247,16 @@ creator-in-progress`; `approved -> creator-in-progress|publish-in-progress`;
   "verdict": "needs-rework|approved",
   "blocking_issues": [],
   "copilot_feedback_triage": {
-    "ADDRESS": [
-      "PRRT_kwDOSTt_386YypkF",
-      "PRRT_kwDOSTt_386YypkJ"
-    ],
+    "ADDRESS": ["PRRT_kwDOSTt_386Y0BD0"],
     "DISCUSS": [],
     "SKIP": []
   }
 }
 ```
 
-Re-reviewer 必須確認本輪 evidence，而非引用 `ed29e837…` 的歷史 baseline；
-`approved` 不可預填。thread resolution 只屬於 Main Agent，且必須在 correction
-commit/push/readback 後。
+獨立 Plan-Reviewer 的 factual-sync handoff 必須確認本輪 evidence，而非引用 `ed29e837…` 的歷史
+baseline；current plan status 已為 `approved`，不重開 scope review。thread resolution 只屬於 Main Agent，
+且必須在 current full-validation、code review 與 correction commit/push/readback 後。
 
 ## Post-merge / release actions
 

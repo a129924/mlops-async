@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 from json import JSONDecodeError, loads as json_loads
 from math import isfinite
@@ -182,6 +183,7 @@ class HttpClient(Client):
                 timeout=resolved_timeout,
                 transport=wrapped_transport,
             )
+        self._close_task: asyncio.Task[None] | None = None
 
     async def request(
         self,
@@ -337,6 +339,20 @@ class HttpClient(Client):
 
     async def aclose(self) -> None:
         """Close resources owned by the concrete client."""
+        close_task = self._close_task
+        if close_task is None:
+            if self._client.is_closed:
+                return
+            close_task = asyncio.create_task(self._close_owned_client())
+            self._close_task = close_task
+
+        try:
+            await asyncio.shield(close_task)
+        finally:
+            if close_task.done() and self._close_task is close_task:
+                self._close_task = None
+
+    async def _close_owned_client(self) -> None:
         previous_state = object.__getattribute__(self._client, "_state")
         try:
             await self._client.aclose()
