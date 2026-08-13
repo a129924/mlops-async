@@ -18,17 +18,17 @@ single-flight、only-success-is-closed，且底層 close failure/cancellation �
 ## Non-goals
 
 - 不改 public constructor、properties、endpoint APIs 或 exception classes。
-- 不改 `core`、`transport`、`clients`、`__init__.py`、AuthClient tests、README 或
-  `docs/ARCHITECTURE.md`。
+- 不改 `core`、`clients`、`__init__.py` 或 AuthClient tests。
 - 不修改 root seven-target / transport two-target lists 或任何其他 `tach.toml` content。
 - 不做 version、release、tag、merge 或未指定 PR thread resolution。
 
 ## Current Context
 
 PR #70 head `ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d` 是已發布 baseline。
-它不能證明目前 correction 已驗證；五條 action threads 將本 companion 置於
-`needs-rework -> creator-in-progress`。原本 plan-review approval 是歷史完成 gate，
-但本輪 implementation/code reviews、validation、correction push 全為 pending。
+它不能證明目前 correction 已驗證；五條先前 action threads 已在 `9b51f95` 解決，兩條新
+action threads 將本 companion 置於 `needs-rework -> creator-in-progress`。原本 plan-review
+approval 是歷史完成 gate；isolated ext4 full-validation 已完成，implementation/code reviews、
+correction push/readback 與兩條新 thread resolution 仍 pending。
 
 目前 facade 已是 `HttpClient` 唯一 owner，且 Tach root exact seven targets 與 transport
 exact two targets 已在 baseline；本輪只凍結並驗證那些 lists，不能調整它們。
@@ -37,13 +37,25 @@ exact two targets 已在 baseline；本輪只凍結並驗證那些 lists，不�
 
 | Thread ID | 已實作或待交接的修正範圍 | Handoff trace link |
 | --- | --- | --- |
-| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 Python implementer handoff |
-| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 Python implementer handoff |
-| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | 六份 topic artifacts 的 correction evidence |
-| `PRRT_kwDOSTt_386YpagN` | workflow evidence | 六份 topic artifacts 的 workflow/evidence handoff |
-| `PRRT_kwDOSTt_386YpagY` | transport doc | `docs/standards/http-client-auth-boundary.md` 的文件 handoff |
+| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386YpagN` | workflow evidence | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386YpagY` | transport doc | resolved history at `9b51f95`; no future resolve |
 
-上述五條 threads 全部仍未 resolved；本表僅補正可追溯性，不改變 Python contract 或 correction validation/review/publish 的 pending 狀態。
+上述五條 thread 是已解決歷史，沒有 future resolve。本輪 pending correction 只新增
+`PRRT_kwDOSTt_386YypkF`（concrete `HttpClient.aclose()` failure/cancellation 後的真實
+cleanup retry，facade 不得信任 underlying no-op retry）與 `PRRT_kwDOSTt_386YypkJ`
+（README/architecture facade 現況敘述為繁體中文）。
+
+## 本輪 fresh evidence
+
+focused facade/transport tests `80 passed`（`--no-cov`）；default assertions `80 passed`，
+coverage `56.80%` 的唯一失敗為 fail-under。Ruff、Pyright、Tach、diff check 通過。isolated ext4
+correction snapshot full non-E2E 為 `704 passed, 9 skipped, 1 deselected`、coverage `94.43%`；
+base `9b51f95` 加十個 correction files 的 manifest SHA-256
+`219b3593cb3213f035c728232d377eb2db55966b94ee967ba8532a3e755ce809` 相符。`uv sync --frozen`、
+Ruff format/check、Pyright、Tach 與 diff check 通過；step 9 full-validation 已完成。
 
 ## Requirements
 
@@ -55,7 +67,12 @@ exact two targets 已在 baseline；本輪只凍結並驗證那些 lists，不�
    讓 later call retry；不吞掉 error/cancellation。
 5. cancelled caller 不得取消 shared task 或使其他 caller 無法得到成功結果。
 6. unit tests 與 `docs/standards/http-client-auth-boundary.md` 準確表達 requirements 2–5。
-7. Tach shape 必須保留 root `clients`, `core`, `transport`, `cas_tables`,
+7. `HttpClient.aclose()` 的 concrete managed cleanup failure/cancellation 後必須保留真實
+   retry；no-op 回傳不能使 facade 宣稱 success。對應測試只寫在
+   `tests/unit/transport/test_http_client.py`。
+8. README 與 `docs/ARCHITECTURE.md` 的新增 facade 現況敘述必須使用繁體中文；canonical
+   headings、fixed labels、必要技術術語可保留原文。
+9. Tach shape 必須保留 root `clients`, `core`, `transport`, `cas_tables`,
    `job_execution`, `models`, `projects` 順序，transport 必須只有 `core`,
    `exceptions`。
 
@@ -64,17 +81,19 @@ exact two targets 已在 baseline；本輪只凍結並驗證那些 lists，不�
 - Async-planning status: triggered — `aclose()`/async context manager 現在改變
   shared async lifecycle、concurrency、failure 與 cancellation behavior；依
   `analysis/mlops-async-client-facade/technical-spec.md` 的 Lifecycle and Error Contract。
-- Module/package placement: private lifecycle code 只在
-  `src/mlops_async/mlops_async_client.py`；tests 只在
-  `tests/unit/test_mlops_async_client.py`；doc 只在
-  `docs/standards/http-client-auth-boundary.md`。
+- Module/package placement: facade private lifecycle code 在
+  `src/mlops_async/mlops_async_client.py`；concrete retry code 在
+  `src/mlops_async/transport/http_client.py`；tests 分別在
+  `tests/unit/test_mlops_async_client.py` 與 `tests/unit/transport/test_http_client.py`；
+  docs 在 `docs/standards/http-client-auth-boundary.md`、`README.md`、
+  `docs/ARCHITECTURE.md`。
 - New public API: 否；private fields/task 與既有 `aclose()` behavior correction。
 - Interface changes: 否；family constructors、Requester、HttpClient interface 和
   Tach configuration 不變。
 - Breaking changes allowed: 否。
 - New dependencies: 否；使用 standard-library `asyncio` 與現有 runtime。
 - Error handling strategy: 不包裝底層 error 或 `asyncio.CancelledError`；failed/cancelled
-  close 只重設 private lifecycle state。
+  close 只重設 private lifecycle state，並讓 concrete managed cleanup 真的可重試。
 - Typing strategy: private state 使用 strict `asyncio.Task[None] | None`（或現有
   strict-compatible equivalent），不新增 `Any` 或 public Protocol。
 
@@ -104,14 +123,15 @@ cancellation 取消 operation；不引入 queue、fan-out、background service �
 
 ### Validation plan
 
-先跑 focused facade tests，再跑 full non-E2E pytest、Ruff、Pyright、Tach、diff check；
+先跑 focused facade/transport tests，再跑 full non-E2E pytest、Ruff、Pyright、Tach、diff check；
 每個結果都屬本輪 correction evidence，不能沿用 baseline 口述結論。最後依序
 implementation review、code review、commit/push/readback/thread resolution。
 
 ### Handoff notes for the implementer
 
 不要以 bool 在底層 close 開始前標示 closed；不要每個 caller 各自 close；不要在
-`CancelledError` path 遺留 completed failed task。只改三個 authorized implementation
+`CancelledError` path 遺留 completed failed task；不要把 concrete transport cleanup 的 no-op
+回傳當作成功。只改六個 authorized implementation
 files，並保留 properties/Requester/auth composition。完成後不要自行 commit/push/reply/
 resolve threads。
 
@@ -124,8 +144,11 @@ resolve threads。
 
 - `src/mlops_async/mlops_async_client.py`：private close lifecycle state/task。
 - `tests/unit/test_mlops_async_client.py`：single-flight/failure/cancellation regression。
+- `src/mlops_async/transport/http_client.py`：concrete managed cleanup retry state。
+- `tests/unit/transport/test_http_client.py`：concrete failure/cancellation retry regression。
 - `docs/standards/http-client-auth-boundary.md`：facade ownership、close semantics、
   frozen Tach boundary doc sync。
+- `README.md`、`docs/ARCHITECTURE.md`：繁體中文 facade 現況敘述。
 - six topic artifacts：workflow/evidence handoff。
 
 ## Implementation Steps
@@ -139,7 +162,11 @@ resolve threads。
    underlying cancellation then retry、cancelled waiter 不取消 shared operation。
 4. 在 `docs/standards/http-client-auth-boundary.md` 描述同一 ownership/lifecycle
    contract 和 frozen root/transport Tach dependency direction；不改 config。
-5. 以 diff inspection 確認僅 authorized paths 且 Tach lists 不變，執行 validations，
+5. 在 `src/mlops_async/transport/http_client.py` 實作 concrete managed cleanup retry；
+   對 `tests/unit/transport/test_http_client.py` 寫 first close raise/cancellation、後續
+   真實 retry、no-op 不得偽造 cleanup success 的 tests。
+6. 在 `README.md` 與 `docs/ARCHITECTURE.md` 新增或修正繁體中文 facade 現況敘述。
+7. 以 diff inspection 確認僅 authorized paths 且 Tach lists 不變，執行 validations，
    再交 independent implementation/code reviewers。
 
 ## Test Plan
@@ -149,6 +176,9 @@ resolve threads。
 - Edge case: simultaneous `aclose()` callers share one operation；cancelled waiter isolation。
 - Regression: failed 或 cancelled underlying close 後下一 call succeeds；domain closed-transport
   behavior 和 lazy password-token flow 保持既有 tests。
+- Concrete cleanup: `HttpClient` first managed close failure/cancellation 後，retry 必須再次
+  觸發 managed cleanup；underlying no-op 不得使 facade 視為 closed。
+- Documentation: README 與 architecture 的新增 facade 現況文字為繁體中文。
 - Backward compatibility: direct family constructors/imports 及 existing facade public
   contract 不變；full suite 監控。
 
@@ -157,7 +187,7 @@ resolve threads。
 透過 WSL，且不得執行 Windows project-local `.venv`：
 
 ```powershell
-wsl.exe -d Ubuntu -- bash -lc 'cd /mnt/d/code/python/mlops-async.worktrees/agent-20260812-mlops-async-client-facade && uv run --frozen --no-sync pytest --no-cov tests/unit/test_mlops_async_client.py tests/unit/clients/test_auth_client.py'
+wsl.exe -d Ubuntu -- bash -lc 'cd /mnt/d/code/python/mlops-async.worktrees/agent-20260812-mlops-async-client-facade && uv run --frozen --no-sync pytest --no-cov tests/unit/test_mlops_async_client.py tests/unit/transport/test_http_client.py tests/unit/clients/test_auth_client.py'
 wsl.exe -d Ubuntu -- bash -lc 'cd /mnt/d/code/python/mlops-async.worktrees/agent-20260812-mlops-async-client-facade && uv run --frozen --no-sync pytest --no-cov -m "not viya_e2e"'
 wsl.exe -d Ubuntu -- bash -lc 'cd /mnt/d/code/python/mlops-async.worktrees/agent-20260812-mlops-async-client-facade && uv run --frozen --no-sync ruff check --no-fix .'
 wsl.exe -d Ubuntu -- bash -lc 'cd /mnt/d/code/python/mlops-async.worktrees/agent-20260812-mlops-async-client-facade && uv run --frozen --no-sync pyright'

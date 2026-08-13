@@ -337,7 +337,15 @@ class HttpClient(Client):
 
     async def aclose(self) -> None:
         """Close resources owned by the concrete client."""
-        await self._client.aclose()
+        previous_state = object.__getattribute__(self._client, "_state")
+        try:
+            await self._client.aclose()
+        except BaseException:
+            # httpx marks the client closed before awaiting its transport cleanup.
+            # Restore the prior state so a later facade cleanup can retry a failed
+            # or cancelled close instead of accepting httpx's no-op close path.
+            object.__setattr__(self._client, "_state", previous_state)
+            raise
 
     async def __aenter__(self) -> HttpClient:
         """Return the client instance for async context manager usage."""

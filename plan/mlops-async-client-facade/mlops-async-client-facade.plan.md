@@ -14,7 +14,7 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 > **Analysis-layer routing: strict mode.**
 > `analysis/mlops-async-client-facade/technical-spec.md` 是 execution-facing
 > source of truth；`requirements.md` 是 business-intent guardrail。本次只處理
-> 五條 PR review threads 所要求的 lifecycle/docs rework，不重新定義原先 facade
+> 兩條新 PR review threads 所要求的 lifecycle/docs rework，不重新定義原先 facade
 > contract、scope 或 frozen Tach shape。
 
 ## Goal / Outcome
@@ -27,13 +27,17 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 
 | Thread ID | 已實作或待交接的修正範圍 | Handoff trace link |
 | --- | --- | --- |
-| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 implementation handoff |
-| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 implementation handoff |
-| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | 六份 topic artifacts 的 correction evidence |
-| `PRRT_kwDOSTt_386YpagN` | workflow evidence | 六份 topic artifacts 的 workflow/evidence handoff |
-| `PRRT_kwDOSTt_386YpagY` | transport doc | `docs/standards/http-client-auth-boundary.md` 的文件 handoff |
+| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386YpagN` | workflow evidence | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386YpagY` | transport doc | resolved history at `9b51f95`; no future resolve |
 
-上述五條 threads 全部仍未 resolved；本表僅補正可追溯性，不改變技術契約、範圍或 correction validation/review/publish 的 pending 狀態。
+上述五條 thread 是在 `9b51f95` 已解決的歷史，沒有 future resolve。本輪新增且僅新增下列
+pending correction：
+`PRRT_kwDOSTt_386YypkF` 要求 concrete `HttpClient.aclose()` 在 failure/cancellation
+後仍可執行真實 cleanup retry，facade 不得將 underlying no-op 的第二次 close 視為成功；
+`PRRT_kwDOSTt_386YypkJ` 要求 README 與 architecture 的 facade 現況敘述使用繁體中文。
 
 ## Scope
 
@@ -44,16 +48,19 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 - `src/mlops_async/mlops_async_client.py` 的 private close coordination。
 - `tests/unit/test_mlops_async_client.py` 的 lifecycle race/failure/cancellation
   tests。
+- `src/mlops_async/transport/http_client.py` 的 concrete close retry state，及
+  `tests/unit/transport/test_http_client.py` 的 exact retry tests。
 - `docs/standards/http-client-auth-boundary.md` 對 facade ownership/lifecycle 和
   frozen Tach composition boundary 的同步說明。
+- `README.md` 與 `docs/ARCHITECTURE.md` 的 facade 現況敘述（繁體中文）。
 - six topic artifacts 的 current/historical evidence 修正與 implementer handoff。
 
 ### Out-Of-Scope
 
 - `.users`、other grants、transport injection、retry/timeout/cancellation public API、
   facade-specific exception、RequestExecutor/CAS migration。
-- `core`、`transport`、`clients` production source、endpoint behavior、root export、
-  AuthClient tests、README、architecture doc、VERSION/tag/release/release notes/live E2E。
+- `core`、`clients` production source、endpoint behavior、root export、AuthClient tests、
+  VERSION/tag/release/release notes/live E2E。
 - 任一 `tach.toml` content；root seven-target 和 transport exact two-target lists
   都只可驗證、不可修改。
 
@@ -73,7 +80,9 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
   `mlops_async.transport`、`mlops_async.clients.cas_tables`、
   `mlops_async.clients.job_execution`、`mlops_async.clients.models`、
   `mlops_async.clients.projects`；transport list 必須且僅為
-  `mlops_async.core`、`mlops_async.exceptions`。兩 lists 均 ReadOnly。
+   `mlops_async.core`、`mlops_async.exceptions`。兩 lists 均 ReadOnly。
+- concrete cleanup retry 只屬資源生命週期修正：不得新增 dependency、network request retry
+  behavior、timeout、background task 或 public API。
 - 此為 stable-library-affecting additive public API，但本 topic 不 bump VERSION、
   不建立 tag/release；本輪 correction 也不改 public API。
 
@@ -87,7 +96,11 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 
 - `src/mlops_async/mlops_async_client.py`
 - `tests/unit/test_mlops_async_client.py`
+- `src/mlops_async/transport/http_client.py`
+- `tests/unit/transport/test_http_client.py`
 - `docs/standards/http-client-auth-boundary.md`
+- `README.md`
+- `docs/ARCHITECTURE.md`
 - `analysis/mlops-async-client-facade/requirements.md`
 - `analysis/mlops-async-client-facade/technical-spec.md`
 - `plan/mlops-async-client-facade/mlops-async-client-facade.plan.md`
@@ -97,10 +110,9 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 
 ### ReadOnly
 
-- `src/mlops_async/core/**`、`src/mlops_async/transport/**`、
-  `src/mlops_async/clients/**`、`src/mlops_async/__init__.py`。
-- `tests/unit/clients/test_auth_client.py`、`README.md`、`docs/ARCHITECTURE.md`、
-  `VERSION`、`pyproject.toml`、`uv.lock`、`.github/agents/**`。
+- `src/mlops_async/core/**`、`src/mlops_async/clients/**`、`src/mlops_async/__init__.py`。
+- `tests/unit/clients/test_auth_client.py`、`VERSION`、`pyproject.toml`、`uv.lock`、
+  `.github/agents/**`。
 - `tach.toml` 的 root exact seven-target list、transport exact two-target list，
   以及其他全部 blocks、global flags、excludes、interfaces 與 content。
 
@@ -112,13 +124,17 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 
 **Current:** `creator-in-progress`。PR #70 published baseline 是
 `ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d`；original plan-review approval 是
-完成的歷史 gate。五條 action threads 使本輪 correction 採
+完成的歷史 gate。兩條新增 action threads 使本輪 correction 採
 `needs-rework -> creator-in-progress`。
 
-本輪 source/tests/docs rework 與 focused/static evidence 已完成；完整 non-E2E
-validation 仍因 WSL environment exception pending，implementation review、code review、
-correction commit/push 與 thread resolution 也仍 pending。這些 current states 與既有
-baseline 不得混寫為 current completion。
+本輪 transport retry implementation/tests 與 README/architecture 繁中敘述已完成。
+focused facade/transport tests `80 passed`（`--no-cov`）；default assertions `80 passed`，
+coverage `56.80%` 的唯一失敗為 fail-under；Ruff、Pyright、Tach、diff check 通過。isolated ext4
+snapshot full non-E2E 為 `704 passed, 9 skipped, 1 deselected`、coverage `94.43%`；base `9b51f95`
+加十個 correction files 的 manifest SHA-256
+`219b3593cb3213f035c728232d377eb2db55966b94ee967ba8532a3e755ce809` 相符，故 step 9
+full-validation 已完成。implementation review、code review、correction commit/push/readback 與兩條新 thread resolution
+仍 pending；不得與歷史 baseline 或已解決舊 thread 混寫為 current completion。
 
 Allowed transitions: `planned -> creator-in-progress -> review-ready ->
 reviewer-in-progress -> approved|needs-rework`; `needs-rework ->
@@ -138,12 +154,16 @@ creator-in-progress`; `approved -> creator-in-progress|publish-in-progress`;
 | Step tracker | `plan/mlops-async-client-facade/mlops-async-client-facade.step.md` | Plan-Creator | current pending gates |
 | Source | `src/mlops_async/mlops_async_client.py` | Python implementer | private lifecycle correction |
 | Tests | `tests/unit/test_mlops_async_client.py` | Python implementer | lifecycle regression tests |
+| Transport source | `src/mlops_async/transport/http_client.py` | Python implementer | concrete cleanup retry contract |
+| Transport tests | `tests/unit/transport/test_http_client.py` | Python implementer | concrete close retry regressions |
 | Boundary doc | `docs/standards/http-client-auth-boundary.md` | Python implementer | ownership/Tach documentation sync |
+| README | `README.md` | Python implementer | 繁中 facade 現況敘述 |
+| Architecture doc | `docs/ARCHITECTURE.md` | Python implementer | 繁中 facade 現況敘述 |
 
 ## Stable library metadata
 
 - `stable_library`: yes; additive API already exists in the PR baseline.
-- `README action`: none in this correction; `README.md` is ReadOnly.
+- `README action`: 在既有 facade 說明處新增或修正繁體中文現況敘述。
 - `VERSION bump`: no.
 - `release timing`: no version/tag/release in this topic or correction.
 - `publish timing`: only after correction validation and both independent reviews;
@@ -161,20 +181,32 @@ creator-in-progress`; `approved -> creator-in-progress|publish-in-progress`;
 4. 在 `docs/standards/http-client-auth-boundary.md` 同步 facade 的唯一 ownership、
    successful-close-only state、failure/cancellation retry 與 frozen root/transport Tach
    boundary；不得改 `tach.toml` 或 docs 以外 scope。
-5. 檢查本輪 diff，確認 frozen Tach lists 完全未改、沒有 ReadOnly drift；再執行計畫
-   指定 validations，將結果標為本輪 evidence。
-6. 將完成的 correction 送 independent implementation review，通過後送 independent
-   code review。兩者 approved 後交 Main Agent commit、push、GraphQL/readback，最後只
-    resolve `PRRT_kwDOSTt_386YpZ_Q`、`PRRT_kwDOSTt_386Ypaf_`、
-    `PRRT_kwDOSTt_386Ypaf3`、`PRRT_kwDOSTt_386YpagN`、
-    `PRRT_kwDOSTt_386YpagY`。
+5. 在 `src/mlops_async/transport/http_client.py` 實作 concrete close retry：只有 managed
+   `httpx.AsyncClient.aclose()` 真正成功後才可完成 close state；failure/cancellation 後必須
+   保留再執行真實 cleanup 的 path，不得讓 facade 把 underlying no-op retry 認作成功。於
+   `tests/unit/transport/test_http_client.py` 覆蓋 raise/cancellation 後的 retry。
+6. 在 `README.md` 與 `docs/ARCHITECTURE.md` 加入 facade 現況敘述，使用繁體中文；
+   canonical headings、fixed labels 與必要技術術語可保留原文。
+7. 檢查本輪 diff，確認 frozen Tach lists 完全未改、沒有 ReadOnly drift；已取得 focused/static
+   evidence 與 isolated ext4 full non-E2E validation，完整 command 已通過。
+8. full-validation 已通過後，將完成的 correction 送 independent implementation review，通過後送
+   independent code review。兩者 approved 後交 Main Agent commit、push、GraphQL/readback，最後只
+   resolve `PRRT_kwDOSTt_386YypkF`、`PRRT_kwDOSTt_386YypkJ`；不得改變或重新 resolve 先前 threads。
 
 ## Validation / Acceptance Checks
 
-- focused facade tests、full non-E2E pytest、Ruff、Pyright、Tach、`git diff --check`
-  全部是本輪 pending validation，須在 source/tests/docs rework 後重跑。
+- focused facade/transport tests `80 passed`（`--no-cov`）；default assertions `80 passed`，
+  coverage `56.80%` 的唯一失敗為 repository-wide fail-under；Ruff、Pyright、Tach、diff check 通過。
+- isolated ext4 full non-E2E 是 `704 passed, 9 skipped, 1 deselected`、coverage `94.43%`；base
+  `9b51f95` 加十個 correction files 的 manifest SHA-256 為
+  `219b3593cb3213f035c728232d377eb2db55966b94ee967ba8532a3e755ce809`。`uv sync --frozen`、Ruff
+  format/check、Pyright、Tach 與 diff check 通過；transcript SHA-256 為
+  `49487b86e22b2f31a189d9f8215d2c63e051acde6b7ec43603fc25e170c9a972`，temporary path 已刪除。
 - tests 證明單一 shared close task、成功後才 closed、failure/cancellation 後可重試，
   與 caller cancellation isolation。
+- concrete transport tests 證明 first managed cleanup 的 failure/cancellation 不會讓
+  subsequent `HttpClient.aclose()` 成為無效 no-op；僅真實 retry 成功後 facade 才可 closed。
+- README 與 architecture 文件的新增 facade 現況敘述為繁體中文。
 - shape inspection 證明 root exact seven-target 和 transport exact two-target list
   未變，且無其他 Tach drift。
 - doc review 證明 HTTP/auth boundary 文本與實作/現有 Tach boundary 一致。
@@ -187,11 +219,8 @@ creator-in-progress`; `approved -> creator-in-progress|publish-in-progress`;
   "blocking_issues": [],
   "copilot_feedback_triage": {
     "ADDRESS": [
-      "PRRT_kwDOSTt_386YpZ_Q",
-      "PRRT_kwDOSTt_386Ypaf_",
-      "PRRT_kwDOSTt_386Ypaf3",
-      "PRRT_kwDOSTt_386YpagN",
-      "PRRT_kwDOSTt_386YpagY"
+      "PRRT_kwDOSTt_386YypkF",
+      "PRRT_kwDOSTt_386YypkJ"
     ],
     "DISCUSS": [],
     "SKIP": []

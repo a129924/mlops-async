@@ -4,18 +4,17 @@ Async Python library scaffold for SAS Viya REST API operations.
 
 ## Status
 
-This repository provides bounded concrete endpoint-family clients and the
-package-root `MlopsAsyncClient` facade. Unsupported endpoint behaviors remain
-future work.
+此儲存庫提供範圍受限的具體 endpoint-family clients，以及 package root 的
+`MlopsAsyncClient` facade。尚未支援的 endpoint 行為仍屬後續工作。
 
 ## MlopsAsyncClient facade
 
-`MlopsAsyncClient` owns one `HttpClient`, one password-grant token endpoint
-collaborator, one `InMemoryTokenStorage`, and one auth-configured raw
-`Requester`. Its `.auth`, `.models`, `.projects`, `.cas_tables`, and
-`.job_execution` properties are stable client instances that share that runtime.
-Construction and context entry perform no HTTP or token I/O; the first
-authenticated operation resolves a token lazily.
+`MlopsAsyncClient` 擁有一個 `HttpClient`、一個 password-grant token endpoint
+協作者、一個 `InMemoryTokenStorage`，以及一個完成 auth 設定的 raw
+`Requester`。其 `.auth`、`.models`、`.projects`、`.cas_tables` 與
+`.job_execution` 屬性是共用同一 runtime 的穩定 client instances。建構與進入
+context 不會執行 HTTP 或 token I/O；首次 authenticated operation 才會 lazy 地解析
+token。
 
 ```python
 from mlops_async import MlopsAsyncClient

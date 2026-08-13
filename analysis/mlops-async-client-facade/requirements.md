@@ -14,24 +14,41 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 `ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d`。此 baseline 已含先前已授權的
 facade、Tach lists、tests 與文件；它不是本輪修正已完成的證據。
 
-五條 actionable PR review threads 已使本 topic 依
-`needs-rework -> creator-in-progress` 進入修正。現在只能宣稱規劃工作進行中：
-本輪 source/tests/docs 修正與 focused/static evidence 已完成；完整 non-E2E validation
-仍因 WSL environment exception pending，implementation review、code review、correction
-commit/push 與 thread resolution 也仍 pending。不得把原始 PR baseline 或任何歷史
-assertion 當成本輪完成 gate。
+先前五條 actionable PR review threads 已在 correction commit `9b51f95` 解決，僅保留為
+歷史紀錄，不得重新列為 current pending 或 future resolve。兩條新 action threads 使本 topic
+依 `needs-rework -> creator-in-progress` 進入本輪修正。transport retry implementation/tests 與
+README/architecture 繁中敘述已 materially 完成。isolated ext4 correction snapshot validation 已完成：以
+base `9b51f95` 加上精確十個 correction files 重建，manifest SHA-256
+`219b3593cb3213f035c728232d377eb2db55966b94ee967ba8532a3e755ce809` 相符；`uv sync --frozen`、
+full non-E2E、Ruff format/check、Pyright、Tach 與 diff check 均通過。full-validation 已完成；
+independent reviews、correction commit/push/readback 與新 thread resolution 仍 pending。不得把原始
+baseline 或任何歷史 assertion 當成本輪完成 gate。
 
 ## PR #70 thread traceability
 
 | Thread ID | 已實作或待交接的修正範圍 | Handoff trace link |
 | --- | --- | --- |
-| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 lifecycle handoff |
-| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 lifecycle handoff |
-| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | 六份 topic artifacts 的 correction evidence |
-| `PRRT_kwDOSTt_386YpagN` | workflow evidence | 六份 topic artifacts 的 workflow/evidence handoff |
-| `PRRT_kwDOSTt_386YpagY` | transport doc | `docs/standards/http-client-auth-boundary.md` 的文件 handoff |
+| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386YpagN` | workflow evidence | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386YpagY` | transport doc | resolved history at `9b51f95`; no future resolve |
 
-上述五條 threads 全部仍未 resolved；本表僅補正可追溯性，不改變技術契約、範圍或任何 pending gate。
+上述五條 thread 是已解決歷史，並非本輪待處理項目。本輪 pending correction 僅為
+`PRRT_kwDOSTt_386YypkF`：concrete `HttpClient.aclose()` 在 failure/cancellation 後必須
+保留真實 cleanup retry，facade 不得把 underlying no-op 的第二次 close 視為成功；以及
+`PRRT_kwDOSTt_386YypkJ`：README 與 architecture 的 facade 現況敘述必須使用繁體中文。
+
+## 本輪 fresh evidence
+
+- focused facade/transport tests：`80 passed`（`--no-cov`）。
+- default assertions：`80 passed`；coverage `56.80%`，唯一失敗為 repository-wide
+  coverage fail-under。
+- Ruff、Pyright、Tach 與 diff check：通過。
+- full non-E2E：`704 passed, 9 skipped, 1 deselected`、coverage `94.43%`；isolated ext4
+  snapshot 的完整 command 已通過。transcript 為
+  `/tmp/mlops-async-pr70-correction-validation-20260813-001.validation.transcript.log`，SHA-256
+  `49487b86e22b2f31a189d9f8215d2c63e051acde6b7ec43603fc25e170c9a972`；temporary path 已刪除。
 
 ## 目標
 
@@ -49,8 +66,9 @@ identity-stable 存取及正確的 async lifecycle。
   `Requester`；lazy token acquisition 與既有 error/cancellation propagation。
 - PR 修正只可變動 `src/mlops_async/mlops_async_client.py`、
   `tests/unit/test_mlops_async_client.py`、
-  `docs/standards/http-client-auth-boundary.md` 及六份 topic artifacts；實作前
-  先依本契約補齊 lifecycle tests。
+  `src/mlops_async/transport/http_client.py`、`tests/unit/transport/test_http_client.py`、
+  `docs/standards/http-client-auth-boundary.md`、`README.md`、`docs/ARCHITECTURE.md`
+  及六份 topic artifacts；實作前先依本契約補齊 facade 與 concrete transport lifecycle tests。
 - 保留已提交的 Tach shape：root exact seven-target list 與 transport exact
   two-target list；本輪不得再修改 `tach.toml`。
 
@@ -59,16 +77,14 @@ identity-stable 存取及正確的 async lifecycle。
 - `.users`、API-key/other grants、transport injection、retry/timeout/cancellation
   API、facade-specific exceptions、token-storage policy。
 - 任一既有 endpoint 行為、RequestExecutor migration、CAS Tables constructor，或
-  `src/mlops_async/core/**`、`src/mlops_async/transport/**`、
-  `src/mlops_async/clients/**` 的 production source。
+  `src/mlops_async/core/**`、`src/mlops_async/clients/**` 的 production source。
 - `VERSION`、`pyproject.toml`、`uv.lock`、`.github/agents/**`、tag、release、
   release notes、live Viya E2E。
 - 所有其他 `tach.toml` content、Tach blocks、global flags、excludes 與 interfaces。
 
 ## ReadOnly
 
-- `src/mlops_async/core/**`、`src/mlops_async/transport/**`、
-  `src/mlops_async/clients/**`。
+- `src/mlops_async/core/**`、`src/mlops_async/clients/**`。
 - `VERSION`、`pyproject.toml`、`uv.lock`、`.github/agents/**`。
 - 全部 `tach.toml` content；尤其 root seven-target list 與 transport exact
   two-target list 均不可變更。
@@ -81,7 +97,11 @@ identity-stable 存取及正確的 async lifecycle。
 
 - `src/mlops_async/mlops_async_client.py`
 - `tests/unit/test_mlops_async_client.py`
+- `src/mlops_async/transport/http_client.py`
+- `tests/unit/transport/test_http_client.py`
 - `docs/standards/http-client-auth-boundary.md`
+- `README.md`
+- `docs/ARCHITECTURE.md`
 - `analysis/mlops-async-client-facade/requirements.md`
 - `analysis/mlops-async-client-facade/technical-spec.md`
 - `plan/mlops-async-client-facade/mlops-async-client-facade.plan.md`
@@ -108,12 +128,19 @@ identity-stable 存取及正確的 async lifecycle。
 6. tests 必須覆蓋成功後 idempotence、concurrent/repeated close 單一底層 call、
    close failure retry、underlying-close cancellation retry，以及 cancelled waiter 不使
    其他 waiter 的 shared close 失敗。
-7. `docs/standards/http-client-auth-boundary.md` 必須在實作同一 commit 中同步說明：
+7. `HttpClient.aclose()` 必須只在 managed cleanup 真正成功時完成 concrete close state；
+   first cleanup failure/cancellation 後，下一次呼叫必須真的再次呼叫 managed cleanup，而不以
+   underlying no-op 回傳宣稱成功。`tests/unit/transport/test_http_client.py` 必須覆蓋 raise
+   與 cancellation 的 retry。
+8. `docs/standards/http-client-auth-boundary.md` 必須在實作同一 commit 中同步說明：
    facade 是 shared `HttpClient` 唯一 owner、close 成功才 closed、失敗/cancellation
    可重試，以及 root composition boundary 使用下列 frozen Tach shape。
-8. 本輪依序需通過 scoped/full validation、independent implementation review、
+9. `README.md` 與 `docs/ARCHITECTURE.md` 的新增 facade 現況敘述必須是繁體中文；
+   canonical headings、fixed labels 與必要技術術語可保留原文。
+10. 本輪依序需通過 scoped/full validation、independent implementation review、
    independent code review、correction commit/push，才可由 Main Agent 在 readback 後
-   resolve 三條明列 threads。
+   resolve `PRRT_kwDOSTt_386YypkF` 與 `PRRT_kwDOSTt_386YypkJ`；先前 thread 不因本輪
+   correction 重新分類或 resolve。
 
 ## Frozen Tach shape
 

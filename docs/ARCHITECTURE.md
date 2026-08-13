@@ -30,17 +30,17 @@ They are design targets, not implemented files yet.
 
 ### Package-root facade (current)
 
-`MlopsAsyncClient` is the current package-root facade. It owns exactly one
-`HttpClient`, `PasswordTokenEndpointClient`, `InMemoryTokenStorage`,
-`TokenManager`, `AuthProvider`, and raw `Requester`. The facade creates stable
-`.auth`, `.models`, `.projects`, `.cas_tables`, and `.job_execution` clients;
-all domain clients share the same raw requester, while `.auth` shares the
-password-token collaborator. Constructor and context entry only compose
-objects. Token acquisition remains lazy until an authenticated operation, and
-`aclose()` / context exit close only the facade-owned HTTP client once.
+`MlopsAsyncClient` 是目前的 package-root facade。它恰好擁有一個
+`HttpClient`、`PasswordTokenEndpointClient`、`InMemoryTokenStorage`、
+`TokenManager`、`AuthProvider` 與 raw `Requester`。facade 建立穩定的
+`.auth`、`.models`、`.projects`、`.cas_tables` 與 `.job_execution` clients；
+所有 domain clients 共用同一個 raw requester，而 `.auth` 共用 password-token
+協作者。constructor 與 context entry 只負責組合物件。token acquisition 在
+authenticated operation 發生前維持 lazy，且 `aclose()` / context exit 只會關閉
+facade 擁有的 HTTP client 一次。
 
-The facade adds no retry, timeout, cancellation, transport injection, or
-token-storage policy.
+facade 不新增 retry、timeout、cancellation、transport injection 或 token-storage
+policy。
 
 對 auth/request boundary topic，先讀
 [`docs/standards/http-client-auth-boundary.md`](standards/http-client-auth-boundary.md)。

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import ssl
 from collections.abc import Awaitable, Callable, Mapping
@@ -716,6 +717,78 @@ async def test_aclose_does_not_close_injected_transport() -> None:
     await client.aclose()
 
     assert transport.closed is False
+
+
+@pytest.mark.asyncio
+async def test_aclose_retries_underlying_cleanup_after_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        if close_attempts == 1:
+            raise RuntimeError("close failed")
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    with pytest.raises(RuntimeError, match="close failed"):
+        await client.aclose()
+
+    assert client._client.is_closed is False
+
+    await client.aclose()
+
+    assert close_attempts == 2
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_retries_underlying_cleanup_after_cancellation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        if close_attempts == 1:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    with pytest.raises(asyncio.CancelledError):
+        await client.aclose()
+
+    assert client._client.is_closed is False
+
+    await client.aclose()
+
+    assert close_attempts == 2
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_is_idempotent_after_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    await client.aclose()
+    await client.aclose()
+
+    assert close_attempts == 1
+    assert client._client.is_closed is True
 
 
 def test_execute_surface_accepts_only_a_canonical_http_request() -> None:

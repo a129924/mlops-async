@@ -12,21 +12,33 @@ pr_baseline: ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d
 ## 目前修正狀態
 
 PR #70 head `ed29e8370d2f945e1b0f754ef70bd314a5f8bc0d` 是唯一已發布
-baseline。五條 action threads 目前使 lifecycle/docs correction 處於
-`creator-in-progress`；本輪 validation、reviews、commit/push 和 thread resolution
-皆 pending，不能引用 baseline 作為完成證據。
+baseline。五條先前 action threads 已在 correction commit `9b51f95` 解決；兩條新 action
+threads 目前使 lifecycle/docs correction 處於 `creator-in-progress`。本輪 full-validation 已完成；
+reviews、commit/push/readback 和新 thread resolution 仍 pending，不能引用 baseline 作為完成證據。
 
 ## PR #70 thread traceability
 
 | Thread ID | 已實作或待交接的修正範圍 | Handoff trace link |
 | --- | --- | --- |
-| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 acceptance handoff |
-| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | `src/mlops_async/mlops_async_client.py` 與 `tests/unit/test_mlops_async_client.py` 的 acceptance handoff |
-| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | 六份 topic artifacts 的 correction evidence |
-| `PRRT_kwDOSTt_386YpagN` | workflow evidence | 六份 topic artifacts 的 workflow/evidence handoff |
-| `PRRT_kwDOSTt_386YpagY` | transport doc | `docs/standards/http-client-auth-boundary.md` 的文件 handoff |
+| `PRRT_kwDOSTt_386YpZ_Q` | close failure/cancel retry | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386Ypaf_` | shared task/shield concurrency | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386Ypaf3` | 繁中 artifacts | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386YpagN` | workflow evidence | resolved history at `9b51f95`; no future resolve |
+| `PRRT_kwDOSTt_386YpagY` | transport doc | resolved history at `9b51f95`; no future resolve |
 
-上述五條 threads 全部仍未 resolved；本表僅補正可追溯性，不改變 acceptance criteria 或 correction validation/review/publish 的 pending 狀態。
+上述五條 thread 是已解決歷史，沒有 future resolve。本輪 pending correction 只新增
+`PRRT_kwDOSTt_386YypkF`（concrete `HttpClient.aclose()` failure/cancellation 後的真實
+cleanup retry，facade 不得接受 underlying no-op retry 作為成功）與
+`PRRT_kwDOSTt_386YypkJ`（README/architecture facade 現況敘述為繁體中文）。
+
+## 本輪 fresh evidence
+
+focused facade/transport tests `80 passed`（`--no-cov`）；default assertions `80 passed`，
+coverage `56.80%` 的唯一失敗為 fail-under；Ruff、Pyright、Tach、diff check 通過。full non-E2E
+isolated ext4 correction snapshot 得到 `704 passed, 9 skipped, 1 deselected`、coverage `94.43%`；
+base `9b51f95` 加十個 correction files 的 manifest SHA-256
+`219b3593cb3213f035c728232d377eb2db55966b94ee967ba8532a3e755ce809` 相符。`uv sync --frozen`、Ruff
+format/check、Pyright、Tach 與 diff check 全部通過，故 full-validation 已完成。
 
 ## Acceptance Criteria
 
@@ -41,16 +53,21 @@ baseline。五條 action threads 目前使 lifecycle/docs correction 處於
 5. 若底層 close raise 或被取消，facade 不設 closed、清除已結束的 failed task，並讓
    後續 `aclose()` retry；error/cancellation 原樣傳播。
 6. caller cancellation 不可取消 shared task，其他 caller 仍可取得 close result。
-7. `docs/standards/http-client-auth-boundary.md` 記錄 criteria 2–6，並同步 root exact
+7. concrete `HttpClient.aclose()` 只有在 managed cleanup 真正成功後才可使 facade close
+   成功；managed cleanup first failure/cancellation 後，retry 必須再次執行真實 cleanup，
+   不能以 underlying no-op 回傳偽造成功。
+8. `docs/standards/http-client-auth-boundary.md` 記錄 criteria 2–7，並同步 root exact
    Tach order `clients`, `core`, `transport`, `cas_tables`, `job_execution`, `models`,
    `projects` 和 transport exact `core`, `exceptions` boundary。
-8. `tach.toml` 的上述 frozen lists 和所有 other config content 不得因 correction 改動；
+9. `tach.toml` 的上述 frozen lists 和所有 other config content 不得因 correction 改動；
    shape inspection、`tach check` 必須確認。
-9. source/tests/docs rework 後才可執行 full validation、independent implementation
-   review、independent code review、correction commit/push；push readback 後才可 resolve
-    `PRRT_kwDOSTt_386YpZ_Q`、`PRRT_kwDOSTt_386Ypaf_`、
-    `PRRT_kwDOSTt_386Ypaf3`、`PRRT_kwDOSTt_386YpagN`、`PRRT_kwDOSTt_386YpagY`。
-10. 本輪不做 VERSION bump、tag、release、merge 或未指定的 thread resolution。
+10. README 與 `docs/ARCHITECTURE.md` 的新增 facade 現況敘述必須為繁體中文；canonical
+    headings、fixed labels、必要技術術語可保留原文。
+11. source/tests/docs rework 與 full-validation 已完成；evidence 如上。independent implementation review、
+    independent code review、correction commit/push/readback 後，才可 resolve
+    `PRRT_kwDOSTt_386YypkF`、`PRRT_kwDOSTt_386YypkJ`；先前五條 thread 為 `9b51f95` 的
+    resolved history，不得再次 resolve 或重新分類。
+12. 本輪不做 VERSION bump、tag、release、merge 或未指定的 thread resolution。
 
 ## Frozen Tach shape
 
@@ -90,10 +107,17 @@ Given 一個 shared close task 與兩個 callers，當其中一個 caller 在 aw
 其 cancellation 只傳播給該 caller；shared close task 繼續，另一 caller 可以觀察到
 success 或 failure。
 
+### Concrete cleanup retry
+
+Given `HttpClient` 的 managed cleanup first attempt raise 或被取消，when later
+`HttpClient.aclose()` 執行，then 它必須再次觸發真實 managed cleanup；不得因 underlying
+client 已呈現 no-op 而讓 `MlopsAsyncClient` 將 cleanup 標為成功。
+
 ### 文件與 Tach boundary
 
 Given correction diff，當檢查文件與 config 時，then boundary document 說明 facade-owned
 close 和 frozen root/transport dependency shape，而 `tach.toml` 本身沒有變更。
+README 與 `docs/ARCHITECTURE.md` 的新增 facade 現況敘述必須為繁體中文。
 
 ## Error / Edge Cases
 
