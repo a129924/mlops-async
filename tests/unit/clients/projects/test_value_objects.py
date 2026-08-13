@@ -137,6 +137,66 @@ def test_project_parsers_materialize_missing_audit_metadata_as_none() -> None:
     ids=("list_item", "detail"),
 )
 @pytest.mark.parametrize(
+    "missing_audit_keys",
+    (
+        ("createdBy",),
+        ("modifiedBy",),
+        ("creationTimeStamp",),
+        ("modifiedTimeStamp",),
+        ("createdBy", "modifiedBy"),
+        ("createdBy", "creationTimeStamp"),
+        ("createdBy", "modifiedTimeStamp"),
+        ("modifiedBy", "creationTimeStamp"),
+        ("modifiedBy", "modifiedTimeStamp"),
+        ("creationTimeStamp", "modifiedTimeStamp"),
+        ("createdBy", "modifiedBy", "creationTimeStamp"),
+        ("createdBy", "modifiedBy", "modifiedTimeStamp"),
+        ("createdBy", "creationTimeStamp", "modifiedTimeStamp"),
+        ("modifiedBy", "creationTimeStamp", "modifiedTimeStamp"),
+    ),
+)
+def test_project_parsers_independently_materialize_mixed_audit_metadata(
+    parser: _Parser,
+    missing_audit_keys: tuple[str, ...],
+) -> None:
+    audit_metadata = {
+        "createdBy": "creator",
+        "modifiedBy": "editor",
+        "creationTimeStamp": "2026-08-13T00:00:00Z",
+        "modifiedTimeStamp": "not-normalized",
+    }
+    present_audit_metadata = {
+        key: value for key, value in audit_metadata.items() if key not in missing_audit_keys
+    }
+    project_payload: JSONValue = {
+        "id": "project-1",
+        "name": "Credit risk",
+        **present_audit_metadata,
+    }
+    if parser is parse_projects_page:
+        project = parse_projects_page(
+            {
+                "count": 1,
+                "start": 0,
+                "limit": 20,
+                "items": [project_payload],
+            }
+        ).items[0]
+    else:
+        project = parse_project_detail(project_payload)
+
+    assert project.created_by == present_audit_metadata.get("createdBy")
+    assert project.modified_by == present_audit_metadata.get("modifiedBy")
+    assert project.creation_timestamp == present_audit_metadata.get("creationTimeStamp")
+    assert project.modified_timestamp == present_audit_metadata.get("modifiedTimeStamp")
+
+
+@pytest.mark.parametrize(
+    "parser",
+    (parse_projects_page, parse_project_detail),
+    ids=("list_item", "detail"),
+)
+@pytest.mark.parametrize(
     "audit_key",
     ("createdBy", "modifiedBy", "creationTimeStamp", "modifiedTimeStamp"),
 )

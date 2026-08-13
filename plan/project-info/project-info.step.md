@@ -28,7 +28,7 @@ status: publish-in-progress
 ## Implementation Evidence
 
 - Implementation: `ProjectSummary` 與 `ProjectDetail` 已投影 locked audit metadata keys，並對 present value 套用 strict validation。
-- Validation: independent Tester 已確認 focused Projects pytest `61 passed`；Ruff format/check、Pyright、Tach 和 `git diff --check` 均通過。
+- Validation: independent Tester 已確認 focused Projects pytest `124 passed`；Ruff format/check、Pyright、Tach 和 `git diff --check` 均通過。
 
 ## Stop Conditions
 

@@ -1,4 +1,4 @@
-verdict: "needs-rework"
+verdict: "red-tests-ready"
 d1_verdict:
   verdict: "non-trivial"
   reason: "feature"
@@ -29,7 +29,5 @@ validation_checks:
   test_categories_present: 5
   expected_initial_status: "red"
   production_code_modified: false
-issues:
-  - "RED confirmed: `uv run --frozen --no-sync pytest --no-cov tests/unit/clients/projects/test_value_objects.py tests/unit/clients/projects/test_client.py` collected 61 tests; 14 failed and 47 passed. Failures are limited to the unimplemented audit metadata fields, mappings, and present non-string rejection behavior."
-  - "The authorized `uv sync --frozen` timed out after 124 seconds, but created a usable Linux `.venv/bin/python` with pytest and Ruff available."
-next_step: "Proceed to bounded implementation in `src/mlops_async/clients/projects/value_objects.py`, then rerun the focused suite."
+issues: []
+next_step: "RED-test authoring gate complete; subsequent implementation and current validation evidence are tracked in `plan/project-info/project-info.step.md`."
