@@ -1,0 +1,35 @@
+verdict: "needs-rework"
+d1_verdict:
+  verdict: "non-trivial"
+  reason: "feature"
+test_mapping:
+  - requirement_id: "audit_metadata_value_object_contract"
+    test_case_name: "test_project_value_objects_expose_optional_audit_metadata_with_none_defaults"
+    coverage_category: "state_side_effects"
+  - requirement_id: "audit_metadata_exact_key_mapping_and_raw_strings"
+    test_case_name: "test_project_parsers_map_complete_raw_audit_metadata_for_list_and_detail"
+    coverage_category: "happy_path"
+  - requirement_id: "audit_metadata_missing_key_defaults"
+    test_case_name: "test_project_parsers_materialize_missing_audit_metadata_as_none"
+    coverage_category: "boundary_edge"
+  - requirement_id: "audit_metadata_present_null_and_non_string_rejection"
+    test_case_name: "test_project_parsers_reject_present_non_string_audit_metadata"
+    coverage_category: "error_exception"
+  - requirement_id: "client_observable_list_detail_parity"
+    test_case_name: "test_list_and_get_project_expose_raw_audit_metadata_to_callers"
+    coverage_category: "integration_points"
+  - requirement_id: "client_malformed_metadata_propagation"
+    test_case_name: "test_list_and_get_project_propagate_malformed_audit_metadata"
+    coverage_category: "error_exception"
+validation_checks:
+  d1_decision: "non-trivial (feature)"
+  behavior_contract_source: "plan/project-info/project-info.spec.md"
+  requirements_mapped: true
+  public_contract_coverage: true
+  test_categories_present: 5
+  expected_initial_status: "red"
+  production_code_modified: false
+issues:
+  - "RED confirmed: `uv run --frozen --no-sync pytest --no-cov tests/unit/clients/projects/test_value_objects.py tests/unit/clients/projects/test_client.py` collected 61 tests; 14 failed and 47 passed. Failures are limited to the unimplemented audit metadata fields, mappings, and present non-string rejection behavior."
+  - "The authorized `uv sync --frozen` timed out after 124 seconds, but created a usable Linux `.venv/bin/python` with pytest and Ruff available."
+next_step: "Proceed to bounded implementation in `src/mlops_async/clients/projects/value_objects.py`, then rerun the focused suite."

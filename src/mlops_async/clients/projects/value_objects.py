@@ -28,6 +28,10 @@ class ProjectSummary:
 
     id: str
     name: str
+    created_by: str | None = None
+    modified_by: str | None = None
+    creation_timestamp: str | None = None
+    modified_timestamp: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +50,10 @@ class ProjectDetail:
 
     id: str
     name: str
+    created_by: str | None = None
+    modified_by: str | None = None
+    creation_timestamp: str | None = None
+    modified_timestamp: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,6 +94,10 @@ def parse_project_detail(value: JSONValue) -> ProjectDetail:
     return ProjectDetail(
         id=_require_string(response, "id", "get"),
         name=_require_string(response, "name", "get"),
+        created_by=_optional_string(response, "createdBy", "get"),
+        modified_by=_optional_string(response, "modifiedBy", "get"),
+        creation_timestamp=_optional_string(response, "creationTimeStamp", "get"),
+        modified_timestamp=_optional_string(response, "modifiedTimeStamp", "get"),
     )
 
 
@@ -112,6 +124,10 @@ def _parse_project_summary(value: JSONValue) -> ProjectSummary:
     return ProjectSummary(
         id=_require_string(item, "id", "list item"),
         name=_require_string(item, "name", "list item"),
+        created_by=_optional_string(item, "createdBy", "list item"),
+        modified_by=_optional_string(item, "modifiedBy", "list item"),
+        creation_timestamp=_optional_string(item, "creationTimeStamp", "list item"),
+        modified_timestamp=_optional_string(item, "modifiedTimeStamp", "list item"),
     )
 
 
