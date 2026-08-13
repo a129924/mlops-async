@@ -131,32 +131,43 @@ def test_project_parsers_materialize_missing_audit_metadata_as_none() -> None:
         assert project.modified_timestamp is None
 
 
+@pytest.mark.parametrize(
+    "parser",
+    (parse_projects_page, parse_project_detail),
+    ids=("list_item", "detail"),
+)
+@pytest.mark.parametrize(
+    "audit_key",
+    ("createdBy", "modifiedBy", "creationTimeStamp", "modifiedTimeStamp"),
+)
 @pytest.mark.parametrize("malformed_value", (None, 0, True, [], {}))
 def test_project_parsers_reject_present_non_string_audit_metadata(
+    parser: _Parser,
+    audit_key: str,
     malformed_value: JSONValue,
 ) -> None:
-    page_payload: JSONValue = {
-        "count": 1,
-        "start": 0,
-        "limit": 20,
-        "items": [
-            {
-                "id": "project-1",
-                "name": "Credit risk",
-                "createdBy": malformed_value,
-            }
-        ],
-    }
-    detail_payload: JSONValue = {
-        "id": "project-1",
-        "name": "Credit risk",
-        "modifiedTimeStamp": malformed_value,
-    }
+    if parser is parse_projects_page:
+        payload: JSONValue = {
+            "count": 1,
+            "start": 0,
+            "limit": 20,
+            "items": [
+                {
+                    "id": "project-1",
+                    "name": "Credit risk",
+                    audit_key: malformed_value,
+                }
+            ],
+        }
+    else:
+        payload = {
+            "id": "project-1",
+            "name": "Credit risk",
+            audit_key: malformed_value,
+        }
 
     with pytest.raises(ProjectsResponseError):
-        parse_projects_page(page_payload)
-    with pytest.raises(ProjectsResponseError):
-        parse_project_detail(detail_payload)
+        parser(payload)
 
 
 @pytest.mark.parametrize(
