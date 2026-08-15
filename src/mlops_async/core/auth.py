@@ -2,23 +2,30 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import timedelta
 from typing import Protocol, runtime_checkable
 
+from mlops_async.core.token_endpoint_client import TokenEndpointClient
 from mlops_async.core.token_storage import AccessToken, DEFAULT_EXPIRY_SKEW, TokenStorage
 from mlops_async.exceptions import MlopsAsyncBaseException
 
 __all__ = [
     "AuthException",
     "AuthProvider",
+    "TokenEndpointClient",
+    "TokenEndpointFetchClientProtocol",
     "TokenFetchException",
-    "TokenFetcher",
     "TokenManager",
 ]
 
 
 class AuthException(MlopsAsyncBaseException):
-    """Base exception for auth-layer failures."""
+    """Base exception for auth-layer failures.
+
+    The established ``AuthException`` class name is retained for callers that
+    observe exception names in logs, tracebacks, or serialized error records.
+    """
 
 
 class TokenFetchException(AuthException):
@@ -26,10 +33,15 @@ class TokenFetchException(AuthException):
 
 
 @runtime_checkable
-class TokenFetcher(Protocol):
-    """Internal collaborator that fetches or refreshes tokens via raw transport."""
+class TokenEndpointFetchClientProtocol(Protocol):
+    """Collaborator that can retrieve a new access token."""
 
     async def fetch_access_token(self) -> AccessToken: ...
+
+
+@runtime_checkable
+class TokenEndpointClientProtocol(TokenEndpointFetchClientProtocol, Protocol):
+    """Internal collaborator that fetches or refreshes tokens via raw transport."""
 
     async def refresh_access_token(self, token: AccessToken) -> AccessToken: ...
 
@@ -47,7 +59,7 @@ class TokenManager:
     def __init__(
         self,
         storage: TokenStorage,
-        fetcher: TokenFetcher,
+        fetcher: TokenEndpointClientProtocol,
         expiry_skew: timedelta = DEFAULT_EXPIRY_SKEW,
     ) -> None:
         """Store collaborators and the shared refresh policy."""
@@ -69,12 +81,27 @@ class TokenManager:
 
             return await self._resolve_token(cached_token)
 
+    async def refresh_if_current(self, token: AccessToken) -> AccessToken | None:
+        """Refresh only when storage still contains the failed request's token."""
+        async with self._refresh_lock:
+            cached_token = self._storage.get_token()
+            if cached_token is None:
+                return None
+            if cached_token != token:
+                return cached_token
+            return await self._resolve_token(cached_token)
+
     async def _resolve_token(self, cached_token: AccessToken | None) -> AccessToken:
         try:
             if cached_token is None:
                 resolved_token = await self._fetcher.fetch_access_token()
             else:
                 resolved_token = await self._fetcher.refresh_access_token(cached_token)
+                if resolved_token.refresh_token is None and cached_token.refresh_token is not None:
+                    resolved_token = replace(
+                        resolved_token,
+                        refresh_token=cached_token.refresh_token,
+                    )
         except asyncio.CancelledError:
             raise
         except AuthException:
@@ -97,3 +124,12 @@ class AuthProvider:
         """Return authorization headers for a domain request."""
         access_token = await self._token_manager.get_access_token()
         return {"Authorization": f"Bearer {access_token.value}"}
+
+    async def get_auth_headers_and_token(self) -> tuple[Mapping[str, str], AccessToken]:
+        """Return headers and the exact token used by one internal send."""
+        access_token = await self._token_manager.get_access_token()
+        return {"Authorization": f"Bearer {access_token.value}"}, access_token
+
+    async def refresh_if_current(self, token: AccessToken) -> AccessToken | None:
+        """Coordinate a conditional refresh after a domain-request 401."""
+        return await self._token_manager.refresh_if_current(token)

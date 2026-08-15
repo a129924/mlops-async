@@ -49,6 +49,45 @@ docs/api-endpoints/
 
 ---
 
+## Release-aligned request-gate status
+
+- `v0.11.13`
+  - `PUT /casManagement/servers/cas-shared-default/caslibs/{caslib}/tables/{tableName}/state`
+    -> `change_table_state`
+  - repo 目前已落地 bounded request-only / shape-only request gate
+  - 正向 baseline 固定為 `value=loaded`，且 body 必須對齊
+    `outputCaslibName` / `outputTableName`
+  - `unloaded`、更廣的 CAS lifecycle semantics、與 runtime CAS wiring
+    仍不在本次 release surface
+- `v0.11.12`
+  - `GET /casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables/{tableName}`
+    -> `get_table`
+  - repo 目前已落地 bounded request-only / shape-only request gate
+  - 正向 baseline 固定為 direct `{caslib} + {tableName}`
+  - query params、request-body drift、`change_table_state` 與 runtime CAS wiring
+    仍不在本次 release surface
+- `v0.11.11`
+  - `GET /casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables`
+    -> `list_tables`
+  - repo 目前已落地 bounded request-only / shape-only request gate
+  - 正向 baseline 固定為 strict `limit=1000&start=0`
+  - bare GET、較大的 pagination semantics、`get_table`、`change_table_state`
+    與 runtime CAS wiring 仍不在本次 release surface
+- `v0.11.10`
+  - `POST /SASLogon/oauth/token` -> `refresh_access_token`
+  - repo 目前已落地 bounded request-only / shape-only request gate
+  - 正向 baseline 固定為 `refresh_token`
+  - `scope` 與 `client_id` / `client_secret` refresh variants 仍不在本次 release surface
+- `v0.11.9`
+  - `POST /SASLogon/oauth/token` -> `obtain_access_token`
+  - repo 目前已落地 bounded request-only / shape-only request gate
+  - 正向 baseline 固定為 `client_credentials`
+  - `scope` 與 refresh grant behavior 仍不在本次 release surface
+- 本段落描述的是目前 repo-visible request-gate truth，不等同於把本文件上方的
+  legacy endpoint inventory 全部升格為 runtime auth implementation。
+
+---
+
 ## 如何使用 Swagger UI 檢視
 
 ### 方法一：線上 Swagger Editor

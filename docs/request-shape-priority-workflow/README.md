@@ -9,6 +9,20 @@
 本 topic 的目的是把 request-shape 工作從「邊抓 shape、邊改流程、邊等 review」的混合模式，
 收斂成可排序、可注入、可 review、可停住的固定 workflow。
 
+本目錄中的 shared workflow docs 必須反映 repo 的 merged truth。
+已合併的 request-gate 實作不得繼續留在過期的 `[ ]` 或 `[BLOCKED]` board 狀態。
+
+補充 current-truth 邊界規則：
+
+- queue 外的 surface 若已透過其他 boundary topic 落地，shared workflow docs 仍必須反映 merged truth。
+- 但 queue 外 truth 不得被錯誤改寫成 queue 內的 `[X]` 狀態。
+- `SASLogon/oauth/token -> obtain_access_token` 目前就是這種情況：
+  repo truth 已有獨立 request gate，
+  但 shared board 仍應維持 `OUT-OF-SCOPE`，並在備註中說清楚 current truth。
+- `casManagement/dataSources/tables -> list_tables` 也屬於相同情況：
+  repo truth 已有獨立 request gate，
+  但 shared board 仍應維持 `OUT-OF-SCOPE`，並在備註中說清楚 current truth。
+
 ## Required entry order
 
 新 session 的固定進場順序如下：
@@ -24,7 +38,7 @@
 - `docs/request-shape-priority-workflow/README.md`
   - 第一入口，說明此 topic 的讀取順序、artifact hierarchy 與回讀規則。
 - `docs/request-shape-priority-workflow/standards.md`
-  - request-shape `surface + API` 的實作標準、blocked policy、與 artifact 責任分界。
+  - request-shape `surface + API` 的實作標準、current-truth policy、與 artifact 責任分界。
 - `docs/request-shape-priority-workflow/checklist.md`
   - session resume checklist template 與全域 surface/API implementation board。
 
@@ -56,6 +70,9 @@
 - response / error contract
 - release workflow
 
+queue 外 surface 的 merged truth 可以在 shared docs 中補充說明，
+但不得因此把該 surface 注入到本 workflow queue。
+
 ## Shared-file warning
 
 `docs/request-shape-priority-workflow/checklist.md` 是共享文件。
@@ -81,3 +98,10 @@
 - 直接標記為 planning insufficiency
 - 不得把 `plan/**` 或 `analysis/**` 自動升格為新的 session entry
 - 必須先補齊 session-entry docs，再繼續後續 workflow
+
+## Current-truth addendum
+
+- active request-shape queue 已全部落到 `[X]`；shared workflow docs 只維持 queue truth，不把 queue 外 boundary topic 重新灌回 active order。
+- `SASLogon/oauth/token -> obtain_access_token` 與 `refresh_access_token` 都已是 repo-visible boundary topics；shared board 應維持 `OUT-OF-SCOPE`，但 notes 必須對齊 merged truth。
+- `casManagement/dataSources/tables -> list_tables` 與 `get_table` 都已是 repo-visible boundary topics；shared board 應維持 `OUT-OF-SCOPE`，但 notes 必須對齊 merged truth。
+- `casManagement/caslibs/tables/state -> change_table_state` 已是 repo-visible boundary topic；shared board 應維持 `OUT-OF-SCOPE`，但 notes 必須對齊 merged truth。

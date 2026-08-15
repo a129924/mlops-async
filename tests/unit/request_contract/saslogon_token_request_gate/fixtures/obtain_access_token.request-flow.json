@@ -1,0 +1,52 @@
+{
+  "source": {
+    "sdk": "source-observed draft",
+    "function": "obtain_access_token",
+    "contract_status": "tests-only request gate",
+    "classification": "client-credentials-basic",
+    "divergence_label": "shape-only",
+    "authority_class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline"
+  },
+  "cases": {
+    "client_credentials_basic": {
+      "capture_run_id": "saslogon-token-client-credentials-basic",
+      "comparison_scope": "target-api-only",
+      "full_observed_flow": [
+        {
+          "purpose": "target-api",
+          "request": {
+            "method": "POST",
+            "path": "/SASLogon/oauth/token",
+            "required_header_subset": {
+              "Accept": "application/json",
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            "query": {},
+            "body": "grant_type=client_credentials&client_id=client-id-abc-123&client_secret=secret-value-xyz"
+          }
+        }
+      ]
+    }
+  },
+  "assertion_layer": "tests-only-request-shape",
+  "reviewer_boundary": {
+    "claims": [
+      "single request-shape baseline only"
+    ],
+    "does_not_prove": [
+      "runtime OAuth behavior",
+      "refresh grant support",
+      "scope support",
+      "response schema",
+      "real transport proof"
+    ]
+  },
+  "authority": {
+    "class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline",
+    "forbidden_use": [
+      "upstream token truth"
+    ]
+  }
+}

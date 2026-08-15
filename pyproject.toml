@@ -1,12 +1,12 @@
 [project]
 name = "mlops-async"
-version = "0.11.5"
+version = "0.18.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
     { name = "andrew", email = "a129924@gmail.com" }
 ]
-requires-python = "==3.10"
+requires-python = ">=3.10,<3.11"
 dependencies = [
     "httpx>=0.25.0",
     "pydantic>=2.0",
@@ -66,7 +66,7 @@ convention = "google"
 [tool.pyright]
 typeCheckingMode = "strict"
 pythonVersion = "3.10"
-include = ["src/vendor_bcp_exporter"]
+include = ["src/mlops_async"]
 exclude = ["**/tests/**", "**/__pycache__", "**/node_modules", "**/.*", ".venv", "**/dist", "**/build", "**/.eggs"]
 
 [tool.pytest.ini_options]

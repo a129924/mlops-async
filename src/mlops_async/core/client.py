@@ -5,6 +5,7 @@ from typing import Protocol, TypeVar, runtime_checkable
 from collections.abc import Mapping
 
 from mlops_async.core.request_options import ClientRequestOptions
+from mlops_async.core.http_request import HttpRequest
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse
 
 __all__ = ["Client"]
@@ -15,6 +16,8 @@ _ClientT = TypeVar("_ClientT", bound="Client")
 @runtime_checkable
 class Client(Protocol):
     """Internal-only contract for the async HTTP client boundary."""
+
+    async def execute(self, request: HttpRequest) -> RawClientResponse: ...
 
     async def request(
         self,

@@ -14,29 +14,29 @@ This file provides 5 positive and 3 negative representative scenarios with detai
 @dataclass
 class AuthToken:
     """A cryptographic token used to authenticate API requests.
-    
-    Each token is bound to a specific user and session. Tokens expire 
-    after a fixed duration and may be revoked. This is the primary credential 
+
+    Each token is bound to a specific user and session. Tokens expire
+    after a fixed duration and may be revoked. This is the primary credential
     type for stateless REST API authentication.
-    
+
     Attributes:
         token_str: The opaque token string (do not inspect or parse).
         user_id: ID of the user this token authenticates.
         expires_at: Timestamp when this token becomes invalid.
         scopes: List of permission strings (e.g., 'read:users', 'write:orders').
     """
-    
+
     token_str: str
     """The raw token string. Treated as opaque by callers."""
-    
+
     user_id: str
     """ID of the authenticated user. Immutable."""
-    
+
     expires_at: datetime
     """Expiration timestamp in UTC. Token is invalid after this time."""
-    
+
     scopes: list[str]
-    """List of granted permission strings (e.g., 'read:users', 'write:orders'). 
+    """List of granted permission strings (e.g., 'read:users', 'write:orders').
     Empty list if no explicit scopes granted."""
 ```
 
@@ -57,16 +57,16 @@ class AuthToken:
 
 def slugify(text: str) -> str:
     """Return a URL-safe slug derived from the input text.
-    
-    Converts to lowercase, removes non-alphanumeric characters, and 
+
+    Converts to lowercase, removes non-alphanumeric characters, and
     replaces spaces with hyphens.
-    
+
     Args:
         text: Any string (whitespace, special characters, mixed case allowed).
-    
+
     Returns:
         str: A lowercase slug suitable for URLs. Example: "hello-world".
-    
+
     Example:
         >>> slugify("Hello, World!")
         'hello-world'
@@ -88,17 +88,17 @@ def slugify(text: str) -> str:
 ```python
 class UserRepository:
     """Data access layer for User entities."""
-    
+
     def _build_filter_dict(self, status: str) -> dict:
         """Build a query filter dict for users with the given status."""
         return {"status": status, "is_deleted": False}
-    
+
     def find_active_users(self, status: str) -> list[User]:
         """Return all active users with the given status.
-        
+
         Args:
             status: One of 'premium', 'standard', 'trial'.
-        
+
         Returns:
             list[User]: All non-deleted users matching the status.
         """
@@ -121,36 +121,36 @@ class UserRepository:
 ```python
 class PaymentProcessor:
     """Orchestrates payment transactions with external API."""
-    
+
     def _translate_vendor_error(self, vendor_code: str) -> PaymentError:
         """Translate a vendor error code to internal PaymentError.
-        
+
         Maps third-party payment processor error codes to domain-level error types.
         This isolation ensures internal code does not depend on vendor API contracts.
-        
+
         Args:
             vendor_code: Error code returned by payment processor API (e.g., 'CARD_DECLINED').
-        
+
         Returns:
             PaymentError: A domain error with translated code and recoverable message.
-        
+
         Raises:
-            UnmappedVendorError: If the vendor code is not recognized (indicates 
+            UnmappedVendorError: If the vendor code is not recognized (indicates
                 vendor API contract change or incomplete error mapping).
         """
         # Implementation omitted
         pass
-    
+
     def process_payment(self, card: Card, amount: int) -> Result[Payment, PaymentError]:
         """Process a payment for an order.
-        
-        Submits the card and amount to the external payment processor and 
+
+        Submits the card and amount to the external payment processor and
         translates any errors to domain types.
-        
+
         Args:
             card: Card details for payment (PCI data is handled by processor).
             amount: Payment amount in cents (must be positive).
-        
+
         Returns:
             Ok(Payment): On successful processing; includes transaction ID.
             Err(PaymentError): On payment failure; includes domain error code.
@@ -182,51 +182,51 @@ class PaymentProcessor:
 @dataclass
 class CustomerOrder:
     """A purchase order from a customer.
-    
-    Represents a financial commitment between customer and seller. 
+
+    Represents a financial commitment between customer and seller.
     Invariant: total_amount_cents must equal sum of line items.
     Immutable after creation except for status updates.
     """
-    
+
     id: str
     """Unique order identifier. Assigned at creation; immutable."""
-    
+
     customer_id: str
     """Foreign key to the Customer placing this order. Immutable."""
-    
+
     total_amount_cents: int
-    """Total order amount in cents (not dollars). Must be positive and equal to 
+    """Total order amount in cents (not dollars). Must be positive and equal to
     sum of line items. Immutable."""
-    
+
     status: str
-    """Current order status. One of: 'pending', 'processing', 'completed', 
-    'cancelled', 'refunded'. Initially 'pending'; may transition to other states 
+    """Current order status. One of: 'pending', 'processing', 'completed',
+    'cancelled', 'refunded'. Initially 'pending'; may transition to other states
     over the order lifecycle."""
-    
+
     line_items: list[OrderItem]
     """Ordered items. Must contain at least one item. Immutable."""
-    
+
     created_at: datetime
     """Timestamp when order was created. UTC timezone. Immutable."""
-    
+
     notes: str | None
-    """Optional customer notes or special instructions for this order. 
+    """Optional customer notes or special instructions for this order.
     May be empty or None."""
 
 @dataclass
 class OrderItem:
     """A single line item in an order."""
-    
+
     product_id: str
     """ID of the product being ordered. Immutable."""
-    
+
     quantity: int
     """Number of units ordered. Must be positive. Immutable."""
-    
+
     unit_price_cents: int
-    """Price per unit in cents at order time. May differ from current catalog price 
+    """Price per unit in cents at order time. May differ from current catalog price
     (protects against retroactive price changes). Immutable."""
-    
+
     total_price_cents: int
     """Total for this line (quantity × unit_price_cents). Immutable; computed at creation."""
 ```
@@ -251,13 +251,13 @@ class OrderItem:
 
 def calculate_discount(purchase_total: float) -> float:
     """Calculate a discount to maximize customer lifetime value.
-    
-    We offer discounts to high-value customers to encourage repeat purchases 
+
+    We offer discounts to high-value customers to encourage repeat purchases
     and improve our retention metrics. This drives company profitability.
-    
+
     Args:
         purchase_total: The customer's order total.
-    
+
     Returns:
         float: The discount amount. Calculated to maximize customer lifetime value.
     """
@@ -279,14 +279,14 @@ def calculate_discount(purchase_total: float) -> float:
 
 def calculate_discount(purchase_total: float) -> float:
     """Return a discount amount for the given purchase total.
-    
+
     Args:
         purchase_total: The customer's order total in dollars. Must be non-negative.
-    
+
     Returns:
-        float: The discount amount in dollars. Non-negative. Returned discount 
+        float: The discount amount in dollars. Non-negative. Returned discount
             may be 0 if no discount applies.
-    
+
     Example:
         >>> calculate_discount(100.0)
         10.0  # 10% discount for purchase >= $100
@@ -304,15 +304,15 @@ def calculate_discount(purchase_total: float) -> float:
 
 def fetch_user(user_id: int) -> User | None:
     """Fetch a user by ID.
-    
+
     Returns the user if found; raises UserNotFound if not.
-    
+
     Args:
         user_id: A positive integer user ID.
-    
+
     Returns:
         User | None: The user object, or None if user not found.
-    
+
     Raises:
         UserNotFound: If the user does not exist.
     """
@@ -332,13 +332,13 @@ def fetch_user(user_id: int) -> User | None:
 ```python
 def fetch_user(user_id: int) -> User:
     """Return the user with the given ID.
-    
+
     Args:
         user_id: A positive integer user ID.
-    
+
     Returns:
         User: The user object.
-    
+
     Raises:
         UserNotFound: If no user exists with the given ID.
     """
@@ -348,10 +348,10 @@ def fetch_user(user_id: int) -> User:
 ```python
 def fetch_user(user_id: int) -> User | None:
     """Return the user with the given ID, or None if not found.
-    
+
     Args:
         user_id: A positive integer user ID.
-    
+
     Returns:
         User | None: The user object if found, or None if user does not exist.
     """
@@ -368,10 +368,10 @@ def fetch_user(user_id: int) -> User | None:
 
 def process_order(order_id: int) -> Result[Order, OrderError]:
     """Process an order and return the processed result.
-    
+
     Returns:
         Result[Order, OrderError]: The order if successful. Error if failed.
-    
+
     Raises:
         DatabaseError: If the database is unavailable.
     """
@@ -388,17 +388,17 @@ def process_order(order_id: int) -> Result[Order, OrderError]:
 ```python
 def process_order(order_id: int) -> Result[Order, OrderError]:
     """Process an order and return the result.
-    
+
     Validates the order, submits to payment processor, and updates inventory.
-    
+
     Args:
         order_id: A positive integer order ID.
-    
+
     Returns:
         Ok(Order): On successful processing; includes transaction ID and status.
-        Err(OrderError): On processing failure; includes error_code 
+        Err(OrderError): On processing failure; includes error_code
             ('invalid_order', 'payment_declined', 'out_of_stock') and message.
-    
+
     Raises:
         OrderNotFound: If no order exists with the given ID (data integrity failure).
         DatabaseError: If the database is unavailable (exceptional failure).

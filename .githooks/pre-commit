@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -eu
+
+if ! command -v pre-commit >/dev/null 2>&1; then
+    echo 'pre-commit hook requires pre-commit on PATH.' >&2
+    exit 1
+fi
+
+exec pre-commit hook-impl \
+    --config=.pre-commit-config.yaml \
+    --hook-type=pre-commit \
+    -- "$@"

@@ -1,0 +1,28 @@
+{
+  "cases": {
+    "direct_identifiers": {
+      "capture_run_id": "casmanagement-get-table-direct-identifiers",
+      "responses": [
+        {
+          "match": {
+            "method": "GET",
+            "path": "/casManagement/dataSources/cas~fs~cas-shared-default~fs~CASUSER/tables/SCORING_INPUT",
+            "query": {},
+            "body": null
+          },
+          "response": {
+            "status_code": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "json_body": {
+              "name": "SCORING_INPUT",
+              "caslib": "CASUSER",
+              "state": "loaded"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

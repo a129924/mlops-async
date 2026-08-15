@@ -10,6 +10,8 @@ import mlops_async
 import mlops_async.core.client as core_client
 import mlops_async.transport.http_client as transport_http_client
 from mlops_async.core.client import Client
+from mlops_async.core.http_request import HttpRequest
+from mlops_async.core.request_execution import RequestExecutor, RequestFailureClassifier
 from mlops_async.core.types import JSONValue, RawClientResponse
 
 
@@ -61,3 +63,50 @@ def test_package_root_does_not_reexport_internal_client_symbols() -> None:
     assert not hasattr(mlops_async, "HttpTransportException")
     assert not hasattr(mlops_async, "HTTPStatusException")
     assert not hasattr(mlops_async, "InvalidJSONResponseException")
+
+
+def test_client_contract_is_execution_first_with_json_primitive_adapters() -> None:
+    execute_signature = inspect.signature(Client.execute)
+    execute_hints = get_type_hints(Client.execute)
+
+    assert tuple(execute_signature.parameters) == ("self", "request")
+    assert execute_hints["request"] is HttpRequest
+    assert execute_hints["return"] is RawClientResponse
+    assert hasattr(Client, "request")
+    assert hasattr(Client, "request_json")
+
+
+def test_client_primitive_adapter_and_canonical_execution_have_matching_request_contracts() -> None:
+    primitive_signature = inspect.signature(Client.request)
+    execute_signature = inspect.signature(Client.execute)
+
+    assert tuple(primitive_signature.parameters) == (
+        "self",
+        "method",
+        "path",
+        "headers",
+        "params",
+        "json_body",
+        "content",
+        "options",
+    )
+    assert tuple(execute_signature.parameters) == ("self", "request")
+    assert get_type_hints(Client.request)["return"] is RawClientResponse
+
+
+def test_request_execution_contract_owns_injected_failure_classification_not_client() -> None:
+    request_signature = inspect.signature(RequestExecutor.request)
+
+    assert tuple(request_signature.parameters) == (
+        "self",
+        "method",
+        "path",
+        "headers",
+        "params",
+        "json_body",
+        "content",
+        "options",
+    )
+    assert hasattr(RequestFailureClassifier, "classify")
+    assert not hasattr(Client, "failure_for")
+    assert "httpx" not in inspect.getsource(core_client)

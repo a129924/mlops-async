@@ -340,6 +340,92 @@ paths:
           description: Bearer Token 無效或過期
 
   # ─────────────────────────────────────────────────────────────────────────
+  # ---------------------------------------------------------------------------
+  # GET /modelRepository/projects/{projectId}
+  # 取得單一專案詳細資訊。
+  # HTTP Method：GET
+  # Repo-local path 展開 `/modelRepository` service root；對應 upstream raw spec
+  # `modelRepository-openapi.yml` 的 `"/projects/{projectId}"`，這是 normalization，
+  # 不是不同 endpoint family。
+  # ---------------------------------------------------------------------------
+  /modelRepository/projects/{projectId}:
+    get:
+      summary: 取得單一專案詳細資訊
+      operationId: getProjectById
+      tags:
+        - Projects
+      description: |
+        根據指定的專案 ID，取得單一專案的詳細資訊。
+
+        **HTTP Method**：GET
+
+        **路徑 normalization 說明**：
+        - repo-local spec 顯示的完整路徑是 `/modelRepository/projects/{projectId}`
+        - upstream raw spec `modelRepository-openapi.yml` 使用 service-root 相對路徑
+          `"/projects/{projectId}"`
+        - 上述差異只是 service root 展開方式不同，不代表 endpoint mismatch
+
+        **使用場景**：
+        - 已知 `projectId` 時，直接取得專案詳細資訊
+        - 作為 `get_champion_model` 前的單一專案查詢基線
+
+        **必要 Headers**：
+        ```
+        Authorization: Bearer {access_token}
+        Accept: present（此 topic 的 source-observed gate 只凍結 header 存在，不凍結單一 media type）
+        ```
+
+        **repo-local 可追溯證據**：`tests/unit/request_contract/projects_request_gate/*`
+        與 `sasctl._services.model_repository.ModelRepository.get_project` 的 prepared-request capture
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: 專案唯一識別碼。
+          schema:
+            type: string
+          example: "proj-456-abc-789"
+      responses:
+        '200':
+          description: 成功取得單一專案詳細資訊
+          headers:
+            ETag:
+              description: |
+                Version tag returned by upstream `getProject`; preserve it for later `If-Match` concurrency control.
+              schema:
+                type: string
+              example: '"dummy-etag"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectItem'
+              examples:
+                success:
+                  summary: 單一專案詳細資訊
+                  value:
+                    id: "proj-456-abc-789"
+                    name: "Churn_Prediction_Project"
+                    function: "classification"
+                    externalProjectId: null
+                    candidateChampionHonored: true
+                    trainTable: "PUBLIC.CHURN_TRAIN"
+                    targetVariable: "event"
+                    targetEventValue: "1"
+                    targetLevel: "binary"
+                    eventProbabilityVariable: "P_EVENT1"
+                    latestVersion: "1"
+                    status: "development"
+                    repositoryId: "repo-001"
+                    folderId: "folder-001"
+                    links: []
+        '400':
+          description: 請求格式錯誤
+        '401':
+          description: Bearer Token 驗證失敗
+        '404':
+          description: 找不到對應的專案
   # GET /modelRepository/projects/{projectId}/champion
   # 功能：取得指定專案的 Champion Model 詳細資訊（含 files）
   # HTTP Method：GET

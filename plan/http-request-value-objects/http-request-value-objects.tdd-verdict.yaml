@@ -1,0 +1,60 @@
+verdict: red-tests-ready
+d1_verdict:
+  verdict: non-trivial
+  reason: six selected PR #57 behavioral defects require new request-contract tests
+test_mapping:
+  - requirement_id: PRRT_kwDOSTt_386VAaWm
+    test_case_name: test_execute_serializes_json_null_as_json_literal
+    coverage_category: happy path
+  - requirement_id: PRRT_kwDOSTt_386VAaWr
+    test_case_name: test_direct_construction_matches_named_invariants
+    coverage_category: state/side effects
+  - requirement_id: PRRT_kwDOSTt_386VAaWs
+    test_case_name: test_endpoint_path_literal_rejects_noncanonical_static_paths
+    coverage_category: boundary/edge
+  - requirement_id: PRRT_kwDOSTt_386VAaWw
+    test_case_name: test_base_url_rejects_invalid_authority_characters
+    coverage_category: error/exception
+  - requirement_id: PRRT_kwDOSTt_386VAaWx
+    test_case_name: test_execute_removes_implicit_accept_but_preserves_explicit_accept
+    coverage_category: error/exception
+  - requirement_id: PRRT_kwDOSTt_386VAaW2
+    test_case_name: test_primitive_request_adapters_preserve_embedded_query
+    coverage_category: integration points
+validation_checks:
+  d1_decision: '{"verdict":"non-trivial","reason":"six selected PR #57 behavioral defects require new request-contract tests"}'
+  behavior_contract_source: analysis/http-request-value-objects/technical-spec.md
+  requirements_mapped: true
+  public_contract_coverage: complete
+  test_categories_present:
+    - happy path
+    - error/exception
+    - boundary/edge
+    - state/side effects
+    - integration points
+  expected_initial_status: red
+  production_code_modified: false
+  red_failure_evidence:
+    command: uv run --no-sync pytest --no-header -rN tests/unit/core/test_http_request.py tests/unit/transport/test_http_client.py
+    owner_wsl_initial_result:
+      exit_code: 1
+      pytest_summary: 6 failed, 62 passed
+      coverage_result: targeted-run coverage 80.97% is below the 90.0% fail-under and is not a functional TDD blocker
+    mapped_test_cases:
+      - test_case_name: test_execute_serializes_json_null_as_json_literal
+        pytest_red_failure: JsonBody(None) did not preserve the required JSON wire literal b"null"
+      - test_case_name: test_direct_construction_matches_named_invariants
+        pytest_red_failure: direct value-object construction did not preserve named-constructor canonical invariants; later R2 diagnostic evidence is limited to the two physical Mapping subtests below
+      - test_case_name: test_endpoint_path_literal_rejects_noncanonical_static_paths
+        pytest_red_failure: EndpointPath.literal() accepted a noncanonical static path
+      - test_case_name: test_base_url_rejects_invalid_authority_characters
+        pytest_red_failure: BaseUrl construction accepted a parser-permitted invalid authority character
+      - test_case_name: test_execute_removes_implicit_accept_but_preserves_explicit_accept
+        pytest_red_failure: canonical execute retained implicit httpx Accept instead of removing only the implicit header
+      - test_case_name: test_primitive_request_adapters_preserve_embedded_query
+        pytest_red_failure: primitive request adapters did not preserve an embedded path query through canonical construction
+issues:
+  - The initial six-failure owner-WSL run is the RED TDD baseline for all six logical mappings and retains the required identity and coverage-category traceability.
+  - Subsequent R2 diagnostic evidence used `uv run --no-sync pytest --no-header -rN tests/unit/core/test_http_request.py`: 2 failed, 24 passed. The two failures, `test_direct_query_params_mapping_matches_create_and_canonical_output` and `test_direct_headers_mapping_matches_create_and_canonical_output`, are physical Mapping subtests that evidence only the existing R2 logical mapping; they do not create additional mappings or alter the initial RED verdict.
+  - The subsequent R2 diagnostic also supplies the retained passing-test traceability; it is not a replacement for the initial six-mapping RED baseline.
+next_step: Implementer may change only src/mlops_async/core/http_request.py to make direct Mapping construction for QueryParams and Headers match create() canonicalization, then rerun the recorded command and retain R2 as one logical mapping.

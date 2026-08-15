@@ -1,4 +1,5 @@
-"""Internal jobExecution/jobs.get_job readable request-contract tests."""
+"""Non-authoritative shape-only tests for the internal
+jobExecution/jobs wrapper request gate."""
 
 from __future__ import annotations
 
@@ -66,7 +67,7 @@ async def test_get_job_direct_identifier_request_shape(
     assert job_execution_contract.last_request["body"] is None
     headers = job_execution_contract.last_request["headers"]
     assert isinstance(headers, dict)
-    assert str(headers["Authorization"]).startswith("Bearer ")
-    assert headers["Accept"] == ACCEPT_HEADER
+    assert str(headers["authorization"]).startswith("Bearer ")
+    assert headers["accept"] == ACCEPT_HEADER
     assert "Delegate-Domain" not in headers
-    assert "Content-Type" not in headers
+    assert "content-type" not in headers

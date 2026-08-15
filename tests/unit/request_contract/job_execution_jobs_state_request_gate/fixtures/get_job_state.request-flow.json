@@ -1,0 +1,43 @@
+{
+  "cases": {
+    "direct_identifier": {
+      "full_observed_flow": [
+        {
+          "request": {
+            "method": "GET",
+            "path": "/jobExecution/jobs/job-id-abc-123/state",
+            "query": {},
+            "body": null
+          }
+        }
+      ]
+    }
+  },
+  "source": {
+    "sdk": "internal wrapper",
+    "function": "get_job_state",
+    "contract_status": "wrapper shape baseline",
+    "classification": "internal-wrapper",
+    "divergence_label": "shape-only",
+    "authority_class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline"
+  },
+  "authority": {
+    "class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline",
+    "forbidden_use": [
+      "upstream source truth",
+      "endpoint discovery"
+    ]
+  },
+  "reviewer_boundary": {
+    "claims": [
+      "repo-local wrapper request-shape baseline only"
+    ],
+    "does_not_prove": [
+      "upstream source truth",
+      "polling workflow proof",
+      "response schema"
+    ]
+  }
+}

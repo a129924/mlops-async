@@ -4,9 +4,9 @@
 
 本段是 **template**，不是共享真值狀態。
 
-- 不得直接在本共享文件上打勾
-- 若當前 session 需要使用 resume checklist，必須先複製到該 session 自己的 topic-local notes、
-  handoff、或 plan 附錄，再於複本上勾選
+- 不得直接在本共享文件上打勾。
+- 若當前 session 需要使用 resume checklist，必須先複製到該 session 自己的
+  topic-local notes、handoff、或 plan 附錄，再於複本上勾選。
 
 可複製模板如下：
 
@@ -39,29 +39,54 @@
 | `[X]` | `modelRepository/projects` | `list_projects` | `04` | 沿用 models oracle，聚焦 `bare_get` / `limit_1000` | request-only gate 已存在 |
 | `[X]` | `modelRepository/projects` | `get_project` | `05` | 注入 `direct_identifier` branch 與 blocked variants | request-only gate 已存在 |
 | `[X]` | `modelRepository/projects/champion` | `get_champion_model` | `06` | 注入 project identifier -> champion model 取回語意，避免混入 files payload 驗證 | request-only gate 已存在 |
-| `[BLOCKED]` | `modelRepository/projects -> tables-link surface` | `list_tables` | `07` | 不得自動注入；需先人工決策 HATEOAS link resolution / fixed-path 替代策略 | 與 CAS tables 不是同一 surface |
+| `[BLOCKED]` | `modelRepository/projects -> tables-link surface` | `list_tables` | `07` | 歷史 `request-gate-projects-tables-fixed-path-mvp` artifact 已 superseded；若要重新啟動此 surface，必須先補 source / HATEOAS resolution | fixed-path MVP `/modelRepository/projects/{project_id}/tables` 僅保留歷史痕跡，不是 current truth，也不是 `sasctl` 對應端點 |
 | `[X]` | `jobExecution/jobRequests/jobs` | `start_job` | `08` | 先凍結 `jobRequestId -> POST jobs` 的 request shape，不預設輪詢策略 | request-only gate 已存在 |
 | `[X]` | `jobExecution/jobs` | `get_job` | `09` | 聚焦單次 GET job detail shape，不混入 state polling contract | request-only gate 已存在 |
-| `[BLOCKED]` | `jobExecution/jobs/state` | `get_job_state` | `10` | 需先人工決策 polling / state gate 是否納入同 workflow | 輕量 state polling 與一般 detail surface 分離 |
-| `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `list_tables` | `--` | 不注入到目前 queue | concrete CAS tables surface；不是 `modelRepository` HATEOAS tables |
-| `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `get_table` | `--` | 不注入到目前 queue | concrete CAS tables surface；不是 `modelRepository` HATEOAS tables |
-| `[OUT-OF-SCOPE]` | `casManagement/caslibs/tables/state` | `change_table_state` | `--` | 不注入到目前 queue | mutation surface，不屬目前 request-shape priority workflow |
-| `[OUT-OF-SCOPE]` | `SASLogon/oauth/token` | `obtain_access_token` | `--` | 不注入到目前 queue | auth surface 另有 boundary topic，非目前 request-shape queue |
-| `[OUT-OF-SCOPE]` | `SASLogon/oauth/token` | `refresh_access_token` | `--` | 不注入到目前 queue | auth surface 另有 boundary topic，非目前 request-shape queue |
+| `[X]` | `jobExecution/jobs/state` | `get_job_state` | `10` | bounded request-only / shape-only gate completed; do not auto-expand this row into polling / state-machine workflow | state request gate landed; broader polling semantics remain separate from the detail surface |
+| `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `list_tables` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-casmanagement-list-tables` | concrete CAS tables surface；strict `limit=1000&start=0` request gate 已 merged / released，但不屬目前 request-shape queue |
+| `[OUT-OF-SCOPE]` | `casManagement/dataSources/tables` | `get_table` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-casmanagement-get-table` | concrete CAS tables surface；direct `{caslib} + {tableName}` request gate 已 merged / released，但不屬目前 request-shape queue |
+| `[OUT-OF-SCOPE]` | `casManagement/caslibs/tables/state` | `change_table_state` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-casmanagement-change-table-state` | mutation surface；`value=loaded` request gate 已 merged / released，但不屬目前 request-shape queue |
+| `[OUT-OF-SCOPE]` | `SASLogon/oauth/token` | `obtain_access_token` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-saslogon-obtain-access-token` | auth surface 另有 boundary topic；bounded `client_credentials` request gate 已 merged / released，但不屬目前 request-shape queue |
+| `[OUT-OF-SCOPE]` | `SASLogon/oauth/token` | `refresh_access_token` | `--` | 不注入到目前 queue；repo truth 另有 `request-gate-saslogon-refresh-access-token` | auth surface 另有 boundary topic；`refresh_token` request gate 已 merged / released，但不屬目前 request-shape queue |
 
 ## Board usage rules
 
-- 若多個 session 同時工作，應以本 board 作為共享排序與接口狀態來源
-- 若人類要指定下一個實作接口，可直接點名 `surface + API`
-- 若 session 只需要決定注入內容，應優先使用 `Injection hint`
-- `tables` 一詞不得單獨拿來排隊；必須先指明是 `modelRepository/projects -> tables-link surface` 或 `casManagement/.../tables`
-- 若需要單一 topic completion gate，應改讀該 topic 的 `plan/<topic>/<topic>.step.md`
+- 若多個 session 同時工作，應以本 board 作為共享排序與接口狀態來源。
+- 本 board 必須與 merged repo truth 對齊，不得保留過期的 pending / blocked 狀態。
+- 若人類要指定下一個實作接口，可直接點名 `surface + API`。
+- 若 session 只需要決定注入內容，應優先使用 `Injection hint`。
+- `tables` 一詞不得單獨拿來排隊；必須先指明是
+  `modelRepository/projects -> tables-link surface` 或
+  `casManagement/.../tables`。
+- 若需要單一 topic completion gate，應改讀該 topic 的
+  `plan/<topic>/<topic>.step.md`。
+- queue 外 surface 若已有 merged truth，notes 也必須同步補齊；
+  不得只留下 `OUT-OF-SCOPE` 而不說明當前 repo truth。
+
+## Auth surface current-truth reminder
+
+- `SASLogon/oauth/token -> obtain_access_token` 已透過
+  `request-gate-saslogon-obtain-access-token` 獨立 topic 落地並 released。
+- `SASLogon/oauth/token -> refresh_access_token` 已透過
+  `request-gate-saslogon-refresh-access-token` 獨立 topic 落地並 released。
+- shared board 仍維持 `OUT-OF-SCOPE`，因為它們都不屬於目前 request-shape queue。
+
+## CAS surface current-truth reminder
+
+- `casManagement/dataSources/tables -> list_tables` 已透過
+  `request-gate-casmanagement-list-tables` 獨立 topic 落地並 released。
+- `casManagement/dataSources/tables -> get_table` 已透過
+  `request-gate-casmanagement-get-table` 獨立 topic 落地並 released。
+- `casManagement/caslibs/tables/state -> change_table_state` 已透過
+  `request-gate-casmanagement-change-table-state` 獨立 topic 落地並 released。
+- shared board 仍維持 `OUT-OF-SCOPE`，因為它們都不屬於目前 request-shape queue。
 
 ## Human-check triggers
 
 以下情況直接停在 `human-check`：
 
-- `modelRepository/projects -> tables-link surface` 要求解鎖
-- surface / API queue 被要求改序
-- `tests/contracts` 被要求升格成主 request-shape surface
-- 需要重開已凍結的 path / contract / architecture decision
+- 已完成的 `modelRepository/projects -> tables-link surface / list_tables`
+  被要求改回未解鎖狀態。
+- surface / API queue 被要求改序。
+- `tests/contracts` 被要求升格成主 request-shape surface。
+- 需要重開已凍結的 path / contract / architecture decision。

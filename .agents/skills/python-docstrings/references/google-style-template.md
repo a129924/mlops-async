@@ -9,7 +9,7 @@ Google Style docstrings follow a structured, readable format optimized for clari
 ```
 """One-liner summary (present tense, end with period).
 
-Extended description explaining intent, boundary context, preconditions, or 
+Extended description explaining intent, boundary context, preconditions, or
 domain semantics. This section is optional if the one-liner is self-evident.
 
 Args:
@@ -58,9 +58,9 @@ Yields:
 ```python
 def authenticate_user(token: str, secret_key: str) -> User:
     """Authenticate a user using a JWT token.
-    
-    Verifies the JWT signature against the provided secret key and extracts the 
-    embedded user identity. This is the primary authentication entry point for 
+
+    Verifies the JWT signature against the provided secret key and extracts the
+    embedded user identity. This is the primary authentication entry point for
     REST API requests.
     """
 ```
@@ -92,7 +92,7 @@ Args:
 ```python
 Returns:
     User: A user object with populated id, email, and roles extracted from token claims.
-    
+
     Result[User, AuthError]: For result-type returns, Ok(user) on successful
         authentication; Err(auth_error) on failure.
 ```
@@ -143,14 +143,14 @@ Yields:
 ```python
 class UserRepository:
     """Repository for User entities.
-    
-    Provides CRUD operations and query methods for users. Encapsulates database 
+
+    Provides CRUD operations and query methods for users. Encapsulates database
     access patterns and maintains transaction semantics.
-    
+
     Attributes:
         db_connection: Active database connection.
         cache_enabled: Whether query results are cached.
-    
+
     Example:
         repo = UserRepository(db_connection)
         user = repo.get_by_id(42)
@@ -175,13 +175,13 @@ from dataclasses import dataclass
 @dataclass
 class User:
     """A user identity in the system."""
-    
+
     id: int
     """Unique user identifier. Primary key in the users table."""
-    
+
     email: str
     """User email address. Must be unique across all users."""
-    
+
     roles: list[str]
     """List of role names (e.g., 'admin', 'editor'). Empty list if no roles assigned."""
 ```

@@ -1,0 +1,52 @@
+{
+  "source": {
+    "sdk": "source-observed draft",
+    "function": "refresh_access_token",
+    "contract_status": "tests-only request gate",
+    "classification": "refresh-token-basic",
+    "divergence_label": "shape-only",
+    "authority_class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline"
+  },
+  "cases": {
+    "refresh_token_basic": {
+      "capture_run_id": "saslogon-refresh-token-basic",
+      "comparison_scope": "target-api-only",
+      "full_observed_flow": [
+        {
+          "purpose": "target-api",
+          "request": {
+            "method": "POST",
+            "path": "/SASLogon/oauth/token",
+            "required_header_subset": {
+              "Accept": "application/json",
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            "query": {},
+            "body": "grant_type=refresh_token&refresh_token=refresh-token-abc-123"
+          }
+        }
+      ]
+    }
+  },
+  "assertion_layer": "tests-only-request-shape",
+  "reviewer_boundary": {
+    "claims": [
+      "single request-shape baseline only"
+    ],
+    "does_not_prove": [
+      "runtime OAuth refresh behavior",
+      "token storage behavior",
+      "scope support",
+      "response schema",
+      "real transport proof"
+    ]
+  },
+  "authority": {
+    "class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline",
+    "forbidden_use": [
+      "upstream token truth"
+    ]
+  }
+}

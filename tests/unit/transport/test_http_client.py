@@ -1,17 +1,30 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
+import ssl
 from collections.abc import Awaitable, Callable, Mapping
+from pathlib import Path
 from types import ModuleType
-from typing import NoReturn
+from typing import NoReturn, get_type_hints
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import pytest
 
+import mlops_async.core.headers as headers_mod
 import mlops_async.transport.exceptions as transport_exceptions
 import mlops_async.transport.http_client as transport_http_client
 from mlops_async.core.client import Client
+from mlops_async.core.http_request import (
+    BaseUrl,
+    EndpointPath,
+    Headers,
+    HttpRequest,
+    JsonBody,
+    QueryParams,
+    RawBody,
+)
 from mlops_async.core.request_options import ClientRequestOptions, RequestTimeouts
 from mlops_async.core.types import HttpMethod, RawClientResponse
 
@@ -87,6 +100,107 @@ def test_constructor_surface_is_locked_to_minimal_transport_parameters() -> None
     assert "options" not in parameters
 
 
+def test_constructor_verify_annotation_accepts_bool_or_ssl_context() -> None:
+    hints = get_type_hints(transport_http_client.HttpClient.__init__)
+
+    assert hints["verify"] == bool | ssl.SSLContext
+
+
+def test_constructor_passes_default_verify_true_to_async_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_kwargs: dict[str, object] = {}
+
+    def capture_async_client(**kwargs: object) -> object:
+        captured_kwargs.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(transport_http_client.httpx, "AsyncClient", capture_async_client)
+
+    _http_client_class()("https://example.com")
+
+    assert captured_kwargs["verify"] is True
+
+
+@pytest.mark.parametrize("verify", [True, False])
+def test_constructor_passes_explicit_bool_verify_to_async_client(
+    monkeypatch: pytest.MonkeyPatch,
+    verify: bool,
+) -> None:
+    captured_kwargs: dict[str, object] = {}
+
+    def capture_async_client(**kwargs: object) -> object:
+        captured_kwargs.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(transport_http_client.httpx, "AsyncClient", capture_async_client)
+
+    _http_client_class()("https://example.com", verify=verify)
+
+    assert captured_kwargs["verify"] is verify
+
+
+@pytest.mark.parametrize(
+    ("with_timeout", "with_transport"),
+    [(False, False), (False, True), (True, False), (True, True)],
+)
+def test_constructor_preserves_ssl_context_identity_in_every_client_branch(
+    monkeypatch: pytest.MonkeyPatch,
+    with_timeout: bool,
+    with_transport: bool,
+) -> None:
+    captured_kwargs: dict[str, object] = {}
+    verify = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    constructor_kwargs: dict[str, object] = {"verify": verify}
+    if with_timeout:
+        constructor_kwargs["timeout"] = RequestTimeouts(total=1.0)
+    if with_transport:
+        constructor_kwargs["transport"] = httpx.MockTransport(
+            lambda request: httpx.Response(204, request=request)
+        )
+
+    def capture_async_client(**kwargs: object) -> object:
+        captured_kwargs.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(transport_http_client.httpx, "AsyncClient", capture_async_client)
+
+    _http_client_class()("https://example.com", **constructor_kwargs)
+
+    assert captured_kwargs["verify"] is verify
+
+
+@pytest.mark.parametrize(
+    "invalid_verify",
+    ["company-ca.pem", Path("company-ca.pem"), None, object()],
+    ids=["str", "path", "none", "object"],
+)
+def test_constructor_rejects_unsupported_verify_before_creating_async_client(
+    monkeypatch: pytest.MonkeyPatch,
+    invalid_verify: object,
+) -> None:
+    async_client_created = False
+
+    def fail_if_async_client_is_created(**_kwargs: object) -> NoReturn:
+        nonlocal async_client_created
+        async_client_created = True
+        raise AssertionError("AsyncClient must not be created for invalid verify")
+
+    monkeypatch.setattr(
+        transport_http_client.httpx,
+        "AsyncClient",
+        fail_if_async_client_is_created,
+    )
+
+    with pytest.raises(TypeError, match=r"^verify must be bool or ssl\.SSLContext$"):
+        _http_client_class()(
+            "https://example.com",
+            **{"verify": invalid_verify},
+        )
+
+    assert async_client_created is False
+
+
 def test_http_client_nominally_inherits_client_protocol() -> None:
     http_client = _http_client_class()
 
@@ -149,10 +263,13 @@ async def test_request_returns_raw_response_and_applies_minimal_json_headers() -
     assert response.url == "https://example.com/base/items?page=1"
 
     sent_request = transport.requests[0]
-    assert sent_request.headers["accept"] == "application/json"
-    assert sent_request.headers["content-type"] == "application/json"
-    assert sent_request.headers["x-default"] == "kept"
-    assert sent_request.headers["x-request-level"] == "present"
+    expected_headers = headers_mod.json_request_headers(
+        {"X-Default": "kept"},
+        {"X-Request-Level": "present"},
+        json_body={"name": "demo"},
+    )
+    for header_name, header_value in expected_headers.items():
+        assert sent_request.headers[header_name.lower()] == header_value
     assert parse_qs(urlsplit(str(sent_request.url)).query) == {"page": ["1"]}
 
 
@@ -469,6 +586,71 @@ async def test_request_wraps_transport_failures_in_http_transport_exception() ->
         await client.aclose()
 
 
+@pytest.mark.parametrize(
+    ("error_factory", "expected_kind"),
+    [
+        (
+            lambda request: httpx.TimeoutException("slow response", request=request),
+            "timeout",
+        ),
+        (
+            lambda request: httpx.TransportError("network unavailable", request=request),
+            "connection",
+        ),
+        (lambda _request: httpx.InvalidURL("not a URL"), None),
+    ],
+    ids=["timeout", "transport", "non-classified"],
+)
+@pytest.mark.asyncio
+async def test_request_classifies_actual_httpx_failure_kinds(
+    error_factory: Callable[[httpx.Request], httpx.HTTPError | httpx.InvalidURL],
+    expected_kind: str | None,
+) -> None:
+    http_client = _http_client_class()
+    transport_exception = _exception_type("HttpTransportException")
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        raise error_factory(request)
+
+    client = http_client("https://example.com", transport=TrackingTransport(handler))
+    try:
+        with pytest.raises(transport_exception) as exc_info:
+            await client.request(HttpMethod.GET, "/base/items")
+    finally:
+        await client.aclose()
+
+    assert exc_info.value.failure_kind == expected_kind
+
+
+@pytest.mark.asyncio
+async def test_http_client_attaches_response_failure_metadata_without_an_extra_send() -> None:
+    http_client = _http_client_class()
+    http_status_exception = _exception_type("HTTPStatusException")
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(
+            request,
+            status_code=503,
+            content=b"temporarily unavailable",
+            headers={"Retry-After": "7", "X-Request-ID": "req-503"},
+        )
+
+    transport = TrackingTransport(handler)
+    client = http_client("https://example.com", transport=transport)
+    try:
+        with pytest.raises(http_status_exception) as exc_info:
+            await client.request(HttpMethod.GET, "/base/items")
+    finally:
+        await client.aclose()
+
+    error = exc_info.value
+    assert len(transport.requests) == 1
+    assert error.failure_metadata.status_code == 503
+    assert error.failure_metadata.retry_after == "7"
+    assert error.context.status_code == 503
+    assert error.request_id == "req-503"
+
+
 @pytest.mark.asyncio
 async def test_request_wraps_invalid_absolute_url_without_request_in_http_transport_exception() -> (
     None
@@ -535,3 +717,516 @@ async def test_aclose_does_not_close_injected_transport() -> None:
     await client.aclose()
 
     assert transport.closed is False
+
+
+@pytest.mark.asyncio
+async def test_aclose_retries_underlying_cleanup_after_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        if close_attempts == 1:
+            raise RuntimeError("close failed")
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    with pytest.raises(RuntimeError, match="close failed"):
+        await client.aclose()
+
+    assert client._client.is_closed is False
+
+    await client.aclose()
+
+    assert close_attempts == 2
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_retries_underlying_cleanup_after_cancellation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        if close_attempts == 1:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    with pytest.raises(asyncio.CancelledError):
+        await client.aclose()
+
+    assert client._client.is_closed is False
+
+    await client.aclose()
+
+    assert close_attempts == 2
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_concurrent_callers_share_successful_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    cleanup_started = asyncio.Event()
+    allow_cleanup = asyncio.Event()
+    start_callers = asyncio.Event()
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        cleanup_started.set()
+        await allow_cleanup.wait()
+
+    async def close_after_start() -> None:
+        await start_callers.wait()
+        await client.aclose()
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    first = asyncio.create_task(close_after_start())
+    second = asyncio.create_task(close_after_start())
+    start_callers.set()
+    await cleanup_started.wait()
+
+    assert close_attempts == 1
+    assert first.done() is False
+    assert second.done() is False
+
+    allow_cleanup.set()
+    await asyncio.gather(first, second)
+
+    assert close_attempts == 1
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_concurrent_callers_share_cleanup_failure_and_allow_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    cleanup_started = asyncio.Event()
+    allow_cleanup = asyncio.Event()
+    start_callers = asyncio.Event()
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        if close_attempts == 1:
+            cleanup_started.set()
+            await allow_cleanup.wait()
+            raise RuntimeError("close failed")
+
+    async def close_after_start() -> None:
+        await start_callers.wait()
+        await client.aclose()
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    first = asyncio.create_task(close_after_start())
+    second = asyncio.create_task(close_after_start())
+    start_callers.set()
+    await cleanup_started.wait()
+
+    assert close_attempts == 1
+    assert first.done() is False
+    assert second.done() is False
+
+    allow_cleanup.set()
+    results = await asyncio.gather(first, second, return_exceptions=True)
+
+    assert all(isinstance(result, RuntimeError) for result in results)
+    assert [str(result) for result in results] == ["close failed", "close failed"]
+    assert client._client.is_closed is False
+
+    await client.aclose()
+
+    assert close_attempts == 2
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_concurrent_callers_share_cleanup_cancellation_and_allow_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    cleanup_started = asyncio.Event()
+    allow_cleanup = asyncio.Event()
+    start_callers = asyncio.Event()
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        if close_attempts == 1:
+            cleanup_started.set()
+            await allow_cleanup.wait()
+            raise asyncio.CancelledError("close cancelled")
+
+    async def close_after_start() -> None:
+        await start_callers.wait()
+        await client.aclose()
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    first = asyncio.create_task(close_after_start())
+    second = asyncio.create_task(close_after_start())
+    start_callers.set()
+    await cleanup_started.wait()
+
+    assert close_attempts == 1
+    assert first.done() is False
+    assert second.done() is False
+
+    allow_cleanup.set()
+    results = await asyncio.gather(first, second, return_exceptions=True)
+
+    assert all(isinstance(result, asyncio.CancelledError) for result in results)
+    assert client._client.is_closed is False
+
+    await client.aclose()
+
+    assert close_attempts == 2
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_cancelled_waiter_does_not_cancel_shared_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    cleanup_started = asyncio.Event()
+    allow_cleanup = asyncio.Event()
+    second_waiter_reached_shared_cleanup = asyncio.Event()
+    close_attempts = 0
+    shield_calls = 0
+
+    original_shield = asyncio.shield
+
+    def observe_shield(awaitable: asyncio.Task[None]) -> asyncio.Future[None]:
+        nonlocal shield_calls
+        shield_calls += 1
+        if shield_calls == 2:
+            second_waiter_reached_shared_cleanup.set()
+        return original_shield(awaitable)
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+        cleanup_started.set()
+        await allow_cleanup.wait()
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+    monkeypatch.setattr(transport_http_client.asyncio, "shield", observe_shield)
+
+    first_waiter = asyncio.create_task(client.aclose())
+    await cleanup_started.wait()
+    second_waiter = asyncio.create_task(client.aclose())
+    await second_waiter_reached_shared_cleanup.wait()
+
+    assert close_attempts == 1
+    assert first_waiter.done() is False
+    assert second_waiter.done() is False
+
+    second_waiter.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await second_waiter
+
+    assert close_attempts == 1
+    assert first_waiter.done() is False
+
+    allow_cleanup.set()
+    await first_waiter
+
+    assert close_attempts == 1
+    assert client._client.is_closed is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_is_idempotent_after_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _http_client_class()("https://example.com")
+    close_attempts = 0
+
+    async def close_transport() -> None:
+        nonlocal close_attempts
+        close_attempts += 1
+
+    monkeypatch.setattr(client._client._transport, "aclose", close_transport)
+
+    await client.aclose()
+    await client.aclose()
+
+    assert close_attempts == 1
+    assert client._client.is_closed is True
+
+
+def test_execute_surface_accepts_only_a_canonical_http_request() -> None:
+    parameters = inspect.signature(transport_http_client.HttpClient.execute).parameters
+
+    assert tuple(parameters) == ("self", "request")
+    assert "path" not in parameters
+    assert "params" not in parameters
+    assert "json_body" not in parameters
+    assert "content" not in parameters
+
+
+@pytest.mark.asyncio
+async def test_execute_uses_http_request_url_and_raw_body_without_second_url_semantics() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204)
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://must-not-be-used.example", transport=transport)
+    request = HttpRequest(
+        method=HttpMethod.POST,
+        base_url=BaseUrl.create("https://api.example.test"),
+        endpoint_path=EndpointPath.literal("/api/v1/imports"),
+        query=QueryParams.create((("tag", "first"), ("tag", "second"))),
+        headers=Headers.create((("X-Trace", "canonical"),)),
+        body=RawBody(b"raw body"),
+        options=None,
+    )
+
+    try:
+        response = await client.execute(request)
+    finally:
+        await client.aclose()
+
+    assert response.url == request.url
+    assert str(transport.requests[0].url) == request.url
+    assert transport.requests[0].content == b"raw body"
+    assert transport.requests[0].headers["x-trace"] == "canonical"
+    assert "content-type" not in transport.requests[0].headers
+
+
+@pytest.mark.asyncio
+async def test_execute_serializes_json_null_as_json_literal() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204, content=b"")
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://api.example.test", transport=transport)
+    request = HttpRequest(
+        method=HttpMethod.POST,
+        base_url=BaseUrl.create("https://api.example.test"),
+        endpoint_path=EndpointPath.literal("/api/v1/items"),
+        query=QueryParams.create({}),
+        headers=Headers.create({}),
+        body=JsonBody(None),
+        options=None,
+    )
+
+    try:
+        await client.execute(request)
+    finally:
+        await client.aclose()
+
+    assert transport.requests[0].content == b"null"
+
+
+@pytest.mark.asyncio
+async def test_execute_removes_implicit_accept_but_preserves_explicit_accept() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204, content=b"")
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://api.example.test", transport=transport)
+    without_accept = HttpRequest(
+        method=HttpMethod.GET,
+        base_url=BaseUrl.create("https://api.example.test"),
+        endpoint_path=EndpointPath.literal("/api/v1/items"),
+        query=QueryParams.create({}),
+        headers=Headers.create({}),
+        body=None,
+        options=None,
+    )
+    with_accept = HttpRequest(
+        method=HttpMethod.GET,
+        base_url=BaseUrl.create("https://api.example.test"),
+        endpoint_path=EndpointPath.literal("/api/v1/items"),
+        query=QueryParams.create({}),
+        headers=Headers.create({"Accept": "application/vnd.example+json"}),
+        body=None,
+        options=None,
+    )
+
+    try:
+        await client.execute(without_accept)
+        await client.execute(with_accept)
+    finally:
+        await client.aclose()
+
+    assert "accept" not in transport.requests[0].headers
+    assert transport.requests[1].headers["accept"] == "application/vnd.example+json"
+
+
+@pytest.mark.asyncio
+async def test_primitive_request_adapter_matches_direct_canonical_execution() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204)
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://api.example.test", transport=transport)
+
+    try:
+        primitive_response = await client.request(
+            HttpMethod.POST,
+            "/api/v1/items",
+            headers={"X-Trace": "parity"},
+            params={"tag": "one"},
+            json_body={"name": "demo"},
+        )
+        canonical_response = await client.execute(
+            HttpRequest(
+                method=HttpMethod.POST,
+                base_url=BaseUrl.create("https://api.example.test"),
+                endpoint_path=EndpointPath.literal("/api/v1/items"),
+                query=QueryParams.create({"tag": "one"}),
+                headers=Headers.create(
+                    {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                        "X-Trace": "parity",
+                    }
+                ),
+                body=JsonBody({"name": "demo"}),
+                options=None,
+            )
+        )
+    finally:
+        await client.aclose()
+
+    primitive_request, canonical_request = transport.requests
+    assert primitive_response.url == canonical_response.url
+    assert str(primitive_request.url) == str(canonical_request.url)
+    assert primitive_request.content == canonical_request.content
+    assert dict(primitive_request.headers) == dict(canonical_request.headers)
+
+
+@pytest.mark.asyncio
+async def test_primitive_request_adapters_preserve_embedded_query() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, content=b'{"ok": true}')
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://api.example.test", transport=transport)
+
+    try:
+        primitive_response = await client.request(HttpMethod.GET, "/items?tag=a")
+        json_response = await client.request_json(HttpMethod.GET, "/items?tag=a")
+    finally:
+        await client.aclose()
+
+    assert primitive_response.status_code == 200
+    assert json_response == {"ok": True}
+    assert [str(request.url) for request in transport.requests] == [
+        "https://api.example.test/items?tag=a",
+        "https://api.example.test/items?tag=a",
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "absolute_path", ("https://legacy.example.test/items", "http://legacy.example.test/items")
+)
+async def test_primitive_absolute_http_paths_fail_before_http_library_execution(
+    monkeypatch: pytest.MonkeyPatch,
+    absolute_path: str,
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204)
+
+    http_client = _http_client_class()
+    transport = TrackingTransport(handler)
+    client = http_client("https://api.example.test", transport=transport)
+    build_calls = 0
+    send_calls = 0
+
+    def fail_build_request(*_args: object, **_kwargs: object) -> NoReturn:
+        nonlocal build_calls
+        build_calls += 1
+        raise AssertionError("legacy absolute paths must not reach build_request")
+
+    async def fail_send(*_args: object, **_kwargs: object) -> NoReturn:
+        nonlocal send_calls
+        send_calls += 1
+        raise AssertionError("legacy absolute paths must not reach send")
+
+    monkeypatch.setattr(client._client, "build_request", fail_build_request)
+    monkeypatch.setattr(client._client, "send", fail_send)
+
+    try:
+        transport_exception = _exception_type("HttpTransportException")
+        with pytest.raises(transport_exception) as exc_info:
+            await client.request(HttpMethod.GET, absolute_path)
+    finally:
+        await client.aclose()
+
+    assert exc_info.value.status_code is None
+    assert exc_info.value.url == absolute_path
+    assert build_calls == 0
+    assert send_calls == 0
+    assert transport.requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("request_adapter", ("request", "request_json"))
+@pytest.mark.parametrize(
+    "rejected_path",
+    (
+        "HTTP://legacy.example.test/items",
+        "HtTpS://legacy.example.test/items",
+        "//legacy.example.test/items",
+    ),
+)
+async def test_primitive_request_adapters_reject_case_varied_absolute_and_network_paths_before_http_library_execution(  # noqa: E501
+    monkeypatch: pytest.MonkeyPatch,
+    request_adapter: str,
+    rejected_path: str,
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return _json_response(request, status_code=204)
+
+    transport = TrackingTransport(handler)
+    client = _http_client_class()("https://api.example.test", transport=transport)
+    build_calls = 0
+    send_calls = 0
+
+    def fail_build_request(*_args: object, **_kwargs: object) -> NoReturn:
+        nonlocal build_calls
+        build_calls += 1
+        raise AssertionError("rejected primitive paths must not reach build_request")
+
+    async def fail_send(*_args: object, **_kwargs: object) -> NoReturn:
+        nonlocal send_calls
+        send_calls += 1
+        raise AssertionError("rejected primitive paths must not reach send")
+
+    monkeypatch.setattr(client._client, "build_request", fail_build_request)
+    monkeypatch.setattr(client._client, "send", fail_send)
+
+    try:
+        transport_exception = _exception_type("HttpTransportException")
+        request_method = client.request if request_adapter == "request" else client.request_json
+        with pytest.raises(transport_exception) as exc_info:
+            await request_method(HttpMethod.GET, rejected_path)
+    finally:
+        await client.aclose()
+
+    assert exc_info.value.status_code is None
+    assert exc_info.value.url == rejected_path
+    assert build_calls == 0
+    assert send_calls == 0
+    assert transport.requests == []

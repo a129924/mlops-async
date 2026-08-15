@@ -5,13 +5,20 @@ build/
 dist/
 wheels/
 *.egg-info
+config/.env.*
+mlops-async.git/
 
 # Virtual environments
 .venv
 .DS_Store
 .vscode/
 docs/other/測試方式改寫推薦方案.md
+reference/
+scripts/test-code/
 
 # Coverage reports
 .coverage
 .coverage-reports/
+
+# Pytest cache
+.pytest_cache/

@@ -74,18 +74,18 @@ Ask: **Can I discover the "why" from the code and nearby context alone?**
 
 def authenticate_user(token: str, secret_key: str) -> User:
     """Authenticate a user using a JWT token.
-    
-    Verifies the JWT signature against the provided secret key and extracts the 
-    embedded user identity. This is the primary authentication entry point for 
+
+    Verifies the JWT signature against the provided secret key and extracts the
+    embedded user identity. This is the primary authentication entry point for
     REST API requests.
-    
+
     Args:
         token: A JWT-formatted bearer token from the request Authorization header.
         secret_key: The HMAC secret key used to verify the token signature.
-    
+
     Returns:
         User: A user object with id, email, and roles extracted from token claims.
-    
+
     Raises:
         JWTError: If token signature is invalid or token is expired.
     """
@@ -105,10 +105,10 @@ def authenticate_user(token: str, secret_key: str) -> User:
 ```python
 def normalize_email(email: str) -> str:
     """Return a lowercase, trimmed email address.
-    
+
     Args:
         email: An email string, potentially with whitespace or mixed case.
-    
+
     Returns:
         str: The email normalized to lowercase and without leading/trailing whitespace.
     """
@@ -129,16 +129,16 @@ def normalize_email(email: str) -> str:
 class PaymentProcessor:
     def _translate_payment_error(self, api_error: APIError) -> PaymentError:
         """Translate an external payment API error to internal domain error.
-        
-        Maps vendor-specific error codes to domain-level PaymentError types. 
+
+        Maps vendor-specific error codes to domain-level PaymentError types.
         This translation ensures callers do not depend on third-party API contracts.
-        
+
         Args:
             api_error: Error returned by the payment API.
-        
+
         Returns:
             PaymentError: A domain error with translated error code and message.
-        
+
         Raises:
             ValueError: If the API error code is unmapped or invalid.
         """
@@ -180,16 +180,16 @@ class UserRepository:
 @dataclass
 class PaymentOrder:
     """A payment order in the system."""
-    
+
     id: str
     """Unique order identifier. Must be unique across all payment orders."""
-    
+
     amount_cents: int
     """Order total in cents (not dollars). Must be positive. Required for billing."""
-    
+
     customer_id: str
     """Foreign key to customer. Links this order to the customer who placed it."""
-    
+
     status: str
     """Current order status: 'pending', 'processing', 'completed', or 'failed'."""
 ```
@@ -210,8 +210,8 @@ class PaymentOrder:
 ```python
 def calculate_discount(purchase_total: float) -> float:
     """Calculate a discount on the purchase to increase customer lifetime value.
-    
-    We offer discounts to boost loyalty and repeat purchases. This drives our 
+
+    We offer discounts to boost loyalty and repeat purchases. This drives our
     retention metrics and improves profitability.
     """
 ```
@@ -226,10 +226,10 @@ def calculate_discount(purchase_total: float) -> float:
 ```python
 def calculate_discount(purchase_total: float) -> float:
     """Return the discount amount for the given purchase total.
-    
+
     Args:
         purchase_total: The order total in dollars.
-    
+
     Returns:
         float: The discount amount in dollars. Always non-negative.
     """
@@ -242,8 +242,8 @@ def calculate_discount(purchase_total: float) -> float:
 ```python
 def fetch_user_by_id(user_id: int) -> User:
     """Fetch a user by ID from the database.
-    
-    This function queries the PostgreSQL database users table using an indexed 
+
+    This function queries the PostgreSQL database users table using an indexed
     lookup on the user_id column. We use prepared statements to prevent SQL injection.
     """
 ```
@@ -258,13 +258,13 @@ def fetch_user_by_id(user_id: int) -> User:
 ```python
 def fetch_user_by_id(user_id: int) -> User:
     """Return the user with the given ID.
-    
+
     Args:
         user_id: A positive integer user ID.
-    
+
     Returns:
         User: The user object with full profile data.
-    
+
     Raises:
         UserNotFound: If no user exists with the given ID.
     """
@@ -276,7 +276,7 @@ def fetch_user_by_id(user_id: int) -> User:
 
 If you're unsure whether intent is explicit, ask:
 
-1. **Can a new developer understand the "why" from the symbol name, type signature, error types, and module boundary alone?** 
+1. **Can a new developer understand the "why" from the symbol name, type signature, error types, and module boundary alone?**
    - YES → Write extended description capturing that intent
    - NO → Write contract-only docstring
 

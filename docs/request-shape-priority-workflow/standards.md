@@ -8,7 +8,7 @@
 
 - session-entry 後的 artifact precedence
 - `surface + API` 實作順序
-- blocked surface policy
+- current-truth 與 blocked surface policy
 - `checklist.md` 與 `*.step.md` 的責任分界
 - request-shape 主測試面
 
@@ -79,25 +79,60 @@ API 級順序與建議注入內容以 `docs/request-shape-priority-workflow/chec
 - 若前一列仍未完成、仍 blocked、或仍待人工決策，不得任意跳到下一列
 - 若需要把 queue 切得更細，應在 board 新增 API 列，而不是繞過既有順序
 
-### Blocked policy
+### Current-truth and blocked policy
 
-下列 surface 在沒有新的人類決策前維持 `BLOCKED`：
+shared board 必須反映 merged repo truth，不得把已合併的 request-gate 實作保留在過期的
+`[ ]` 或 `[BLOCKED]` 狀態。
 
-- `modelRepository/projects -> tables-link surface`
-- `jobExecution/jobs/state`
+目前 queue 內若存在 blocked surface，必須明確寫出 blocker 與 historical artifact 邊界。
 
-不得自動：
+- `modelRepository/projects -> tables-link surface / list_tables`
+  的歷史 `request-gate-projects-tables-fixed-path-mvp` artifact 只保留 fixed-path MVP
+  decision trail；它已 superseded，不得再被當成 current truth、不得再被描述成
+  `sasctl` 對應端點證據。這個 surface 目前回到 source / HATEOAS unresolved 狀態；
+  若要重新啟動，必須另開 source-resolution topic。
+Do not automatically:
 
-- 解鎖 blocked surface
-- 改寫 `modelRepository/projects -> tables-link surface` 的 HATEOAS / fixed-path 策略
-- 自行決定 `jobExecution/jobs/state` 的 polling / state gate 邊界
-- 把 blocked surface 併回一般 ready queue
+- reactivate the superseded `request-gate-projects-tables-fixed-path-mvp` artifact as if it were current truth
+- expand `jobExecution/jobs/state` from its bounded request-only / shape-only lane into a polling / state-machine gate
+- treat the completed `jobExecution/jobs/state` request gate as permission to redefine broader polling semantics
+
+- request-contract 證據分類請一律先對照
+  `docs/request-shape-priority-workflow/request-contract-evidence-matrix.md`，
+  再決定某個 topic 能不能被描述成 direct `sasctl` capture。
 
 下列 surface 必須保留為 `OUT-OF-SCOPE`，除非人類重新定義 workflow 範圍：
 
 - `casManagement/dataSources/tables`
 - `casManagement/caslibs/tables/state`
 - `SASLogon/oauth/token`
+
+`casManagement/dataSources/tables` 的 current-truth 對齊規則：
+
+- `list_tables` 若已在獨立 CAS boundary / request-gate topic 落地，
+  shared board 仍應保留 `OUT-OF-SCOPE`。
+- `get_table` 已透過 `request-gate-casmanagement-get-table` 落地；
+  shared board 仍應保留 `OUT-OF-SCOPE`。
+- `change_table_state` 已透過
+  `request-gate-casmanagement-change-table-state` 落地；shared board 仍應保留
+  `OUT-OF-SCOPE`。
+- 這裡的 `OUT-OF-SCOPE` 代表「不屬於本 workflow queue」，
+  不是「repo 尚未有 merged implementation truth」。
+- 若要同步 repo truth，應更新 notes / injection hint，
+  不應把這一列誤改成 queue 內的 `[X]`。
+- `change_table_state` 不得因為 `list_tables` 與 `get_table` 已落地就被誤判為
+  queue 內同批完成；它必須維持獨立 boundary topic 的 current truth。
+
+`SASLogon/oauth/token` 的 current-truth 對齊規則：
+
+- `obtain_access_token` 若已在獨立 auth boundary / request-gate topic 落地，
+  shared board 仍應保留 `OUT-OF-SCOPE`。
+- `refresh_access_token` 已透過 `request-gate-saslogon-refresh-access-token` 落地；
+  shared board 仍應保留 `OUT-OF-SCOPE`。
+- 這裡的 `OUT-OF-SCOPE` 代表「不屬於本 workflow queue」，
+  不是「repo 尚未有 merged implementation truth」。
+- 若要同步 repo truth，應更新 notes / injection hint，
+  不應把這一列誤改成 queue 內的 `[X]`。
 
 ## Board and step-tracker boundaries
 
@@ -113,6 +148,7 @@ API 級順序與建議注入內容以 `docs/request-shape-priority-workflow/chec
 - shared `checklist.md` 中的 resume checklist 不得直接打勾
 - 若 session 需要勾選，必須先複製到自己的 topic-local artifact
 - implementation board 是共享真值表面，可用來表示 `surface + API` 的進度與注入 hint
+- implementation board 的狀態必須與 merged repo truth 對齊，不得保留過期 queue 狀態
 
 ### `*.step.md`
 
@@ -123,6 +159,9 @@ API 級順序與建議注入內容以 `docs/request-shape-priority-workflow/chec
 - `*.step.md` 用來追蹤單一 topic 的 implementation steps
 - `checklist.md` 不得承擔 topic-local completion gate
 - implementation board 也不得取代 `*.step.md`
+
+queue 外 surface 若已有 merged truth，shared board 也必須在 notes 或相鄰治理文字中明確標示；
+不得只留下模糊的 `OUT-OF-SCOPE` 而不說明目前 repo truth。
 
 ## Request-shape scope law
 
@@ -155,8 +194,8 @@ request-shape 主測試面固定為：
 
 - session-entry docs 缺件
 - `surface + API` queue 被要求跳步
-- `modelRepository/projects -> tables-link surface` 被要求在無人工決策下直接推進
-- `jobExecution/jobs/state` 被要求在無人工決策下直接推進
+- 已完成的 `modelRepository/projects -> tables-link surface / list_tables` 被要求重新降回 `BLOCKED`
+- `jobExecution/jobs/state` is expanded into polling / state-machine workflow without a new human decision
 - `tests/contracts` 被要求升格成主 request-shape surface
 - `checklist.md` 被要求改成 topic-local gate
 - 工作漂移到 `src/**`、request-contract tests 內容、或 release surface

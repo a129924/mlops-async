@@ -1,15 +1,27 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 from json import JSONDecodeError, loads as json_loads
 from math import isfinite
+import ssl
 from types import TracebackType
-from typing import TypeGuard, cast
+from typing import Literal, TypeGuard, cast
+from urllib.parse import parse_qsl, urlsplit
 
 import httpx
 
 from mlops_async.core.client import Client
-from mlops_async.core.headers import merge_headers
+from mlops_async.core.headers import json_request_headers
+from mlops_async.core.http_request import (
+    BaseUrl,
+    EndpointPath,
+    Headers,
+    HttpRequest,
+    JsonBody,
+    QueryParams,
+    RawBody,
+)
 from mlops_async.core.request_options import ClientRequestOptions, RequestTimeouts
 from mlops_async.core.types import HttpMethod, JSONValue, RawClientResponse, ResponseHeaders
 from mlops_async.transport.exceptions import (
@@ -23,7 +35,9 @@ __all__ = ["HttpClient"]
 
 _DEFAULT_TIMEOUTS = RequestTimeouts()
 _REQUEST_ID_HEADER = "X-Request-ID"
-_FORBIDDEN_HTTPX_DEFAULT_HEADER_NAMES = frozenset({"accept-encoding", "connection", "user-agent"})
+_FORBIDDEN_HTTPX_DEFAULT_HEADER_NAMES = frozenset(
+    {"accept", "accept-encoding", "connection", "user-agent"}
+)
 _FORBIDDEN_DEFAULT_HEADER_NAMES = frozenset(
     {
         "authorization",
@@ -102,6 +116,13 @@ def _validate_default_headers(default_headers: Mapping[str, str] | None) -> dict
     return resolved_headers
 
 
+def _validate_verify(verify: object) -> bool | ssl.SSLContext:
+    # Narrowing helper: runtime callers can bypass the annotated public contract.
+    if not isinstance(verify, (bool, ssl.SSLContext)):
+        raise TypeError("verify must be bool or ssl.SSLContext")
+    return verify
+
+
 def _is_json_value(value: object) -> TypeGuard[JSONValue]:
     if value is None or isinstance(value, str | bool | int):
         return True
@@ -129,37 +150,40 @@ class HttpClient(Client):
         self,
         base_url: str | httpx.URL,
         timeout: RequestTimeouts = _DEFAULT_TIMEOUTS,
-        verify: bool = True,
+        verify: bool | ssl.SSLContext = True,
         transport: httpx.AsyncBaseTransport | None = None,
         default_headers: Mapping[str, str] | None = None,
     ) -> None:
         """Create a minimal internal HTTP client."""
+        resolved_verify = _validate_verify(verify)
         self._default_headers = _validate_default_headers(default_headers)
+        self._base_url = BaseUrl.create(str(base_url))
 
         wrapped_transport = _CallerOwnedAsyncTransport(transport) if transport is not None else None
         resolved_timeout = _timeouts_to_httpx(timeout)
 
         if resolved_timeout is None and wrapped_transport is None:
-            self._client = httpx.AsyncClient(base_url=base_url, verify=verify)
+            self._client = httpx.AsyncClient(base_url=base_url, verify=resolved_verify)
         elif resolved_timeout is None:
             self._client = httpx.AsyncClient(
                 base_url=base_url,
-                verify=verify,
+                verify=resolved_verify,
                 transport=wrapped_transport,
             )
         elif wrapped_transport is None:
             self._client = httpx.AsyncClient(
                 base_url=base_url,
-                verify=verify,
+                verify=resolved_verify,
                 timeout=resolved_timeout,
             )
         else:
             self._client = httpx.AsyncClient(
                 base_url=base_url,
-                verify=verify,
+                verify=resolved_verify,
                 timeout=resolved_timeout,
                 transport=wrapped_transport,
             )
+        self._close_task: asyncio.Task[None] | None = None
 
     async def request(
         self,
@@ -172,54 +196,109 @@ class HttpClient(Client):
         content: bytes | None = None,
         options: ClientRequestOptions | None = None,
     ) -> RawClientResponse:
-        """Execute an HTTP request and return a raw response only for 2xx outcomes."""
-        request_headers = merge_headers(
-            {"Accept": "application/json"},
+        """Adapt the legacy primitive request surface to canonical execution."""
+        path_parts = urlsplit(path)
+        if path_parts.scheme or path_parts.netloc:
+            try:
+                httpx.URL(path)
+            except httpx.InvalidURL as exc:
+                context = self._context_from_transport_failure(method, path, exc)
+                raise HttpTransportException(context) from exc
+            raise HttpTransportException(
+                HttpErrorContext(
+                    status_code=None,
+                    method=method.value,
+                    url=path,
+                    request_id=None,
+                )
+            )
+        if json_body is not None and content is not None:
+            raise ValueError("request accepts either json_body or content, not both")
+        request_headers = json_request_headers(
             self._default_headers,
             headers,
+            json_body=json_body,
         )
-        if json_body is not None and "content-type" not in {
-            name.lower() for name in request_headers
-        }:
-            request_headers["Content-Type"] = "application/json"
+        endpoint_path = (
+            path_parts.path
+            if path_parts.path.startswith("/")
+            else (f"/{path_parts.path}" if path_parts.path else "/")
+        )
+        if path_parts.fragment:
+            endpoint_path = f"{endpoint_path}#{path_parts.fragment}"
+        query_pairs = [*parse_qsl(path_parts.query, keep_blank_values=True)]
+        if params is not None:
+            query_pairs.extend(params.items())
+        request = HttpRequest(
+            method=method,
+            base_url=self._base_url,
+            endpoint_path=EndpointPath.literal(endpoint_path),
+            query=QueryParams.create(query_pairs),
+            headers=Headers.create(request_headers),
+            body=(
+                JsonBody(json_body)
+                if json_body is not None
+                else RawBody(content)
+                if content is not None
+                else None
+            ),
+            options=options,
+        )
+        return await self.execute(request)
 
-        resolved_timeout = self._resolve_timeout(options)
+    async def execute(self, request: HttpRequest) -> RawClientResponse:
+        """Execute one canonical request without re-composing its URL or body."""
+        request_headers = request.headers.as_dict()
+        json_body = request.body.value if isinstance(request.body, JsonBody) else None
+        content = request.body.content if isinstance(request.body, RawBody) else None
+        if isinstance(request.body, JsonBody) and json_body is None:
+            # httpx treats json=None as an omitted body; canonical JSON null is distinct.
+            content = b"null"
+
+        resolved_timeout = self._resolve_timeout(request.options)
         try:
             if resolved_timeout is None:
-                request = self._client.build_request(
-                    method.value,
-                    path,
+                http_request = self._client.build_request(
+                    request.method.value,
+                    request.url,
                     headers=request_headers,
-                    params=params,
                     json=json_body,
                     content=content,
                 )
             else:
-                request = self._client.build_request(
-                    method.value,
-                    path,
+                http_request = self._client.build_request(
+                    request.method.value,
+                    request.url,
                     headers=request_headers,
-                    params=params,
                     json=json_body,
                     content=content,
                     timeout=resolved_timeout,
                 )
-            self._strip_hidden_default_headers(request, request_headers)
-            response = await self._client.send(request)
+            self._strip_hidden_default_headers(http_request, request_headers)
+            response = await self._client.send(http_request)
         except (httpx.HTTPError, httpx.InvalidURL) as exc:
-            context = self._context_from_transport_failure(method, path, exc)
-            raise HttpTransportException(context) from exc
+            context = self._context_from_transport_failure(request.method, request.url, exc)
+            failure = HttpTransportException(
+                context,
+                failure_kind=self._failure_kind_for(exc),
+            )
+            raise failure from exc
 
         if 200 <= response.status_code < 300:
             return RawClientResponse(
                 status_code=response.status_code,
                 headers=ResponseHeaders(response.headers.multi_items()),
                 content=response.content,
-                method=method,
+                method=request.method,
                 url=str(response.url),
             )
 
-        raise HTTPStatusException(self._context_from_response(response))
+        failure = HTTPStatusException(
+            self._context_from_response(response),
+            failure_kind="response",
+            retry_after=response.headers.get("Retry-After"),
+        )
+        raise failure
 
     async def request_json(
         self,
@@ -260,7 +339,29 @@ class HttpClient(Client):
 
     async def aclose(self) -> None:
         """Close resources owned by the concrete client."""
-        await self._client.aclose()
+        close_task = self._close_task
+        if close_task is None:
+            if self._client.is_closed:
+                return
+            close_task = asyncio.create_task(self._close_owned_client())
+            self._close_task = close_task
+
+        try:
+            await asyncio.shield(close_task)
+        finally:
+            if close_task.done() and self._close_task is close_task:
+                self._close_task = None
+
+    async def _close_owned_client(self) -> None:
+        previous_state = object.__getattribute__(self._client, "_state")
+        try:
+            await self._client.aclose()
+        except BaseException:
+            # httpx marks the client closed before awaiting its transport cleanup.
+            # Restore the prior state so a later facade cleanup can retry a failed
+            # or cancelled close instead of accepting httpx's no-op close path.
+            object.__setattr__(self._client, "_state", previous_state)
+            raise
 
     async def __aenter__(self) -> HttpClient:
         """Return the client instance for async context manager usage."""
@@ -336,3 +437,13 @@ class HttpClient(Client):
         base_url = str(self._client.base_url).rstrip("/")
         safe_path = path if path.startswith("/") else f"/{path}" if path else "/"
         return f"{base_url}{safe_path}"
+
+    def _failure_kind_for(
+        self,
+        error: httpx.HTTPError | httpx.InvalidURL,
+    ) -> Literal["connection", "timeout"] | None:
+        if isinstance(error, httpx.TimeoutException):
+            return "timeout"
+        if isinstance(error, httpx.TransportError):
+            return "connection"
+        return None

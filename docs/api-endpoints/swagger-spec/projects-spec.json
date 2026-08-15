@@ -384,6 +384,85 @@
         }
       }
     },
+    "/modelRepository/projects/{projectId}": {
+      "get": {
+        "summary": "取得單一專案詳細資訊",
+        "operationId": "getProjectById",
+        "tags": [
+          "Projects"
+        ],
+        "description": "根據指定的專案 ID，取得單一專案的詳細資訊。\n\n**HTTP Method**：GET\n\n**路徑 normalization 說明**：\n- repo-local spec 顯示的完整路徑是 `/modelRepository/projects/{projectId}`\n- upstream raw spec `modelRepository-openapi.yml` 使用 service-root 相對路徑\n  `\"/projects/{projectId}\"`\n- 上述差異只是 service root 展開方式不同，不代表 endpoint mismatch\n\n**使用場景**：\n- 已知 `projectId` 時，直接取得專案詳細資訊\n- 作為 `get_champion_model` 前的單一專案查詢基線\n\n**必要 Headers**：\n```\nAuthorization: Bearer {access_token}\nAccept: present（此 topic 的 source-observed gate 只凍結 header 存在，不凍結單一 media type）\n```\n\n**repo-local 可追溯證據**：`tests/unit/request_contract/projects_request_gate/*`\n與 `sasctl._services.model_repository.ModelRepository.get_project` 的 prepared-request capture",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "description": "專案唯一識別碼。",
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-456-abc-789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得單一專案詳細資訊",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectItem"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "單一專案詳細資訊",
+                    "value": {
+                      "id": "proj-456-abc-789",
+                      "name": "Churn_Prediction_Project",
+                      "function": "classification",
+                      "externalProjectId": null,
+                      "candidateChampionHonored": true,
+                      "trainTable": "PUBLIC.CHURN_TRAIN",
+                      "targetVariable": "event",
+                      "targetEventValue": "1",
+                      "targetLevel": "binary",
+                      "eventProbabilityVariable": "P_EVENT1",
+                      "latestVersion": "1",
+                      "status": "development",
+                      "repositoryId": "repo-001",
+                      "folderId": "folder-001",
+                      "links": []
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Version tag returned by upstream `getProject`; preserve it for later `If-Match` concurrency control.\n",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "\"dummy-etag\""
+              }
+            }
+          },
+          "400": {
+            "description": "請求格式錯誤"
+          },
+          "401": {
+            "description": "Bearer Token 驗證失敗"
+          },
+          "404": {
+            "description": "找不到對應的專案"
+          }
+        }
+      }
+    },
     "/modelRepository/projects/{projectId}/champion": {
       "get": {
         "summary": "取得專案的 Champion Model",

@@ -4,9 +4,268 @@ Async Python library scaffold for SAS Viya REST API operations.
 
 ## Status
 
-This repository is currently a **project scaffold**. The package layout, tooling,
-quality gates, and agent-governance files are in place; the public client API is
-not implemented yet.
+此儲存庫提供範圍受限的具體 endpoint-family clients，以及 package root 的
+`MlopsAsyncClient` facade。尚未支援的 endpoint 行為仍屬後續工作。
+
+## MlopsAsyncClient facade
+
+`MlopsAsyncClient` 擁有一個 `HttpClient`、一個 password-grant token endpoint
+協作者、一個 `InMemoryTokenStorage`，以及一個完成 auth 設定的 raw
+`Requester`。其 `.auth`、`.models`、`.projects`、`.cas_tables` 與
+`.job_execution` 屬性是共用同一 runtime 的穩定 client instances。建構與進入
+context 不會執行 HTTP 或 token I/O；首次 authenticated operation 才會 lazy 地解析
+token。
+
+```python
+from mlops_async import MlopsAsyncClient
+
+async with MlopsAsyncClient(
+    base_url="https://viya.example.test",
+    client_id="client-id",
+    client_secret="client-secret",
+    username="user",
+    password="password",
+) as client:
+    projects = await client.projects.list_projects()
+```
+
+此 facade 採用 password grant，並擁有其 HTTP 資源；請以 `aclose()` 或 `async with`
+關閉。它不提供 transport 注入、retry 設定、API key/users namespace 或 release 行為。
+
+The concrete endpoint-family client `AuthClient` has only one supported import:
+`from mlops_async.clients.auth_client import AuthClient`; importing it from the
+package root is unsupported. `get_access_token()` directly awaits one
+`fetch_access_token()` call on the injected `TokenEndpointFetchClientProtocol`.
+`refresh_access_token(token)` fetches once when `token.refresh_token` is absent;
+when it is present, it requires a `TokenEndpointClientProtocol` and directly
+awaits its refresh call. A fetch-only collaborator in that branch, or a
+non-cancellation refresh failure, raises module-public
+`AuthClientRefreshTokenError` (the latter chained from its cause); this error is
+not package-root exported. `AuthClient` has no grant-selection, cache,
+transport-lifecycle, or close behavior.
+
+concrete endpoint-family client `AuthClient` 的唯一支援匯入方式為
+`from mlops_async.clients.auth_client import AuthClient`；不得從 package root
+匯入。`get_access_token()` 僅直接 await 注入的
+`TokenEndpointFetchClientProtocol.fetch_access_token()` 一次。當
+`token.refresh_token` 為 `None` 時，`refresh_access_token(token)` 僅直接 await
+一次 `fetch_access_token()`；否則它必須使用 `TokenEndpointClientProtocol` 並直接
+await refresh call。此分支的 fetch-only collaborator，或非 cancellation refresh
+failure，會 raise module-public `AuthClientRefreshTokenError`（後者保留原始
+cause）；此 error 不從 package root 匯出。`AuthClient` 不含 grant selection、cache、
+transport lifecycle 或 close 行為。
+
+`EndpointFamilyClient` 僅是架構分類，不是 base class、Protocol 或模組。現行的
+`MlopsAsyncClient` 已從 package root 匯出；它以 password-grant 設定建立 `.auth`、
+`.models`、`.projects`、`.cas_tables` 與 `.job_execution`，並擁有 shared transport/auth
+runtime 的 lifecycle。
+
+**v0.18.0 release** closes PR #65 by adding the Projects endpoint-family import
+`mlops_async.clients.projects`. The injected `ProjectsClient` provides
+`list_projects()`, `get_project()`, exact-name `get_project_by_name()` through
+validated sequential pagination, and `get_champion()` metadata. It preserves
+requester error and cancellation semantics. At that release, an aggregate
+facade and Champion content download were out of scope.
+
+**v0.18.0 release** 完成 PR #65，新增 Projects endpoint family import
+`mlops_async.clients.projects`。注入式 `ProjectsClient` 提供
+`list_projects()`、`get_project()`、透過已驗證 sequential pagination 的 exact-name
+`get_project_by_name()`，以及 `get_champion()` metadata。它保留 Requester 的 error
+與 cancellation semantics；在當時的 release scope 中，aggregate facade 與 Champion
+content download 尚未納入。
+
+**v0.16.0 release** closes PR #61 by adding the Models endpoint-family import
+`mlops_async.clients.models`. The injected `ModelsClient` provides bounded,
+single-request `list_models()` and `get_model()` operations with semantic
+models-only value objects, while preserving requester error and cancellation
+semantics. Pagination, content/file operations, and package-root exports remain
+out of scope.
+
+**v0.16.0 release** 完成 PR #61，新增 Models endpoint family import
+`mlops_async.clients.models`。注入式 `ModelsClient` 提供有界、單一 request 的
+`list_models()` 與 `get_model()`，並回傳僅限 models 語意的 Value Objects，同時保留
+Requester 的 error 與 cancellation semantics。pagination、content/file 操作與
+package-root export 仍不在此 release scope。
+
+**v0.15.1 release preparation** corrects password-grant obtain-response
+handling: `refresh_token` may be omitted, in which case it is represented as
+`None`. When the field is present, `null`, blank, and non-string values remain
+invalid. The legacy password-grant re-obtain fallback remains available when no
+refresh token is stored. Viya live E2E requires both `RUN_VIYA_E2E=1` and
+`VIYA_E2E_VPN_CONFIRMED=1`; this preparation does not create a Git tag or
+publish a formal release.
+
+**v0.15.1 release preparation** 修正 password-grant obtain response 的處理：
+`refresh_token` 可省略，缺席時以 `None` 表示；欄位存在時，`null`、空白與非字串
+值仍屬無效。未儲存 refresh token 時，保留既有 password-grant re-obtain fallback。
+Viya live E2E 必須同時設定 `RUN_VIYA_E2E=1` 與
+`VIYA_E2E_VPN_CONFIRMED=1`；此準備工作不會建立 Git tag，也不代表已發佈正式
+release。
+
+As of **v0.13.0**, the repository closes PRs #47 through #50: `HttpClient` now
+supports framework-user-controlled TLS verification through `bool` or
+`ssl.SSLContext`, the real Viya password-token E2E keeps an explicit opt-in and
+anti-fake-success guard, Python-module workflow launchers behave consistently,
+and the repository has a formal single-context `python-ci` quality gate. The
+recorded internal live E2E succeeded with TLS verification explicitly disabled;
+this demonstrates only that the HTTPS password-token request succeeded and does
+not constitute evidence that TLS trust was verified.
+Live E2E remains excluded from both formal `python-ci` and this release's local
+validation.
+
+v0.13.0 完成 PR #47 至 PR #50：`HttpClient` 的 TLS verification 現由框架使用者
+透過 `bool` 或 `ssl.SSLContext` 明確控制；真實 Viya password-token E2E 保留明確
+opt-in 與 anti-fake-success guard；Python module workflow launchers 已一致化；repo
+也建立單一 `python-ci` context 的正式品質 gate。公司內部環境的 live E2E 是在明確
+停用 TLS verification 的情況下成功；這只證明 HTTPS password-token request 成功，
+並不構成 TLS trust 已驗證的證據。Live E2E 仍明確排除於正式 `python-ci` 與本
+release 的 local validation 之外。
+
+As of **v0.12.0**, the repository closes PR #46: the token-endpoint capability family now isolates client-credentials and password grants under `core/token_endpoint`, with `PasswordTokenEndpointClient` obtaining SAS Viya tokens through the password grant while preserving the existing `TokenEndpointClient` compatibility import and auth lifecycle boundaries.
+
+As of **v0.11.17**, the repository closes PR #45: the repo now treats non-authoritative request-contract surfaces as explicit release-governed truth boundaries, adds a repo-visible non-authoritative ledger, keeps wrapper and custom-client request gates as shape baselines only, and downgrades projects_tables_link_request_gate to historical-only usage outside topic-scoped runs, while runtime endpoint implementation, upstream spec expansion, and release-blocker remediation remain outside this release surface.
+As of **v0.11.16**, the repository closes `PR #42`: the repo now centralizes
+request-header policy for JSON-domain requests and token-endpoint requests
+through `src/mlops_async/core/headers.py`, rewires `Requester`,
+`TokenEndpointClient`, and `HttpClient` to consume the shared helpers, and
+normalizes repeated job-execution request-contract `Accept` headers through a
+shared test helper, while keeping public API shape, auth lifecycle policy, and
+content/binary runtime expansion intentionally outside this release surface.
+
+v0.11.16 新增 `PR #42` 的 final release：repo 現在將 JSON-domain requests 與
+token-endpoint requests 的 request-header policy 集中到
+`src/mlops_async/core/headers.py`，並讓 `Requester`、`TokenEndpointClient`、
+`HttpClient` 共用這組 shared helpers，同時把重複的 job execution
+request-contract `Accept` headers 正規化到 shared test helper；public API
+shape、auth lifecycle policy 與 content/binary runtime expansion 仍刻意維持在
+本次 release surface 之外。
+
+As of **v0.11.15**, the repository closes `PR #41`: the repo now includes the
+internal auth spine MVP runtime baseline, with a concrete
+`TokenEndpointClient`, a shared `/SASLogon/oauth/token` endpoint carrier,
+`TokenManager` obtain/reuse/expiry/lock behavior, and proof that the first
+authenticated request lazy-resolves access tokens through
+`Requester -> AuthProvider -> TokenManager`, while public `AuthClient` UX,
+refresh flows, and non-auth endpoint families remain intentionally outside this
+release surface.
+
+v0.11.15 補齊 `PR #41` 的 final release：repo 現已納入 internal auth spine MVP
+runtime baseline，包含 concrete `TokenEndpointClient`、共享的
+`/SASLogon/oauth/token` endpoint carrier、`TokenManager` 的 obtain / reuse /
+expiry / lock 行為，以及第一次 authenticated request 會透過
+`Requester -> AuthProvider -> TokenManager` lazy resolve access token 的證明；
+public `AuthClient` UX、refresh flow 與非 auth endpoint family 仍維持在本次
+release surface 之外。
+
+As of **v0.11.14**, the repository closes `PR #40`: the repo now includes the
+docs-only auth public-surface baseline for Option B, with `PackageLevelClient`
+together with `client.auth` / `client.projects` / `client.models` / `client.jobs` /
+`client.tables` as the parallel family shape, `TokenEndpointClient` as the
+internal token endpoint collaborator, and the lazy auth lifecycle / requester
+boundary documentation aligned, while runtime auth wiring and concrete
+`AuthClient` method implementation remain intentionally outside this release
+surface.
+
+v0.11.14 補齊 `PR #40` 的文件化 release：repo 現已納入 Option B 的 docs-only auth
+public surface baseline，固定 `PackageLevelClient` 搭配 `client.auth` /
+`client.projects` / `client.models` / `client.jobs` / `client.tables` 的平行
+family shape，並將 `TokenEndpointClient`、lazy auth lifecycle 與 requester
+boundary 寫入文件；runtime auth wiring 與具體 `AuthClient` method 實作仍維持在本次
+release surface 之外。
+
+As of **v0.11.13**, the repository closes the
+`request-gate-casmanagement-change-table-state` release follow-up: the repo now
+includes the bounded request-only / shape-only request gate for
+`PUT /casManagement/servers/cas-shared-default/caslibs/{caslib}/tables/{tableName}/state`
+(`change_table_state`) with the `value=loaded` baseline and the matching
+`{"outputCaslibName", "outputTableName"}` body contract, while `unloaded`,
+broader CAS lifecycle semantics, and runtime CAS wiring remain intentionally
+outside this release surface.
+
+v0.11.13 補齊 `request-gate-casmanagement-change-table-state` 的 final release：
+repo 現已納入
+`PUT /casManagement/servers/cas-shared-default/caslibs/{caslib}/tables/{tableName}/state`
+(`change_table_state`) 的 bounded request-only / shape-only request gate，
+正向 baseline 固定為 `value=loaded`，且 request body 必須對齊
+`outputCaslibName` / `outputTableName`；`unloaded`、更廣的 CAS lifecycle
+semantics 與 runtime CAS wiring 仍維持在本次 release surface 之外。
+
+As of **v0.11.12**, the repository closes the
+`request-gate-casmanagement-get-table` release follow-up: the repo now
+includes the bounded request-only / shape-only request gate for
+`GET /casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables/{tableName}`
+(`get_table`) with the direct `{caslib} + {tableName}` baseline, while query
+params, request-body drift, `change_table_state`, and runtime CAS wiring remain
+intentionally outside this release surface.
+
+v0.11.12 補齊 `request-gate-casmanagement-get-table` 的 final release：repo 現已納入
+`GET /casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables/{tableName}`
+(`get_table`) 的 bounded request-only / shape-only request gate，正向 baseline
+固定為 direct `{caslib} + {tableName}`；query params、request-body drift、
+`change_table_state` 與 runtime CAS wiring 仍維持在本次 release surface 之外。
+
+As of **v0.11.11**, the repository closes the
+`request-gate-casmanagement-list-tables` release follow-up: the repo now
+includes the bounded request-only / shape-only request gate for
+`casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables`
+(`list_tables`) with the strict `limit=1000&start=0` baseline, while bare GET,
+broader pagination semantics, `get_table`, `change_table_state`, and runtime
+CAS wiring remain intentionally outside this release surface.
+
+v0.11.11 補齊 `request-gate-casmanagement-list-tables` 的 final release：
+repo 現已納入
+`casManagement/dataSources/cas~fs~cas-shared-default~fs~{caslib}/tables`
+(`list_tables`) 的 bounded request-only / shape-only request gate，並凍結
+strict `limit=1000&start=0` baseline；bare GET、較大的 pagination semantics、
+`get_table`、`change_table_state` 與 runtime CAS wiring 仍維持在本次 release
+surface 之外。
+
+As of **v0.11.10**, the repository closes the
+`request-gate-saslogon-refresh-access-token` release follow-up: the repo now
+includes the bounded request-only / shape-only request gate for
+`SASLogon/oauth/token` (`refresh_access_token`) with the `refresh_token`
+grant baseline, while `scope`, `client_id` / `client_secret` refresh variants,
+and runtime auth wiring remain intentionally outside this release surface.
+
+v0.11.10 補齊 `request-gate-saslogon-refresh-access-token` 的 final release：
+repo 現已納入 `SASLogon/oauth/token` (`refresh_access_token`) 的 bounded
+request-only / shape-only request gate，並凍結 `refresh_token` baseline；
+`scope`、`client_id` / `client_secret` refresh variants 與 runtime auth wiring
+仍維持在本次 release surface 之外。
+
+As of **v0.11.9**, the repository closes the
+`request-gate-saslogon-obtain-access-token` release follow-up: the repo now
+includes the bounded request-only / shape-only request gate for
+`SASLogon/oauth/token` (`obtain_access_token`) with the `client_credentials`
+grant baseline, while `scope`, refresh-grant behavior, and runtime auth wiring
+remain intentionally outside this release surface.
+
+v0.11.9 補齊 `request-gate-saslogon-obtain-access-token` 的 final release：
+repo 現已納入 `SASLogon/oauth/token` (`obtain_access_token`) 的 bounded
+request-only / shape-only request gate，並凍結 `client_credentials` baseline；
+`scope`、refresh grant 行為與 runtime auth wiring 仍維持在本次 release
+surface 之外。
+
+As of **v0.11.8**, the repository closes `PR #36`: the repo now includes the
+fixed-path MVP request gate for
+`modelRepository/projects/{project_id}/tables` (`list_tables`), with the
+intentional divergence from upstream HATEOAS link following kept explicit and
+outside this release surface.
+
+v0.11.8 補齊 `PR #36` 的 final release：repo 現在納入
+`modelRepository/projects/{project_id}/tables` (`list_tables`) 的 fixed-path
+MVP request gate，並明確保留與 upstream HATEOAS link-following 行為的
+intentional divergence；該差異不在本次 release surface 內回補。
+
+As of **v0.11.7**, the repository closes `PR #35`: the repo now includes the
+`jobExecution/jobs/{jobId}/state` (`get_job_state`) bounded request-only /
+shape-only request gate, while the broader polling / state-machine workflow
+remains intentionally separated from this release surface.
+
+v0.11.7 補齊 `PR #35` 的 final release：
+repo 現已納入 `jobExecution/jobs/{jobId}/state` (`get_job_state`) 的 bounded
+request-only / shape-only request gate；較大的 polling / state-machine
+workflow 仍維持為獨立邊界，不併入本次 release surface。
 
 As of **v0.11.6**, the repository closes `PR #34`: the repo now includes the
 request-only / shape-only request gate for
@@ -188,6 +447,7 @@ boundary context document for future planning and review work.
 for the dependency diagrams, component responsibilities, Authorization
 collision policy, refresh / expiry / lock contract, and mismatch-stop rule,
 while `docs/ARCHITECTURE.md` now links to it as the overview entry point. 這讓
+`core/headers.py` 現在作為 JSON-domain requests 與 token-endpoint requests 的 shared request-header policy surface，而 `Requester` 仍持有 auth merge 與 Authorization-conflict behavior。
 後續 auth-boundary 相關 topic 不必再重複口頭對齊同一套設計。
 
 v0.10.1 新增 **http-client-auth-boundary-context-doc** 主題，將
@@ -357,6 +617,26 @@ uv run pyright
 uv run ruff check .
 uv run ruff format .
 uv run tach check
+```
+
+### Cross-platform pre-commit hooks
+
+Windows Git 與 WSL 共用同一個 worktree 時，請在每個 checkout 執行一次：
+
+```bash
+./scripts/install-repo-hooks.sh
+```
+
+此指令設定 `core.hooksPath=.githooks`，讓 Git 使用版本控制的 LF hook，而非
+任一作業系統寫入共享 `.git/hooks/pre-commit` 的 OS 專屬版本。hook 會以
+PATH 中的 `pre-commit` 執行既有設定；Windows 與 WSL 都須各自安裝
+`pre-commit`（例如 `uv tool install pre-commit==4.6.1`）。
+
+不要在共用 worktree 執行 `pre-commit install`，因為它會覆寫共享 hook。若要
+回復 Git 預設 hooks 路徑，執行：
+
+```bash
+git config --unset-all core.hooksPath
 ```
 
 ## Structural guardrails

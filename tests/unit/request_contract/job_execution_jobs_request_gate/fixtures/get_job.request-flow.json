@@ -12,5 +12,32 @@
         }
       ]
     }
+  },
+  "source": {
+    "sdk": "internal wrapper",
+    "function": "get_job",
+    "contract_status": "wrapper shape baseline",
+    "classification": "internal-wrapper",
+    "divergence_label": "shape-only",
+    "authority_class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline"
+  },
+  "authority": {
+    "class": "non-authoritative-shape-only",
+    "allowed_use": "keep-as-shape-baseline",
+    "forbidden_use": [
+      "upstream source truth",
+      "endpoint discovery"
+    ]
+  },
+  "reviewer_boundary": {
+    "claims": [
+      "repo-local wrapper request-shape baseline only"
+    ],
+    "does_not_prove": [
+      "upstream source truth",
+      "runtime behavior",
+      "response schema"
+    ]
   }
 }

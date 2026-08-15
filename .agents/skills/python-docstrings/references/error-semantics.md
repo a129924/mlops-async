@@ -17,13 +17,13 @@ Use the `Raises:` section to document each exception type and the condition that
 ```python
 def fetch_user(user_id: int) -> User:
     """Return the user with the given ID.
-    
+
     Args:
         user_id: A positive integer user ID.
-    
+
     Returns:
         User: The user object.
-    
+
     Raises:
         UserNotFound: If no user exists with the given ID.
         InvalidUserID: If user_id is not a positive integer.
@@ -44,13 +44,13 @@ def fetch_user(user_id: int) -> User:
 ```python
 def read_file(file_path: str) -> str:
     """Return the contents of a file.
-    
+
     Args:
         file_path: Path to the file to read.
-    
+
     Returns:
         str: The file contents as a single string.
-    
+
     Raises:
         FileNotFoundError: If the file does not exist.
         PermissionError: If the file is not readable due to permissions.
@@ -82,10 +82,10 @@ from typing import Union
 
 def authenticate(token: str) -> Union[User, AuthError]:
     """Authenticate using a token; return user or error.
-    
+
     Args:
         token: A JWT-formatted authentication token.
-    
+
     Returns:
         User: On successful authentication; populated with id, email, roles.
         AuthError: On authentication failure; includes error_code and message.
@@ -108,15 +108,15 @@ from result import Ok, Err, Result
 
 def create_user(name: str, email: str) -> Result[User, ValidationError]:
     """Create a user with the given name and email.
-    
+
     Args:
         name: User's full name. Must be non-empty.
         email: User's email address. Must be valid format.
-    
+
     Returns:
         Ok(User): On success; user object with assigned ID.
         Err(ValidationError): On failure; includes field name and error message.
-            Possible error messages: 'name is empty', 'email is invalid format', 
+            Possible error messages: 'name is empty', 'email is invalid format',
             'email already exists'.
     """
 ```
@@ -137,13 +137,13 @@ class Failure:
 
 def authenticate(token: str) -> Success | Failure:
     """Authenticate using a token.
-    
+
     Args:
         token: A JWT authentication token.
-    
+
     Returns:
         Success: On successful authentication; contains the authenticated User.
-        Failure: On authentication failure; contains error_code ('invalid_token', 
+        Failure: On authentication failure; contains error_code ('invalid_token',
             'expired_token', 'no_matching_user') and human-readable message.
     """
 ```
@@ -179,19 +179,19 @@ A callable may raise **exceptions for truly exceptional cases** while returning 
 ```python
 def process_payment(order_id: int, amount: float) -> Result[Payment, PaymentError]:
     """Process a payment for an order.
-    
-    Validates the order and amount, then submits to the payment processor. 
+
+    Validates the order and amount, then submits to the payment processor.
     Returns a result indicating success or business-level failure.
-    
+
     Args:
         order_id: A positive integer order ID.
         amount: Payment amount in dollars. Must be positive.
-    
+
     Returns:
         Ok(Payment): On successful payment processing; includes transaction ID.
-        Err(PaymentError): On business-level failure (insufficient funds, 
+        Err(PaymentError): On business-level failure (insufficient funds,
             declined card, etc.); includes error code and recoverable message.
-    
+
     Raises:
         OrderNotFound: If the order does not exist (data integrity failure).
         InvalidAmount: If amount is not positive (caller error).
@@ -213,7 +213,7 @@ def process_payment(order_id: int, amount: float) -> Result[Payment, PaymentErro
 ```python
 def delete_user(user_id: int) -> None:
     """Delete a user.
-    
+
     Raises:
         Exception: If something goes wrong.
     """
@@ -228,10 +228,10 @@ def delete_user(user_id: int) -> None:
 ```python
 def delete_user(user_id: int) -> None:
     """Delete a user.
-    
+
     Args:
         user_id: A positive integer user ID.
-    
+
     Raises:
         UserNotFound: If no user exists with the given ID.
         PermissionError: If the caller lacks permission to delete this user.
@@ -246,7 +246,7 @@ def delete_user(user_id: int) -> None:
 ```python
 def find_user(user_id: int) -> User | None:
     """Find a user by ID.
-    
+
     Raises:
         UserNotFound: If user is not found.
     """
@@ -269,7 +269,7 @@ def find_user(user_id: int) -> User | None:
 ```python
 def find_user(user_id: int) -> User:
     """Return the user with the given ID.
-    
+
     Raises:
         UserNotFound: If no user exists with the given ID.
     """
@@ -292,10 +292,10 @@ def validate_email(email: str) -> Result[Email, ValidationError]:
 ```python
 def validate_email(email: str) -> Result[Email, ValidationError]:
     """Validate an email address.
-    
+
     Returns:
         Ok(Email): On successful validation; email is well-formed and unique.
-        Err(ValidationError): On validation failure; includes error_code 
+        Err(ValidationError): On validation failure; includes error_code
             ('invalid_format', 'too_long', 'already_exists') and message.
     """
 ```
