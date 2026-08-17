@@ -1,4 +1,4 @@
-# Windows WSL pre-commit bridge
+# Windows WSL pre-commit bridge 操作指南
 
 ## 目的與範圍
 
@@ -62,12 +62,14 @@ bridge 會先確認以下 Linux executable 存在：
 .venv/bin/python
 ```
 
+bridge 在解碼 payload 前也會確認選定 WSL distro 的 `base64` 位於 `PATH`；缺少時會以明確訊息非零停止，且沒有 Windows Python fallback。
+
 然後只執行：
 
 ```text
 uv run --frozen --no-sync python -m pre_commit hook-impl --config=.pre-commit-config.yaml --hook-type=pre-commit -- <hook arguments>
 ```
 
-hook arguments 與子程序 exit code 都會原樣傳遞。任何 Git、worktree config、WSL、distro、`wslpath`、Linux virtualenv、`uv` 或 pre-commit 失敗都會非零停止，不會改用 Windows Python、`--local`、`.git/hooks` 或自動修正設定。
+hook arguments 與子程序 exit code 都會原樣傳遞。任何 Git、worktree config、WSL、distro、`wslpath`、Linux virtualenv、`base64`、`uv` 或 pre-commit 失敗都會非零停止，不會改用 Windows Python、`--local`、`.git/hooks` 或自動修正設定。
 
 formatter 若回寫 Windows worktree 的檔案，pre-commit 依既有行為會讓當次 commit 失敗。使用者必須檢視並重新 stage 寫回的檔案後，才可重試 commit。

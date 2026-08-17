@@ -142,6 +142,12 @@ if ($availabilityExitCode -ne 0) {
     throw "Checking WSL distro availability failed for WSL distro '$distro' (exit $availabilityExitCode): $($availabilityOutput -join [Environment]::NewLine)"
 }
 
+$base64Output = @(& wsl.exe -d $distro -- sh -lc 'command -v base64' 2>&1)
+$base64ExitCode = $LASTEXITCODE
+if ($base64ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace(($base64Output -join '').Trim())) {
+    throw "WSL pre-commit bridge requires base64 on PATH inside WSL distro '$distro' (exit $base64ExitCode); no Windows Python fallback is available: $($base64Output -join [Environment]::NewLine)"
+}
+
 $linuxWorkTree = Invoke-WslValue -Distro $distro -Arguments @('wslpath', '-a', '--', $windowsWorkTree) -Description 'Converting the Windows Git worktree root with wslpath'
 $linuxGitDir = Invoke-WslValue -Distro $distro -Arguments @('wslpath', '-a', '--', $windowsGitDir) -Description 'Converting the Windows Git directory with wslpath'
 
