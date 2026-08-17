@@ -2,6 +2,47 @@
 
 set -eu
 
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+config_dir=$(mktemp -d "${TMPDIR:-/tmp}/wsl-pre-commit-config.XXXXXX") || {
+    echo 'pre-commit hook could not create a temporary directory for configuration parsing.' >&2
+    exit 1
+}
+
+cleanup() {
+    rm -f -- "$config_dir/runner" "$config_dir/error"
+    rmdir -- "$config_dir" 2>/dev/null || true
+}
+
+trap cleanup EXIT HUP INT TERM
+
+if git config --worktree --get-all hooks.wslRunner >"$config_dir/runner" 2>"$config_dir/error"; then
+    runner_count=$(awk 'END { print NR }' "$config_dir/runner")
+    if [ "$runner_count" -ne 1 ]; then
+        echo 'pre-commit hook requires exactly one non-empty hooks.wslRunner worktree value.' >&2
+        exit 1
+    fi
+
+    runner_value=$(cat "$config_dir/runner")
+    case "$runner_value" in
+        true)
+            exec powershell.exe -NoProfile -File "$script_dir/wsl-pre-commit-bridge.ps1" "$@"
+            ;;
+        false)
+            ;;
+        *)
+            echo 'pre-commit hook accepts hooks.wslRunner worktree values only: true or false.' >&2
+            exit 1
+            ;;
+    esac
+else
+    config_status=$?
+    if [ "$config_status" -ne 1 ] || [ -s "$config_dir/error" ]; then
+        echo 'pre-commit hook could not read hooks.wslRunner from the current worktree configuration.' >&2
+        cat "$config_dir/error" >&2
+        exit 1
+    fi
+fi
+
 if ! command -v pre-commit >/dev/null 2>&1; then
     echo 'pre-commit hook requires pre-commit on PATH.' >&2
     exit 1
