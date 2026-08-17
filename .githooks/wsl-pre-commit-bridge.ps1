@@ -101,18 +101,29 @@ function Invoke-WslValue {
 }
 
 function Get-DefaultWslDistro {
-    $output = @(& wsl.exe -- sh -lc 'printf %s "$WSL_DISTRO_NAME"' 2>&1)
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        throw "Could not determine the WSL default distro (exit $exitCode): $($output -join [Environment]::NewLine)"
-    }
+    $stdoutPath = [System.IO.Path]::GetTempFileName()
+    $stderrPath = [System.IO.Path]::GetTempFileName()
+    try {
+        & wsl.exe -- sh -lc 'printf %s "$WSL_DISTRO_NAME"' 1> $stdoutPath 2> $stderrPath
+        $exitCode = $LASTEXITCODE
+        $stdout = [System.IO.File]::ReadAllText($stdoutPath)
+        $stderr = [System.IO.File]::ReadAllText($stderrPath).Trim()
 
-    $distro = ($output -join '').Trim()
-    if ([string]::IsNullOrWhiteSpace($distro)) {
-        throw 'Could not determine a non-empty WSL default distro.'
-    }
+        if ($exitCode -ne 0) {
+            $diagnostic = if ($stderr.Length -gt 0) { $stderr } else { '<no stderr output>' }
+            throw "Could not determine the WSL default distro (exit $exitCode); stderr: $diagnostic"
+        }
 
-    return $distro
+        $values = @($stdout -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        if ($values.Count -ne 1) {
+            throw 'Could not determine exactly one non-empty WSL default distro from stdout.'
+        }
+
+        return [string]$values[0]
+    }
+    finally {
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+    }
 }
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -150,12 +161,25 @@ if ($base64ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace(($base64Output -join 
 
 $linuxWorkTree = Invoke-WslValue -Distro $distro -Arguments @('wslpath', '-a', '--', $windowsWorkTree) -Description 'Converting the Windows Git worktree root with wslpath'
 $linuxGitDir = Invoke-WslValue -Distro $distro -Arguments @('wslpath', '-a', '--', $windowsGitDir) -Description 'Converting the Windows Git directory with wslpath'
+$linuxGitIndexFile = ''
+if (Test-Path -LiteralPath 'Env:GIT_INDEX_FILE') {
+    $windowsGitIndexFile = [Environment]::GetEnvironmentVariable('GIT_INDEX_FILE', 'Process')
+    if ([string]::IsNullOrWhiteSpace($windowsGitIndexFile) -or $windowsGitIndexFile -notmatch '^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+)') {
+        throw 'GIT_INDEX_FILE is set but is not an absolute Windows path; refusing to run the WSL pre-commit bridge.'
+    }
+
+    $linuxGitIndexFile = Invoke-WslValue -Distro $distro -Arguments @('wslpath', '-a', '--', $windowsGitIndexFile) -Description 'Converting GIT_INDEX_FILE with wslpath'
+    if (-not $linuxGitIndexFile.StartsWith('/')) {
+        throw 'Converting GIT_INDEX_FILE with wslpath did not produce an absolute Linux path; refusing to run the WSL pre-commit bridge.'
+    }
+}
 
 $bashScript = @'
 set -eu
 worktree=$1
 gitdir=$2
-shift 2
+gitindex=$3
+shift 3
 
 if [ ! -x "$worktree/.venv/bin/python" ]; then
     echo "WSL pre-commit bridge requires executable Linux virtualenv Python: $worktree/.venv/bin/python" >&2
@@ -165,6 +189,11 @@ fi
 cd "$worktree"
 export GIT_DIR="$gitdir"
 export GIT_WORK_TREE="$worktree"
+if [ -n "$gitindex" ]; then
+    export GIT_INDEX_FILE="$gitindex"
+else
+    unset GIT_INDEX_FILE
+fi
 exec uv run --frozen --no-sync python -m pre_commit hook-impl --config=.pre-commit-config.yaml --hook-type=pre-commit -- "$@"
 '@
 
@@ -172,7 +201,7 @@ $encodedBashScript = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetB
 $bashWrapper = 'printf %s "$1" | base64 -d | bash -s -- "${@:2}"'
 $wslArguments = @(
     '-d', $distro, '--exec', 'bash', '-lc', $bashWrapper,
-    'wsl-pre-commit-bridge', $encodedBashScript, $linuxWorkTree, $linuxGitDir
+    'wsl-pre-commit-bridge', $encodedBashScript, $linuxWorkTree, $linuxGitDir, $linuxGitIndexFile
 ) + $HookArguments
 
 & wsl.exe @wslArguments
