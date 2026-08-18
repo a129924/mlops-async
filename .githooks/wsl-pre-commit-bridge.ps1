@@ -164,8 +164,27 @@ $linuxGitDir = Invoke-WslValue -Distro $distro -Arguments @('wslpath', '-a', '--
 $linuxGitIndexFile = ''
 if (Test-Path -LiteralPath 'Env:GIT_INDEX_FILE') {
     $windowsGitIndexFile = [Environment]::GetEnvironmentVariable('GIT_INDEX_FILE', 'Process')
-    if ([string]::IsNullOrWhiteSpace($windowsGitIndexFile) -or $windowsGitIndexFile -notmatch '^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+)') {
-        throw 'GIT_INDEX_FILE is set but is not an absolute Windows path; refusing to run the WSL pre-commit bridge.'
+    if ([string]::IsNullOrWhiteSpace($windowsGitIndexFile)) {
+        throw 'GIT_INDEX_FILE is set but is empty; refusing to run the WSL pre-commit bridge.'
+    }
+
+    if ($windowsGitIndexFile -notmatch '^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+)') {
+        if ($windowsGitIndexFile -match '^(?:[A-Za-z]:|[\\/])') {
+            throw 'GIT_INDEX_FILE is set but is not an absolute Windows path or a valid relative path; refusing to run the WSL pre-commit bridge.'
+        }
+
+        try {
+            $windowsGitIndexFile = [System.IO.Path]::GetFullPath(
+                [System.IO.Path]::Combine($windowsWorkTree, $windowsGitIndexFile)
+            )
+        }
+        catch {
+            throw "GIT_INDEX_FILE could not be resolved from the Windows Git worktree root; refusing to run the WSL pre-commit bridge: $($_.Exception.Message)"
+        }
+    }
+
+    if ($windowsGitIndexFile -notmatch '^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+)') {
+        throw 'GIT_INDEX_FILE did not resolve to an absolute Windows path; refusing to run the WSL pre-commit bridge.'
     }
 
     $linuxGitIndexFile = Invoke-WslValue -Distro $distro -Arguments @('wslpath', '-a', '--', $windowsGitIndexFile) -Description 'Converting GIT_INDEX_FILE with wslpath'
@@ -198,7 +217,7 @@ exec uv run --frozen --no-sync python -m pre_commit hook-impl --config=.pre-comm
 '@
 
 $encodedBashScript = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($bashScript))
-$bashWrapper = 'printf %s "$1" | base64 -d | bash -s -- "${@:2}"'
+$bashWrapper = 'set -o pipefail; printf %s "$1" | base64 -d | bash -s -- "${@:2}"'
 $wslArguments = @(
     '-d', $distro, '--exec', 'bash', '-lc', $bashWrapper,
     'wsl-pre-commit-bridge', $encodedBashScript, $linuxWorkTree, $linuxGitDir, $linuxGitIndexFile
