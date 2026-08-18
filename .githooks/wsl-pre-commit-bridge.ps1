@@ -86,18 +86,29 @@ function Invoke-WslValue {
         [string]$Description
     )
 
-    $output = @(& wsl.exe -d $Distro -- @Arguments 2>&1)
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        throw "$Description failed for WSL distro '$Distro' (exit $exitCode): $($output -join [Environment]::NewLine)"
-    }
+    $stdoutPath = [System.IO.Path]::GetTempFileName()
+    $stderrPath = [System.IO.Path]::GetTempFileName()
+    try {
+        & wsl.exe -d $Distro -- @Arguments 1> $stdoutPath 2> $stderrPath
+        $exitCode = $LASTEXITCODE
+        $stdout = [System.IO.File]::ReadAllText($stdoutPath)
+        $stderr = [System.IO.File]::ReadAllText($stderrPath).Trim()
 
-    $values = @($output | Where-Object { $_ -is [string] -and $_.Length -gt 0 })
-    if ($values.Count -ne 1) {
-        throw "$Description must produce exactly one non-empty value for WSL distro '$Distro'."
-    }
+        if ($exitCode -ne 0) {
+            $diagnostic = if ($stderr.Length -gt 0) { $stderr } else { '<no stderr output>' }
+            throw "$Description failed for WSL distro '$Distro' (exit $exitCode); stderr: $diagnostic"
+        }
 
-    return [string]$values[0]
+        $values = @($stdout -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        if ($values.Count -ne 1) {
+            throw "$Description must produce exactly one non-empty value from stdout for WSL distro '$Distro'."
+        }
+
+        return [string]$values[0]
+    }
+    finally {
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Get-DefaultWslDistro {
@@ -162,6 +173,13 @@ if ($base64ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace(($base64Output -join 
 $linuxWorkTree = Invoke-WslValue -Distro $distro -Arguments @('wslpath', '-a', '--', $windowsWorkTree) -Description 'Converting the Windows Git worktree root with wslpath'
 $linuxGitDir = Invoke-WslValue -Distro $distro -Arguments @('wslpath', '-a', '--', $windowsGitDir) -Description 'Converting the Windows Git directory with wslpath'
 $linuxGitIndexFile = ''
+$windowsSkip = [Environment]::GetEnvironmentVariable('SKIP', 'Process')
+$skipForWsl = if ([string]::IsNullOrEmpty($windowsSkip)) {
+    'unset'
+}
+else {
+    'value:' + [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($windowsSkip))
+}
 if (Test-Path -LiteralPath 'Env:GIT_INDEX_FILE') {
     $windowsGitIndexFile = [Environment]::GetEnvironmentVariable('GIT_INDEX_FILE', 'Process')
     if ([string]::IsNullOrWhiteSpace($windowsGitIndexFile)) {
@@ -195,10 +213,15 @@ if (Test-Path -LiteralPath 'Env:GIT_INDEX_FILE') {
 
 $bashScript = @'
 set -eu
+if [ "$#" -lt 4 ]; then
+    echo "WSL pre-commit bridge requires four metadata arguments" >&2
+    exit 1
+fi
 worktree=$1
 gitdir=$2
 gitindex=$3
-shift 3
+skip_payload=$4
+shift 4
 
 if [ ! -x "$worktree/.venv/bin/python" ]; then
     echo "WSL pre-commit bridge requires executable Linux virtualenv Python: $worktree/.venv/bin/python" >&2
@@ -213,6 +236,19 @@ if [ -n "$gitindex" ]; then
 else
     unset GIT_INDEX_FILE
 fi
+case "$skip_payload" in
+    unset)
+        unset SKIP
+        ;;
+    value:*)
+        skip=$(printf %s "${skip_payload#value:}" | base64 -d)
+        export SKIP="$skip"
+        ;;
+    *)
+        echo "WSL pre-commit bridge received an invalid SKIP payload" >&2
+        exit 1
+        ;;
+esac
 exec uv run --frozen --no-sync python -m pre_commit hook-impl --config=.pre-commit-config.yaml --hook-type=pre-commit -- "$@"
 '@
 
@@ -220,7 +256,7 @@ $encodedBashScript = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetB
 $bashWrapper = 'set -o pipefail; printf %s "$1" | base64 -d | bash -s -- "${@:2}"'
 $wslArguments = @(
     '-d', $distro, '--exec', 'bash', '-lc', $bashWrapper,
-    'wsl-pre-commit-bridge', $encodedBashScript, $linuxWorkTree, $linuxGitDir, $linuxGitIndexFile
+    'wsl-pre-commit-bridge', $encodedBashScript, $linuxWorkTree, $linuxGitDir, $linuxGitIndexFile, $skipForWsl
 ) + $HookArguments
 
 & wsl.exe @wslArguments

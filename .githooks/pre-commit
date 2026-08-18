@@ -37,6 +37,8 @@ if [ "$worktree_config_enabled" = true ]; then
         runner_value=$(cat "$config_dir/runner")
         case "$runner_value" in
             true)
+                cleanup
+                trap - EXIT HUP INT TERM
                 exec powershell.exe -NoProfile -File "$script_dir/wsl-pre-commit-bridge.ps1" "$@"
                 ;;
             false)
