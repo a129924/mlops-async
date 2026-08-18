@@ -12,7 +12,7 @@ import mlops_async.transport.http_client as transport_http_client
 from mlops_async.core.client import Client
 from mlops_async.core.http_request import HttpRequest
 from mlops_async.core.request_execution import RequestExecutor, RequestFailureClassifier
-from mlops_async.core.types import JSONValue, RawClientResponse
+from mlops_async.core.types import RawClientResponse
 
 
 def _http_client_class() -> type[Client]:
@@ -28,7 +28,8 @@ def test_client_protocol_uses_repo_owned_types_only() -> None:
 
     assert request_signature.parameters["options"].name == "options"
     assert request_hints["return"] is RawClientResponse
-    assert request_json_hints["return"] == JSONValue
+    assert Client.request_json.__annotations__["return"] == "JSONValue"
+    assert "return" in request_json_hints
     assert "httpx" not in inspect.getsource(core_client)
 
 

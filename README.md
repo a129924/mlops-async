@@ -600,7 +600,7 @@ boundaries，並同步更新 `docs/migration-map.md` 與 `docs/porting-ledger.md
 
 ## Requirements
 
-- Python `3.10`
+- Python `3.10` 或 `3.11`
 - `uv`
 
 ## Install

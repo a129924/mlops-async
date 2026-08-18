@@ -58,3 +58,46 @@ jobs:
         run: >-
           uv run --frozen python -m pre_commit run --all-files
           --show-diff-on-failure
+
+  python-311-ci:
+    name: python-311-ci
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: "0.11.31"
+          python-version: "3.11"
+
+      - name: Sync frozen dependencies
+        run: uv sync --frozen
+
+      - name: Check formatting
+        run: uv run --frozen python -m ruff format --check .
+
+      - name: Lint
+        run: uv run --frozen python -m ruff check .
+
+      - name: Type check
+        run: uv run --frozen python -m pyright
+
+      - name: Check architecture
+        run: uv run --frozen python -m tach check
+
+      - name: Run tests with coverage
+        run: >-
+          uv run --frozen python -m pytest -m "not viya_e2e"
+          --cov=src/mlops_async --cov-fail-under=90
+          --cov-report=term-missing
+          --cov-report=json:.coverage-reports/coverage.json
+
+      - name: Run remaining pre-commit hygiene checks
+        env:
+          SKIP: ruff,ruff-format,tach-check,pytest,coverage-check,pyright-strict
+        run: >-
+          uv run --frozen python -m pre_commit run --all-files
+          --show-diff-on-failure
